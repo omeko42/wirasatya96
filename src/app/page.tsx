@@ -297,18 +297,28 @@ export default function Home() {
           const consumedMemberOvNrps = new Set<string>();
           const consumedUserOvNrps = new Set<string>();
 
+          const memberOvByBaseName = new Map<string, AnggotaWiraSatya>();
+          Object.values(memberOverrides).forEach((ov) => {
+            if (!ov || !ov.nrp) return;
+            const bName = getBasePersonName(ov.namaLengkap);
+            if (bName && !memberOvByBaseName.has(bName)) memberOvByBaseName.set(bName, ov);
+          });
+
+          const userOvByBaseName = new Map<string, any>();
+          Object.values(userOverrides).forEach((ov: any) => {
+            if (!ov || !ov.nrp) return;
+            const bName = getBasePersonName(ov.nama);
+            if (bName && !userOvByBaseName.has(bName)) userOvByBaseName.set(bName, ov);
+          });
+
           let sanitizedMembers = activeServerList.map((m: AnggotaWiraSatya) => {
             const mBaseName = getBasePersonName(m.namaLengkap);
             const isAlumniSlot = Boolean(m.id?.startsWith('ws-7409'));
 
-            let localOverride = Object.values(memberOverrides).find(
-              (ov) =>
-                ov &&
-                ov.nrp &&
-                !consumedMemberOvNrps.has(ov.nrp) &&
-                mBaseName &&
-                getBasePersonName(ov.namaLengkap) === mBaseName
-            );
+            let localOverride = mBaseName ? memberOvByBaseName.get(mBaseName) : undefined;
+            if (localOverride && (!localOverride.nrp || consumedMemberOvNrps.has(localOverride.nrp))) {
+              localOverride = undefined;
+            }
             if (!localOverride) {
               const cand = memberOverrides[m.nrp] || (m.oldNrp ? memberOverrides[m.oldNrp] : undefined);
               if (
@@ -322,14 +332,10 @@ export default function Home() {
             }
             if (localOverride?.nrp) consumedMemberOvNrps.add(localOverride.nrp);
 
-            let uOverride = Object.values(userOverrides).find(
-              (ov: any) =>
-                ov &&
-                ov.nrp &&
-                !consumedUserOvNrps.has(ov.nrp) &&
-                mBaseName &&
-                getBasePersonName(ov.nama) === mBaseName
-            );
+            let uOverride = mBaseName ? userOvByBaseName.get(mBaseName) : undefined;
+            if (uOverride && (!uOverride.nrp || consumedUserOvNrps.has(uOverride.nrp))) {
+              uOverride = undefined;
+            }
             if (!uOverride) {
               const candU =
                 userOverrides[m.nrp] ||

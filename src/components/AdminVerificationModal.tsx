@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   AnggotaWiraSatya,
   AuthUser,
@@ -12,7 +12,7 @@ import {
   DAFTAR_PANGKAT_POLRI,
   StatusKedinasan,
 } from '@/types';
-import { ROLE_PERMISSIONS } from '@/data/mockUsers';
+import { ROLE_PERMISSIONS, PRESET_USERS } from '@/data/mockUsers';
 import { PURGED_NON_1996_BASE_NAMES, AKPOL_1996_MEMBERS } from '@/data/akpol1996Alumni';
 import { SatkerBerjenjangModal, SatkerSelectionResult } from './SatkerBerjenjangModal';
 import { SortModalPopup, SortTriggerBar, UnifiedSortKey } from './SortModalPopup';
@@ -98,6 +98,38 @@ const DELETE_REASON_PRESETS = [
 
 const PANGKAT_OPTIONS = [...DAFTAR_PANGKAT_POLRI];
 
+const getFastBasePersonName = (rawName?: string): string =>
+  (stripRankFromName(rawName || '') || rawName || '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase();
+
+// Pre-index AKPOL_1996_MEMBERS once at module load for O(1) lookups (instead of .find() per user/sort)
+const AKPOL_MEMBER_BY_NRP = new Map<string, AnggotaWiraSatya>();
+const AKPOL_MEMBER_BY_BASENAME = new Map<string, AnggotaWiraSatya>();
+AKPOL_1996_MEMBERS.forEach((m) => {
+  if (m.nrp) AKPOL_MEMBER_BY_NRP.set(m.nrp.trim(), m);
+  if (m.oldNrp) AKPOL_MEMBER_BY_NRP.set(m.oldNrp.trim(), m);
+  const bName = getFastBasePersonName(m.namaLengkap);
+  if (bName && !AKPOL_MEMBER_BY_BASENAME.has(bName)) {
+    AKPOL_MEMBER_BY_BASENAME.set(bName, m);
+  }
+});
+
+let cachedUsersInMemory: AuthUser[] | null = null;
+const backgroundSyncedOverrideKeys = new Set<string>();
+
+function getInitialInstantUsers(): AuthUser[] {
+  if (cachedUsersInMemory && cachedUsersInMemory.length > 0) {
+    return cachedUsersInMemory;
+  }
+  const initial = PRESET_USERS.filter((u) => {
+    const bName = getFastBasePersonName(u.nama);
+    return !bName || !PURGED_NON_1996_BASE_NAMES.has(bName);
+  });
+  return initial;
+}
+
 export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
   isOpen,
   onClose,
@@ -115,7 +147,8 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
   const [activeTab, setActiveTab] = useState<'USERS' | 'VERIFICATION' | 'AUDIT_LOG' | 'ADD_USER'>(initialTab);
   const initializedRef = useRef(false);
   const prevInitialTabRef = useRef(initialTab);
-  const [users, setUsers] = useState<AuthUser[]>([]);
+  const [users, setUsers] = useState<AuthUser[]>(getInitialInstantUsers);
+  const [visibleUserLimit, setVisibleUserLimit] = useState<number>(45);
   const [registrations, setRegistrations] = useState<PendingRegistration[]>([]);
   const [auditLogs, setAuditLogs] = useState<UserAuditLog[]>([]);
   const [auditSearch, setAuditSearch] = useState('');
@@ -480,6 +513,42 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
 
         const consumedOverrideNrps = new Set<string>();
 
+        // Pre-index overrides & cachedMembers in Maps once for O(1) lookup (eliminates O(N^2) .find() loops)
+        const uOvByBaseName = new Map<string, Partial<AuthUser> & { oldNrp?: string; name?: string; jabatan?: string; avatar?: string }>();
+        const uOvById = new Map<string, Partial<AuthUser> & { oldNrp?: string; name?: string; jabatan?: string; avatar?: string }>();
+        const uOvByOldNrp = new Map<string, Partial<AuthUser> & { oldNrp?: string; name?: string; jabatan?: string; avatar?: string }>();
+        Object.values(parsedOverrides).forEach((item) => {
+          if (!item || !item.nrp) return;
+          const bName = getBasePersonName(item.nama || item.name);
+          if (bName && !uOvByBaseName.has(bName)) uOvByBaseName.set(bName, item);
+          if (item.id) uOvById.set(item.id, item);
+          if (item.oldNrp) uOvByOldNrp.set(item.oldNrp.trim(), item);
+        });
+
+        const mOvByNrp = new Map<string, Partial<AnggotaWiraSatya> & { nama?: string; name?: string; avatar?: string }>();
+        const mOvById = new Map<string, Partial<AnggotaWiraSatya> & { nama?: string; name?: string; avatar?: string }>();
+        const mOvByBaseName = new Map<string, Partial<AnggotaWiraSatya> & { nama?: string; name?: string; avatar?: string }>();
+        Object.values(parsedMemberOverrides).forEach((item) => {
+          if (!item) return;
+          if (item.nrp) mOvByNrp.set(item.nrp.trim(), item);
+          if (item.oldNrp) mOvByNrp.set(item.oldNrp.trim(), item);
+          if (item.id) mOvById.set(item.id, item);
+          const bName = getBasePersonName(item.namaLengkap || item.nama || item.name);
+          if (bName && !mOvByBaseName.has(bName)) mOvByBaseName.set(bName, item);
+        });
+
+        const cachedMemberByNrp = new Map<string, Partial<AnggotaWiraSatya> & { nama?: string; name?: string; avatar?: string }>();
+        const cachedMemberById = new Map<string, Partial<AnggotaWiraSatya> & { nama?: string; name?: string; avatar?: string }>();
+        const cachedMemberByBaseName = new Map<string, Partial<AnggotaWiraSatya> & { nama?: string; name?: string; avatar?: string }>();
+        cachedMembers.forEach((item) => {
+          if (!item) return;
+          if (item.nrp) cachedMemberByNrp.set(item.nrp.trim(), item);
+          if (item.oldNrp) cachedMemberByNrp.set(String(item.oldNrp).trim(), item);
+          if (item.id) cachedMemberById.set(item.id, item);
+          const bName = getBasePersonName(item.namaLengkap || item.nama || item.name);
+          if (bName && !cachedMemberByBaseName.has(bName)) cachedMemberByBaseName.set(bName, item);
+        });
+
         const applyMemberAndUserOverridesToUsers = (rawUsers: AuthUser[]): AuthUser[] => {
           return rawUsers.map((u) => {
             const uBaseName = getBasePersonName(u.nama);
@@ -488,29 +557,17 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             const cleanNrp = (u.nrp || '').trim();
             const cleanOld = (u.oldNrp || origFromId || '').trim();
 
-            // 1. Match User Override by exact person baseName first, then by NRP/id
-            let uOv = Object.values(parsedOverrides).find(
-              (item) =>
-                item &&
-                item.nrp &&
-                !consumedOverrideNrps.has(item.nrp) &&
-                uBaseName &&
-                getBasePersonName(item.nama || item.name) === uBaseName
-            );
+            // 1. O(1) Match User Override by baseName first, then by NRP/id
+            let uOv = uBaseName ? uOvByBaseName.get(uBaseName) : undefined;
+            if (uOv && uOv.nrp && consumedOverrideNrps.has(uOv.nrp)) {
+              uOv = undefined;
+            }
 
             if (!uOv) {
               const candidateByNrp =
                 parsedOverrides[cleanNrp] ||
-                (cleanOld ? parsedOverrides[cleanOld] : undefined) ||
-                Object.values(parsedOverrides).find(
-                  (item) =>
-                    item &&
-                    item.nrp &&
-                    !consumedOverrideNrps.has(item.nrp) &&
-                    ((u.id && item.id === u.id) ||
-                      item.nrp === cleanNrp ||
-                      (cleanOld && (item.nrp === cleanOld || item.oldNrp === cleanOld)))
-                );
+                (cleanOld ? parsedOverrides[cleanOld] || uOvByOldNrp.get(cleanOld) : undefined) ||
+                (u.id ? uOvById.get(u.id) : undefined);
               if (
                 candidateByNrp &&
                 candidateByNrp.nrp &&
@@ -527,37 +584,21 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
               consumedOverrideNrps.add(uOv.nrp);
             }
 
-            // 2. Match Member Override from ws96_member_overrides_v1 (saved by FormWizard / Profil / Menu User)
+            // 2. O(1) Match Member Override from ws96_member_overrides_v1
             const mOv =
-              parsedMemberOverrides[cleanNrp] ||
-              (uOv?.nrp ? parsedMemberOverrides[uOv.nrp] : undefined) ||
-              (cleanOld ? parsedMemberOverrides[cleanOld] : undefined) ||
-              Object.values(parsedMemberOverrides).find((item) => {
-                if (!item) return false;
-                const itemBase = getBasePersonName(item.namaLengkap || item.nama || item.name);
-                return (
-                  (u.profileId && item.id === u.profileId) ||
-                  (cleanOld && item.id === `ws-${cleanOld}`) ||
-                  item.nrp === cleanNrp ||
-                  (uOv?.nrp && item.nrp === uOv.nrp) ||
-                  (cleanOld && (item.nrp === cleanOld || item.oldNrp === cleanOld)) ||
-                  (!u.isAdcAccount && uBaseName && itemBase === uBaseName)
-                );
-              });
+              mOvByNrp.get(cleanNrp) ||
+              (uOv?.nrp ? mOvByNrp.get(uOv.nrp) : undefined) ||
+              (cleanOld ? mOvByNrp.get(cleanOld) || mOvById.get(`ws-${cleanOld}`) : undefined) ||
+              (u.profileId ? mOvById.get(u.profileId) : undefined) ||
+              (!u.isAdcAccount && uBaseName ? mOvByBaseName.get(uBaseName) : undefined);
 
-            // 3. Match cached Member from wirasatya96_members
-            const cachedMember = cachedMembers.find((item) => {
-              if (!item) return false;
-              const itemBase = getBasePersonName(item.namaLengkap || item.nama || item.name);
-              return (
-                (u.profileId && item.id === u.profileId) ||
-                (cleanOld && item.id === `ws-${cleanOld}`) ||
-                item.nrp === cleanNrp ||
-                (uOv?.nrp && item.nrp === uOv.nrp) ||
-                (cleanOld && (item.nrp === cleanOld || item.oldNrp === cleanOld)) ||
-                (!u.isAdcAccount && uBaseName && itemBase === uBaseName)
-              );
-            });
+            // 3. O(1) Match cached Member from wirasatya96_members
+            const cachedMember =
+              cachedMemberByNrp.get(cleanNrp) ||
+              (uOv?.nrp ? cachedMemberByNrp.get(uOv.nrp) : undefined) ||
+              (cleanOld ? cachedMemberByNrp.get(cleanOld) || cachedMemberById.get(`ws-${cleanOld}`) : undefined) ||
+              (u.profileId ? cachedMemberById.get(u.profileId) : undefined) ||
+              (!u.isAdcAccount && uBaseName ? cachedMemberByBaseName.get(uBaseName) : undefined);
 
             if (!uOv && !mOv && !cachedMember) {
               return u;
@@ -685,19 +726,22 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
               role: (uOv?.role as UserRole) || u.role,
             };
 
+            // Only background-sync if an explicit user/member override exists AND hasn't been synced yet in this session
+            const hasExplicitOverride = Boolean(uOv || mOv);
+            const syncKey = `${u.id || u.nrp}:${enrichedUser.nrp}:${enrichedUser.role}:${enrichedUser.pangkat}:${enrichedUser.satker}`;
             const needsServerSync =
-              (enrichedUser.nrp && u.nrp !== enrichedUser.nrp) ||
-              (enrichedUser.role && u.role !== enrichedUser.role) ||
-              (enrichedUser.nama && u.nama !== enrichedUser.nama) ||
-              (enrichedUser.pangkat && u.pangkat !== enrichedUser.pangkat) ||
-              (enrichedUser.satker && u.satker !== enrichedUser.satker) ||
-              (enrichedUser.polda && u.polda !== enrichedUser.polda) ||
-              (enrichedUser.jabatanTerakhir && u.jabatanTerakhir !== enrichedUser.jabatanTerakhir) ||
-              (enrichedUser.statusKedinasan && u.statusKedinasan !== enrichedUser.statusKedinasan) ||
-              (enrichedUser.noHp && u.noHp !== enrichedUser.noHp) ||
-              (enrichedUser.tanggalLahir && u.tanggalLahir !== enrichedUser.tanggalLahir);
+              hasExplicitOverride &&
+              !backgroundSyncedOverrideKeys.has(syncKey) &&
+              ((enrichedUser.nrp && u.nrp !== enrichedUser.nrp) ||
+                (enrichedUser.role && u.role !== enrichedUser.role) ||
+                (enrichedUser.nama && u.nama !== enrichedUser.nama) ||
+                (enrichedUser.pangkat && u.pangkat !== enrichedUser.pangkat) ||
+                (enrichedUser.satker && u.satker !== enrichedUser.satker) ||
+                (enrichedUser.polda && u.polda !== enrichedUser.polda) ||
+                (enrichedUser.jabatanTerakhir && u.jabatanTerakhir !== enrichedUser.jabatanTerakhir));
 
             if (needsServerSync) {
+              backgroundSyncedOverrideKeys.add(syncKey);
               fetch('/api/users', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -789,6 +833,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
           }
         });
 
+        cachedUsersInMemory = fetchedUsers;
         setUsers(fetchedUsers);
         const map: Record<string, UserRole> = {};
         fetchedUsers.forEach((u) => {
@@ -2022,282 +2067,269 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
     }
   };
 
-  const visibleRoleOptions = ROLE_OPTIONS.filter((r) => r.value !== 'SUPERADMIN');
+  const visibleRoleOptions = useMemo(
+    () => ROLE_OPTIONS.filter((r) => r.value !== 'SUPERADMIN'),
+    []
+  );
 
-  const visibleUsers = users.filter((u) => u.role !== 'SUPERADMIN' && u.nrp !== '98010710');
+  const visibleUsers = useMemo(
+    () => users.filter((u) => u.role !== 'SUPERADMIN' && u.nrp !== '98010710'),
+    [users]
+  );
 
-  const filteredUsers = visibleUsers.filter((u) => {
-    const q = userSearch.toLowerCase();
-    const matchesSearch =
-      u.nama.toLowerCase().includes(q) ||
-      u.nrp.toLowerCase().includes(q) ||
-      (u.satker || '').toLowerCase().includes(q) ||
-      (u.polda || '').toLowerCase().includes(q) ||
-      (u.email || '').toLowerCase().includes(q) ||
-      (u.secondaryEmail || '').toLowerCase().includes(q) ||
-      u.role.toLowerCase().includes(q);
-    if (roleFilter === 'ALL') return matchesSearch;
-    return matchesSearch && u.role === roleFilter;
-  });
-
-  const resolveUserStatusKedinasan = (u: AuthUser): StatusKedinasan => {
-    const cleanNrp = (u.nrp || '').trim();
-    const origFromId = u.id?.startsWith('u-') ? u.id.slice(2).trim() : '';
-    const cleanOld = (u.oldNrp || origFromId || '').trim();
-    const baseName = (stripRankFromName(u.nama) || u.nama).split(',')[0].trim().toLowerCase();
+  // Precompute clean name (without rank) & StatusKedinasan once per `users` update (eliminates 4,500x JSON.parse in .sort)
+  const { userStatusByNrpMap, cleanNameByNrpMap } = useMemo(() => {
+    const statusMap = new Map<string, StatusKedinasan>();
+    const nameMap = new Map<string, string>();
     const isValidStatus = (val: unknown): val is StatusKedinasan =>
       val === 'AKTIF' || val === 'PURNA_TUGAS' || val === 'PTDH' || val === 'ALMARHUM';
 
+    let mOvByNrp = new Map<string, any>();
+    let uOvByNrp = new Map<string, any>();
     if (typeof window !== 'undefined') {
       try {
-        let memberOvStatus: StatusKedinasan | undefined;
-        let memberOvTs = 0;
-        let memberOvJabatan: string | undefined;
         const rawMemberOv = localStorage.getItem('ws96_member_overrides_v1');
         if (rawMemberOv) {
-          const parsedMemberOv = JSON.parse(rawMemberOv) || {};
-          const mOv =
-            parsedMemberOv[cleanNrp] ||
-            (cleanOld ? parsedMemberOv[cleanOld] : undefined) ||
-            Object.values(parsedMemberOv).find((item: any) => {
-              if (!item) return false;
-              const itemBase = (stripRankFromName(item.namaLengkap || item.nama || '') || item.namaLengkap || item.nama || '')
-                .split(',')[0]
-                .trim()
-                .toLowerCase();
-              return (
-                (u.profileId && item.id === u.profileId) ||
-                (cleanOld && item.id === `ws-${cleanOld}`) ||
-                item.nrp === cleanNrp ||
-                (cleanOld && (item.nrp === cleanOld || item.oldNrp === cleanOld)) ||
-                (!u.isAdcAccount && baseName && itemBase === baseName)
-              );
-            });
-          if (mOv) {
-            const st = mOv.statusKedinasan || mOv.statusDinas;
-            if (isValidStatus(st)) {
-              memberOvStatus = st;
-              memberOvTs = mOv.updatedAt ? new Date(mOv.updatedAt).getTime() || 2 : 2;
-            }
-            if (mOv.jabatanTerakhir || mOv.jabatan) {
-              memberOvJabatan = mOv.jabatanTerakhir || mOv.jabatan;
-            }
-          }
-        }
-
-        let userOvStatus: StatusKedinasan | undefined;
-        let userOvTs = 0;
-        let userOvJabatan: string | undefined;
-        const rawUserOv = localStorage.getItem('ws96_user_overrides_v1');
-        if (rawUserOv) {
-          const parsedUserOv = JSON.parse(rawUserOv) || {};
-          const uOv =
-            parsedUserOv[cleanNrp] ||
-            (cleanOld ? parsedUserOv[cleanOld] : undefined) ||
-            Object.values(parsedUserOv).find((item: any) => {
-              if (!item) return false;
-              const itemBase = (stripRankFromName(item.nama || item.name || '') || item.nama || item.name || '')
-                .split(',')[0]
-                .trim()
-                .toLowerCase();
-              return (
-                (u.id && item.id === u.id) ||
-                item.nrp === cleanNrp ||
-                (cleanOld && (item.nrp === cleanOld || item.oldNrp === cleanOld)) ||
-                (!u.isAdcAccount && baseName && itemBase === baseName)
-              );
-            });
-          if (uOv) {
-            if (isValidStatus(uOv.statusKedinasan)) {
-              userOvStatus = uOv.statusKedinasan;
-              userOvTs = uOv.updatedAt ? new Date(uOv.updatedAt).getTime() || 1 : 1;
-            }
-            if (uOv.jabatanTerakhir || uOv.jabatan) {
-              userOvJabatan = uOv.jabatanTerakhir || uOv.jabatan;
-            }
-          }
-        }
-
-        if (memberOvStatus && userOvStatus) {
-          return memberOvTs >= userOvTs ? memberOvStatus : userOvStatus;
-        }
-        if (memberOvStatus) return memberOvStatus;
-        if (userOvStatus) return userOvStatus;
-
-        const rawMembers = localStorage.getItem('wirasatya96_members');
-        if (rawMembers) {
-          const parsedMembers = JSON.parse(rawMembers);
-          if (Array.isArray(parsedMembers)) {
-            const cachedM = parsedMembers.find((m: any) => {
-              if (!m) return false;
-              const mBase = (stripRankFromName(m.namaLengkap || m.nama || '') || m.namaLengkap || m.nama || '')
-                .split(',')[0]
-                .trim()
-                .toLowerCase();
-              return (
-                (u.profileId && m.id === u.profileId) ||
-                (cleanOld && m.id === `ws-${cleanOld}`) ||
-                m.nrp === cleanNrp ||
-                (cleanOld && (m.nrp === cleanOld || m.oldNrp === cleanOld)) ||
-                (!u.isAdcAccount && baseName && mBase === baseName)
-              );
-            });
-            if (cachedM) {
-              const st = cachedM.statusKedinasan || cachedM.statusDinas;
-              if (isValidStatus(st)) {
-                return st;
-              }
-            }
-          }
-        }
-
-        if (memberOvJabatan || userOvJabatan) {
-          const detectedFromOvJab = detectStatusKedinasan(
-            u.statusKedinasan,
-            memberOvJabatan || userOvJabatan || u.jabatanTerakhir
-          );
-          if (detectedFromOvJab !== 'AKTIF') return detectedFromOvJab;
+          const parsed = JSON.parse(rawMemberOv) || {};
+          Object.values(parsed).forEach((item: any) => {
+            if (!item) return;
+            if (item.nrp) mOvByNrp.set(String(item.nrp).trim(), item);
+            if (item.oldNrp) mOvByNrp.set(String(item.oldNrp).trim(), item);
+          });
         }
       } catch {
-        // ignore storage errors
+        // ignore
+      }
+      try {
+        const rawUserOv = localStorage.getItem('ws96_user_overrides_v1');
+        if (rawUserOv) {
+          const parsed = JSON.parse(rawUserOv) || {};
+          Object.values(parsed).forEach((item: any) => {
+            if (!item) return;
+            if (item.nrp) uOvByNrp.set(String(item.nrp).trim(), item);
+            if (item.oldNrp) uOvByNrp.set(String(item.oldNrp).trim(), item);
+          });
+        }
+      } catch {
+        // ignore
       }
     }
 
-    if (isValidStatus(u.statusKedinasan)) {
-      return u.statusKedinasan;
+    for (const u of users) {
+      const cleanNrp = (u.nrp || '').trim();
+      const origFromId = u.id?.startsWith('u-') ? u.id.slice(2).trim() : '';
+      const cleanOld = (u.oldNrp || origFromId || '').trim();
+      const cleanName = stripRankFromName(u.nama) || u.nama;
+      nameMap.set(cleanNrp, cleanName);
+
+      const mOv = mOvByNrp.get(cleanNrp) || (cleanOld ? mOvByNrp.get(cleanOld) : undefined);
+      const uOv = uOvByNrp.get(cleanNrp) || (cleanOld ? uOvByNrp.get(cleanOld) : undefined);
+
+      const mSt = mOv?.statusKedinasan || mOv?.statusDinas;
+      const uSt = uOv?.statusKedinasan;
+      let resolved: StatusKedinasan | undefined;
+
+      if (isValidStatus(mSt) && isValidStatus(uSt)) {
+        const mTs = mOv?.updatedAt ? new Date(mOv.updatedAt).getTime() || 2 : 2;
+        const uTs = uOv?.updatedAt ? new Date(uOv.updatedAt).getTime() || 1 : 1;
+        resolved = mTs >= uTs ? mSt : uSt;
+      } else if (isValidStatus(mSt)) {
+        resolved = mSt;
+      } else if (isValidStatus(uSt)) {
+        resolved = uSt;
+      } else if (isValidStatus(u.statusKedinasan)) {
+        resolved = u.statusKedinasan;
+      } else {
+        const baseName = cleanName.split(',')[0].trim().toLowerCase();
+        const matchedMember =
+          AKPOL_MEMBER_BY_NRP.get(cleanNrp) ||
+          (cleanOld ? AKPOL_MEMBER_BY_NRP.get(cleanOld) : undefined) ||
+          (baseName ? AKPOL_MEMBER_BY_BASENAME.get(baseName) : undefined);
+        resolved = detectStatusKedinasan(
+          matchedMember?.statusKedinasan || matchedMember?.statusDinas,
+          mOv?.jabatanTerakhir || uOv?.jabatanTerakhir || u.jabatanTerakhir || matchedMember?.jabatanTerakhir
+        );
+      }
+
+      statusMap.set(cleanNrp, resolved || 'AKTIF');
     }
 
-    const matchedMember = AKPOL_1996_MEMBERS.find(
-      (m) =>
-        m.nrp === cleanNrp ||
-        (cleanOld && m.nrp === cleanOld) ||
-        (m.oldNrp && m.oldNrp === cleanNrp) ||
-        (stripRankFromName(m.namaLengkap) || m.namaLengkap).split(',')[0].trim().toLowerCase() === baseName
-    );
-    return detectStatusKedinasan(
-      matchedMember?.statusKedinasan || matchedMember?.statusDinas,
-      u.jabatanTerakhir || matchedMember?.jabatanTerakhir
-    );
-  };
+    return { userStatusByNrpMap: statusMap, cleanNameByNrpMap: nameMap };
+  }, [users]);
 
-  const cmpStatus = (a: AuthUser, b: AuthUser) =>
-    getStatusKedinasanOrder(resolveUserStatusKedinasan(a)) -
-    getStatusKedinasanOrder(resolveUserStatusKedinasan(b));
-  const cmpPangkat = (a: AuthUser, b: AuthUser) =>
-    getPangkatRankOrder(a.pangkat) - getPangkatRankOrder(b.pangkat);
-  const cmpLevelSatker = (a: AuthUser, b: AuthUser) =>
-    getLevelSatkerOrder(a.satker, a.polda) - getLevelSatkerOrder(b.satker, b.polda);
-  const cmpNrp = (a: AuthUser, b: AuthUser) => {
-    const digitsA = (a.nrp || '').replace(/\D/g, '');
-    const digitsB = (b.nrp || '').replace(/\D/g, '');
-    const prefixA = parseInt(digitsA.slice(0, 8) || '0', 10);
-    const prefixB = parseInt(digitsB.slice(0, 8) || '0', 10);
-    if (prefixA !== prefixB) return prefixA - prefixB;
-    return digitsA.localeCompare(digitsB, undefined, { numeric: true });
-  };
-  const cmpNama = (a: AuthUser, b: AuthUser) =>
-    (stripRankFromName(a.nama) || a.nama).localeCompare(stripRankFromName(b.nama) || b.nama, 'id');
-  const cmpRole = (a: AuthUser, b: AuthUser) =>
-    getRoleRankOrder(a.role) - getRoleRankOrder(b.role);
+  const resolveUserStatusKedinasan = useCallback(
+    (u: AuthUser): StatusKedinasan =>
+      userStatusByNrpMap.get((u.nrp || '').trim()) || u.statusKedinasan || 'AKTIF',
+    [userStatusByNrpMap]
+  );
 
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
-    if (sortBy === 'NRP') {
-      // Ascend (!sortDesc) = NRP Kecil -> Besar; Descend (sortDesc) = NRP Besar -> Kecil
-      const nrpDiff = sortDesc ? -cmpNrp(a, b) : cmpNrp(a, b);
+  const filteredUsers = useMemo(() => {
+    const q = userSearch.trim().toLowerCase();
+    return visibleUsers.filter((u) => {
+      if (roleFilter !== 'ALL' && u.role !== roleFilter) return false;
+      if (!q) return true;
       return (
-        nrpDiff ||
-        cmpStatus(a, b) ||
-        cmpPangkat(a, b) ||
-        cmpLevelSatker(a, b) ||
-        cmpNama(a, b) ||
-        cmpRole(a, b)
+        u.nama.toLowerCase().includes(q) ||
+        u.nrp.toLowerCase().includes(q) ||
+        (u.satker || '').toLowerCase().includes(q) ||
+        (u.polda || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.secondaryEmail || '').toLowerCase().includes(q) ||
+        u.role.toLowerCase().includes(q)
       );
-    }
-    if (sortBy === 'NAMA') {
-      // Ascend (!sortDesc) = Abjad A -> Z; Descend (sortDesc) = Abjad Z -> A
-      const namaDiff = sortDesc ? -cmpNama(a, b) : cmpNama(a, b);
-      return (
-        namaDiff ||
-        cmpStatus(a, b) ||
-        cmpPangkat(a, b) ||
-        cmpLevelSatker(a, b) ||
-        cmpNrp(a, b) ||
-        cmpRole(a, b)
-      );
-    }
+    });
+  }, [visibleUsers, userSearch, roleFilter]);
 
-    const dir = sortDesc ? 1 : -1;
-    let res = 0;
-    if (sortBy === 'PANGKAT_UTAMA') {
-      res =
-        cmpPangkat(a, b) ||
-        cmpLevelSatker(a, b) ||
-        cmpNrp(a, b) ||
-        cmpNama(a, b) ||
-        cmpRole(a, b) ||
-        cmpStatus(a, b);
-    } else if (sortBy === 'STATUS') {
-      res =
-        cmpStatus(a, b) ||
-        cmpNrp(a, b) ||
-        cmpPangkat(a, b) ||
-        cmpLevelSatker(a, b) ||
-        cmpNama(a, b) ||
-        cmpRole(a, b);
-    } else if (sortBy === 'PANGKAT') {
-      res =
-        cmpPangkat(a, b) ||
-        cmpStatus(a, b) ||
-        cmpLevelSatker(a, b) ||
-        cmpNrp(a, b) ||
-        cmpNama(a, b) ||
-        cmpRole(a, b);
-    } else if (sortBy === 'LEVEL_SATKER') {
-      res =
-        cmpLevelSatker(a, b) ||
-        cmpStatus(a, b) ||
-        cmpPangkat(a, b) ||
-        cmpNrp(a, b) ||
-        cmpNama(a, b) ||
-        cmpRole(a, b);
-    } else if (sortBy === 'ROLE') {
-      res =
-        cmpRole(a, b) ||
-        cmpStatus(a, b) ||
-        cmpPangkat(a, b) ||
-        cmpLevelSatker(a, b) ||
-        cmpNrp(a, b) ||
-        cmpNama(a, b);
-    } else {
-      // DEFAULT Kombinasi Utama (Menu User + Menu Jabatan):
-      // Status Kedinasan (Aktif -> Purna Tugas -> PTDH -> Almarhum) • Pangkat • Level Satker • NRP • Nama • Role
-      res =
-        cmpStatus(a, b) ||
-        cmpPangkat(a, b) ||
-        cmpLevelSatker(a, b) ||
-        cmpNrp(a, b) ||
-        cmpNama(a, b) ||
-        cmpRole(a, b);
-    }
-    return res * dir;
-  });
+  const sortedUsers = useMemo(() => {
+    const cmpStatus = (a: AuthUser, b: AuthUser) =>
+      getStatusKedinasanOrder(resolveUserStatusKedinasan(a)) -
+      getStatusKedinasanOrder(resolveUserStatusKedinasan(b));
+    const cmpPangkat = (a: AuthUser, b: AuthUser) =>
+      getPangkatRankOrder(a.pangkat) - getPangkatRankOrder(b.pangkat);
+    const cmpLevelSatker = (a: AuthUser, b: AuthUser) =>
+      getLevelSatkerOrder(a.satker, a.polda) - getLevelSatkerOrder(b.satker, b.polda);
+    const cmpNrp = (a: AuthUser, b: AuthUser) => {
+      const digitsA = (a.nrp || '').replace(/\D/g, '');
+      const digitsB = (b.nrp || '').replace(/\D/g, '');
+      const prefixA = parseInt(digitsA.slice(0, 8) || '0', 10);
+      const prefixB = parseInt(digitsB.slice(0, 8) || '0', 10);
+      if (prefixA !== prefixB) return prefixA - prefixB;
+      return digitsA.localeCompare(digitsB, undefined, { numeric: true });
+    };
+    const cmpNama = (a: AuthUser, b: AuthUser) => {
+      const nameA = cleanNameByNrpMap.get((a.nrp || '').trim()) || a.nama;
+      const nameB = cleanNameByNrpMap.get((b.nrp || '').trim()) || b.nama;
+      return nameA.localeCompare(nameB, 'id');
+    };
+    const cmpRole = (a: AuthUser, b: AuthUser) =>
+      getRoleRankOrder(a.role) - getRoleRankOrder(b.role);
 
-  const filteredRegistrations = registrations.filter((r) => {
-    if (r.nrp === '98010710') return false;
+    return [...filteredUsers].sort((a, b) => {
+      if (sortBy === 'NRP') {
+        const nrpDiff = sortDesc ? -cmpNrp(a, b) : cmpNrp(a, b);
+        return (
+          nrpDiff ||
+          cmpStatus(a, b) ||
+          cmpPangkat(a, b) ||
+          cmpLevelSatker(a, b) ||
+          cmpNama(a, b) ||
+          cmpRole(a, b)
+        );
+      }
+      if (sortBy === 'NAMA') {
+        const namaDiff = sortDesc ? -cmpNama(a, b) : cmpNama(a, b);
+        return (
+          namaDiff ||
+          cmpStatus(a, b) ||
+          cmpPangkat(a, b) ||
+          cmpLevelSatker(a, b) ||
+          cmpNrp(a, b) ||
+          cmpRole(a, b)
+        );
+      }
+
+      const dir = sortDesc ? 1 : -1;
+      let res = 0;
+      if (sortBy === 'PANGKAT_UTAMA') {
+        res =
+          cmpPangkat(a, b) ||
+          cmpLevelSatker(a, b) ||
+          cmpNrp(a, b) ||
+          cmpNama(a, b) ||
+          cmpRole(a, b) ||
+          cmpStatus(a, b);
+      } else if (sortBy === 'STATUS') {
+        res =
+          cmpStatus(a, b) ||
+          cmpNrp(a, b) ||
+          cmpPangkat(a, b) ||
+          cmpLevelSatker(a, b) ||
+          cmpNama(a, b) ||
+          cmpRole(a, b);
+      } else if (sortBy === 'PANGKAT') {
+        res =
+          cmpPangkat(a, b) ||
+          cmpStatus(a, b) ||
+          cmpLevelSatker(a, b) ||
+          cmpNrp(a, b) ||
+          cmpNama(a, b) ||
+          cmpRole(a, b);
+      } else if (sortBy === 'LEVEL_SATKER') {
+        res =
+          cmpLevelSatker(a, b) ||
+          cmpStatus(a, b) ||
+          cmpPangkat(a, b) ||
+          cmpNrp(a, b) ||
+          cmpNama(a, b) ||
+          cmpRole(a, b);
+      } else if (sortBy === 'ROLE') {
+        res =
+          cmpRole(a, b) ||
+          cmpStatus(a, b) ||
+          cmpPangkat(a, b) ||
+          cmpLevelSatker(a, b) ||
+          cmpNrp(a, b) ||
+          cmpNama(a, b);
+      } else {
+        res =
+          cmpStatus(a, b) ||
+          cmpPangkat(a, b) ||
+          cmpLevelSatker(a, b) ||
+          cmpNrp(a, b) ||
+          cmpNama(a, b) ||
+          cmpRole(a, b);
+      }
+      return res * dir;
+    });
+  }, [filteredUsers, sortBy, sortDesc, resolveUserStatusKedinasan, cleanNameByNrpMap]);
+
+  const regByNrpMap = useMemo(() => {
+    const map = new Map<string, PendingRegistration>();
+    registrations.forEach((r) => {
+      if (r.nrp) map.set(r.nrp.trim(), r);
+    });
+    return map;
+  }, [registrations]);
+
+  const filteredRegistrations = useMemo(() => {
     const q = regSearch.toLowerCase();
-    const matchesSearch = 
-      r.nama.toLowerCase().includes(q) ||
-      r.nrp.includes(q) ||
-      r.satker.toLowerCase().includes(q) ||
-      r.polda.toLowerCase().includes(q);
-    
-    if (filterStatus === 'ALL') return matchesSearch;
-    return matchesSearch && r.status === filterStatus;
-  });
+    return registrations.filter((r) => {
+      if (r.nrp === '98010710') return false;
+      const matchesSearch =
+        !q ||
+        r.nama.toLowerCase().includes(q) ||
+        r.nrp.includes(q) ||
+        r.satker.toLowerCase().includes(q) ||
+        r.polda.toLowerCase().includes(q);
+      if (filterStatus === 'ALL') return matchesSearch;
+      return matchesSearch && r.status === filterStatus;
+    });
+  }, [registrations, regSearch, filterStatus]);
 
-  const pendingCount = registrations.filter(
-    (r) => r.nrp !== '98010710' && r.status === 'PENDING_VERIFIKASI'
-  ).length;
+  const pendingCount = useMemo(
+    () =>
+      registrations.filter(
+        (r) => r.nrp !== '98010710' && r.status === 'PENDING_VERIFIKASI'
+      ).length,
+    [registrations]
+  );
+
+  // Reset progressive render limit when search or filter changes
+  useEffect(() => {
+    setVisibleUserLimit(45);
+  }, [userSearch, roleFilter, sortBy, sortDesc]);
+
+  // Automatically load next batch when scrolling down the page in asPage mode
+  useEffect(() => {
+    if (!asPage || activeTab !== 'USERS' || visibleUserLimit >= sortedUsers.length) return;
+    const handleWindowScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 500) {
+        setVisibleUserLimit((prev) => Math.min(sortedUsers.length, prev + 60));
+      }
+    };
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleWindowScroll);
+  }, [asPage, activeTab, visibleUserLimit, sortedUsers.length]);
 
   const isUserAccountActive = (u: AuthUser, regInfo?: PendingRegistration): boolean => {
     if (u.status === 'DITOLAK' || regInfo?.status === 'DITOLAK') return false;
@@ -2770,7 +2802,16 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             contextTitle="Menu User (Daftar Pengguna)"
           />
 
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2.5">
+          <div
+            className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2.5"
+            onScroll={(e) => {
+              if (visibleUserLimit >= sortedUsers.length) return;
+              const el = e.currentTarget;
+              if (el.scrollTop + el.clientHeight >= el.scrollHeight - 400) {
+                setVisibleUserLimit((prev) => Math.min(sortedUsers.length, prev + 60));
+              }
+            }}
+          >
             {loading && users.length === 0 ? (
               <UserTableSkeleton rows={6} />
             ) : sortedUsers.length === 0 ? (
@@ -2779,28 +2820,30 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 <p className="font-bold text-slate-700 text-sm">Tidak ada pengguna ditemukan</p>
               </div>
             ) : (
-              sortedUsers.map((u) => {
-                const regInfo = registrations.find((r) => r.nrp === u.nrp);
-                const isActive = isUserAccountActive(u, regInfo);
-                const statusDinas = resolveUserStatusKedinasan(u);
-                const secondaryEmail = u.secondaryEmail || regInfo?.secondaryEmail;
-                const cleanSatker = (u.satker || 'Mabes Polri').split(' / ')[0].trim();
-                const dynamicJabatanAngkatan =
-                  u.role === 'KETUA'
-                    ? { short: 'Ketua Angkatan', full: 'Jabatan Angkatan: Ketua' }
-                    : u.role === 'SEKRETARIAT'
-                    ? { short: 'Sekretaris', full: 'Jabatan Angkatan: Sekretaris' }
-                    : u.role === 'BENDAHARA'
-                    ? { short: 'Bendahara', full: 'Jabatan Angkatan: Bendahara' }
-                    : null;
-                const cleanNameNoRank = stripRankFromName(u.nama) || u.nama;
-                const deleteAuth = getDeleteAuthorityCheck(u);
+              <>
+                {sortedUsers.slice(0, visibleUserLimit).map((u) => {
+                  const regInfo = regByNrpMap.get((u.nrp || '').trim());
+                  const isActive = isUserAccountActive(u, regInfo);
+                  const statusDinas = resolveUserStatusKedinasan(u);
+                  const secondaryEmail = u.secondaryEmail || regInfo?.secondaryEmail;
+                  const cleanSatker = (u.satker || 'Mabes Polri').split(' / ')[0].trim();
+                  const dynamicJabatanAngkatan =
+                    u.role === 'KETUA'
+                      ? { short: 'Ketua Angkatan', full: 'Jabatan Angkatan: Ketua' }
+                      : u.role === 'SEKRETARIAT'
+                      ? { short: 'Sekretaris', full: 'Jabatan Angkatan: Sekretaris' }
+                      : u.role === 'BENDAHARA'
+                      ? { short: 'Bendahara', full: 'Jabatan Angkatan: Bendahara' }
+                      : null;
+                  const cleanNameNoRank = cleanNameByNrpMap.get((u.nrp || '').trim()) || stripRankFromName(u.nama) || u.nama;
+                  const deleteAuth = getDeleteAuthorityCheck(u);
 
-                return (
-                  <div
-                    key={u.nrp}
-                    className="bg-white rounded-xl border border-slate-200 p-3.5 hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                  >
+                  return (
+                    <div
+                      key={u.nrp}
+                      style={{ contentVisibility: 'auto', containIntrinsicSize: '0 84px' }}
+                      className="bg-white rounded-xl border border-slate-200 p-3.5 hover:border-slate-300 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
                     <div className="space-y-1 flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
@@ -2951,7 +2994,33 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                     </div>
                   </div>
                 );
-              })
+              })}
+
+              {visibleUserLimit < sortedUsers.length && (
+                <div className="pt-2 pb-1 flex flex-col sm:flex-row items-center justify-between gap-2 bg-slate-50/90 border border-slate-200 rounded-xl px-4 py-3 text-xs">
+                  <span className="text-slate-600 font-medium">
+                    Menampilkan <strong className="text-slate-900">{visibleUserLimit}</strong> dari{' '}
+                    <strong className="text-slate-900">{sortedUsers.length}</strong> pengguna
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleUserLimit((prev) => Math.min(sortedUsers.length, prev + 60))}
+                      className="px-3.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 font-bold transition-colors cursor-pointer"
+                    >
+                      Muat +60 Lagi
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisibleUserLimit(sortedUsers.length)}
+                      className="px-3.5 py-1.5 rounded-lg bg-red-900 hover:bg-red-800 text-white font-bold transition-colors cursor-pointer"
+                    >
+                      Tampilkan Semua ({sortedUsers.length})
+                    </button>
+                  </div>
+                </div>
+              )}
+              </>
             )}
           </div>
         </>

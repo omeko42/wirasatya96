@@ -27,6 +27,35 @@ const DEFAULT_PENGURUS_ROLE_BY_NRP: Record<string, UserRole> = {
 };
 
 let memoryRoleMap: Record<string, UserRole> | null = null;
+const roleBadgeSubscribers = new Set<() => void>();
+let globalListenersAttached = false;
+
+function attachGlobalRoleListeners() {
+  if (globalListenersAttached || typeof window === 'undefined') return;
+  globalListenersAttached = true;
+
+  const notifyAll = () => {
+    roleBadgeSubscribers.forEach((cb) => cb());
+  };
+
+  window.addEventListener('ws96_roles_updated', notifyAll);
+  window.addEventListener('storage', (e) => {
+    if (!e.key || e.key === 'ws96_role_map') {
+      try {
+        const raw = localStorage.getItem('ws96_role_map');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            memoryRoleMap = parsed as Record<string, UserRole>;
+          }
+        }
+      } catch {
+        // ignore
+      }
+      notifyAll();
+    }
+  });
+}
 
 function ensureRoleMapLoaded(): Record<string, UserRole> {
   if (memoryRoleMap !== null) return memoryRoleMap;
@@ -48,6 +77,17 @@ function ensureRoleMapLoaded(): Record<string, UserRole> {
 }
 
 export function setDynamicRoleMap(roleMap: Record<string, UserRole>): void {
+  // Skip redundant writes and event dispatches if map content is identical
+  if (memoryRoleMap) {
+    const prevKeys = Object.keys(memoryRoleMap);
+    const nextKeys = Object.keys(roleMap);
+    if (
+      prevKeys.length === nextKeys.length &&
+      nextKeys.every((k) => memoryRoleMap![k] === roleMap[k])
+    ) {
+      return;
+    }
+  }
   memoryRoleMap = { ...roleMap };
   if (typeof window !== 'undefined') {
     try {
@@ -122,7 +162,7 @@ export function resolveRoleForBadge(nrp?: string, explicitRole?: UserRole | stri
  * - SEKRETARIAT / BENDAHARA (Pejabat Angkatan) -> Kuning Emas (#eab308 / #d97706)
  * - ANGGOTA / lainnya -> Tanpa Badge (null)
  */
-export const MetaVerifiedBadge: React.FC<MetaVerifiedBadgeProps> = ({
+export const MetaVerifiedBadge: React.FC<MetaVerifiedBadgeProps> = React.memo(({
   role,
   nrp,
   size = 'sm',
@@ -131,28 +171,11 @@ export const MetaVerifiedBadge: React.FC<MetaVerifiedBadgeProps> = ({
   const [, setRoleTick] = useState(0);
 
   useEffect(() => {
-    const handleRoleUpdate = () => {
-      if (typeof window !== 'undefined') {
-        try {
-          const raw = localStorage.getItem('ws96_role_map');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed && typeof parsed === 'object') {
-              memoryRoleMap = parsed as Record<string, UserRole>;
-            }
-          }
-        } catch {
-          // ignore
-        }
-      }
-      setRoleTick((t) => t + 1);
-    };
-
-    window.addEventListener('ws96_roles_updated', handleRoleUpdate);
-    window.addEventListener('storage', handleRoleUpdate);
+    attachGlobalRoleListeners();
+    const cb = () => setRoleTick((t) => t + 1);
+    roleBadgeSubscribers.add(cb);
     return () => {
-      window.removeEventListener('ws96_roles_updated', handleRoleUpdate);
-      window.removeEventListener('storage', handleRoleUpdate);
+      roleBadgeSubscribers.delete(cb);
     };
   }, []);
 
@@ -238,4 +261,5 @@ export const MetaVerifiedBadge: React.FC<MetaVerifiedBadgeProps> = ({
       </svg>
     </span>
   );
-};
+});
+MetaVerifiedBadge.displayName = 'MetaVerifiedBadge';
