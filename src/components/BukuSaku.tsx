@@ -37,7 +37,8 @@ interface BukuSakuProps {
   members: AnggotaWiraSatya[];
   onAddNew: () => void;
   currentUser: AuthUser;
-  onEditMember?: (member: AnggotaWiraSatya) => void;
+  onEditMember?: (member: AnggotaWiraSatya, initialTab?: 1 | 2 | 3 | 4) => void;
+  onUpdateMemberDirect?: (member: AnggotaWiraSatya) => void;
   onOpenChat?: (member: AnggotaWiraSatya) => void;
   onNavigateToJabatan?: () => void;
   onNavigateToBendahara?: () => void;
@@ -58,6 +59,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
   members,
   currentUser,
   onEditMember,
+  onUpdateMemberDirect,
   onOpenChat,
   onNavigateToJabatan,
   onNavigateToBendahara,
@@ -280,6 +282,23 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   const [openCreatePostWithImage, setOpenCreatePostWithImage] = useState(false);
   const [memberOverrides, setMemberOverrides] = useState<Record<string, AnggotaWiraSatya>>({});
+
+  useEffect(() => {
+    setMemberOverrides((prev) => {
+      if (Object.keys(prev).length === 0) return prev;
+      const next = { ...prev };
+      for (const m of members) {
+        if (next[m.nrp]) next[m.nrp] = m;
+        if (next[m.id]) next[m.id] = m;
+      }
+      return next;
+    });
+    setSelectedMember((prev) => {
+      if (!prev) return null;
+      const found = members.find((m) => m.nrp === prev.nrp || m.id === prev.id);
+      return found ? found : prev;
+    });
+  }, [members]);
 
   const effectiveMembers = useMemo(
     () => members.map((m) => memberOverrides[m.nrp] || memberOverrides[m.id] || m),
@@ -808,6 +827,9 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
           [updated.id]: updated,
         }));
         setSelectedMember(updated);
+        if (onUpdateMemberDirect) {
+          onUpdateMemberDirect(updated);
+        }
         if (typeof window !== 'undefined' && updated.nrp === currentUser?.nrp) {
           const nextUser: AuthUser = {
             ...currentUser,
@@ -829,7 +851,9 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
         member={selectedMember}
         currentUser={currentUser}
         onClose={() => setSelectedMember(null)}
-        onEditProfile={() => onEditMember && onEditMember(selectedMember)}
+        onEditProfile={(member, initialTab) =>
+          onEditMember && onEditMember(member || selectedMember, initialTab)
+        }
         onOpenChat={onOpenChat}
         allMembers={publicMembers}
         onSelectMember={(m) => setSelectedMember(m)}

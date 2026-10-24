@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AnggotaWiraSatya, Anak, AdcPersonel, AuthUser, DAFTAR_PANGKAT_POLRI } from '@/types';
 import {
   getAvatarUrl,
@@ -43,14 +43,18 @@ import {
   Mail,
   Calendar,
   Clock,
+  AlertCircle,
+  Eye,
 } from 'lucide-react';
 import { processSecureImageUpload } from '@/lib/mediaSecurity';
 
-interface FormWizardProps {
-  onSave: (newMember: AnggotaWiraSatya) => void;
+export interface FormWizardProps {
+  onSave: (data: AnggotaWiraSatya) => void;
   onCancel: () => void;
-  currentUser: AuthUser;
+  currentUser?: AuthUser;
   existingMember?: AnggotaWiraSatya;
+  initialTab?: 1 | 2 | 3 | 4;
+  onSaveTab?: (data: AnggotaWiraSatya, tabNum: 1 | 2 | 3 | 4, stayOpen?: boolean) => void;
 }
 
 type JenisAnggotaOption =
@@ -93,6 +97,13 @@ const DAFTAR_PENYAKIT = [
   'PENYAKIT LIVER',
 ];
 
+const DAFTAR_ASURANSI: ('BPJS' | 'ASURANSI KESEHATAN' | 'ASURANSI JIWA' | 'TIDAK ADA')[] = [
+  'BPJS',
+  'ASURANSI KESEHATAN',
+  'ASURANSI JIWA',
+  'TIDAK ADA',
+];
+
 async function resizeImageFile(
   file: File,
   preset: 'AVATAR' | 'COVER',
@@ -131,18 +142,77 @@ function resolveDefaultJenisAnggota(member?: AnggotaWiraSatya, user?: AuthUser):
   return 'ANGGOTA POLRI';
 }
 
+const TAB_CONFIG: {
+  num: 1 | 2 | 3 | 4;
+  title: string;
+  shortTitle: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { num: 1, title: 'Kedinasan & Kontak', shortTitle: 'Kedinasan & Kontak', icon: Shield },
+  { num: 2, title: 'Domisili & Keluarga', shortTitle: 'Domisili & Keluarga', icon: Users },
+  { num: 3, title: 'Purna Tugas & Usaha', shortTitle: 'Purna Tugas & Usaha', icon: Home },
+  { num: 4, title: 'Kesehatan & Asuransi', shortTitle: 'Kesehatan & Asuransi', icon: Activity },
+];
+
 export const FormWizard: React.FC<FormWizardProps> = ({
   onSave,
   onCancel,
   currentUser,
   existingMember,
+  initialTab,
+  onSaveTab,
 }) => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const activeUser: AuthUser = currentUser || {
+    id: 'u-default',
+    nrp: existingMember?.nrp || '',
+    nama: existingMember?.namaLengkap || 'Personel',
+    pangkat: existingMember?.pangkat || 'Kombes Pol',
+    email: existingMember?.email || '',
+    role: 'SUPERADMIN',
+    profileId: existingMember?.id || 'ws-default',
+    mfaEnabled: false,
+    mfaMethod: 'PIN',
+  };
+
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(initialTab || 1);
+  const [baselineMember, setBaselineMember] = useState<AnggotaWiraSatya | undefined>(existingMember);
+  const [savedBanner, setSavedBanner] = useState<{
+    tabNum: number;
+    tabName: string;
+    timestamp: string;
+  } | null>(null);
+  const [savedTabs, setSavedTabs] = useState<Record<number, boolean>>({});
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const [penyakitLainnya, setPenyakitLainnya] = useState('');
   const [isSatkerModalOpen, setIsSatkerModalOpen] = useState(false);
   const [avatarCleared, setAvatarCleared] = useState(false);
   const [isExternalJabatan, setIsExternalJabatan] = useState(false);
+
+  const initializedMemberKeyRef = useRef<string | null>(null);
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync step when initialTab prop changes
+  useEffect(() => {
+    if (initialTab) {
+      setStep(initialTab);
+      setErrorMsg(null);
+    }
+  }, [initialTab]);
+
+  // Sync baselineMember whenever existingMember prop changes
+  useEffect(() => {
+    setBaselineMember(existingMember);
+  }, [existingMember]);
+
+  // Cleanup banner timer on unmount
+  useEffect(() => {
+    return () => {
+      if (bannerTimerRef.current) {
+        clearTimeout(bannerTimerRef.current);
+      }
+    };
+  }, []);
 
   // Form State initialized from existing member or defaults
   const [formData, setFormData] = useState<FormWizardData>({
@@ -187,12 +257,25 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     mcuTerakhir: '< 6 BULAN',
   });
 
-  // Prepopulate if existingMember is provided
+  // Prepopulate formData when target member changes (without wiping unsaved edits on same-member tab save)
   useEffect(() => {
+    const memberKey = existingMember
+      ? `${existingMember.id || ''}:${existingMember.nrp || ''}`
+      : `NEW:${activeUser.nrp || ''}:${activeUser.role || ''}`;
+
+    if (initializedMemberKeyRef.current === memberKey) {
+      return;
+    }
+    initializedMemberKeyRef.current = memberKey;
+
     setAvatarCleared(false);
+    setSavedTabs({});
+    setSavedBanner(null);
+    setErrorMsg(null);
+
     if (existingMember) {
-      const isSelf = existingMember.nrp === currentUser.nrp;
-      const resolvedKind = resolveDefaultJenisAnggota(existingMember, isSelf ? currentUser : undefined);
+      const isSelf = existingMember.nrp === activeUser.nrp;
+      const resolvedKind = resolveDefaultJenisAnggota(existingMember, isSelf ? activeUser : undefined);
       const calc58 = calculateRetirement58(existingMember.tanggalLahir, existingMember.nrp);
 
       // Build initial daftarAdc from existingMember.daftarAdc or migrate legacy kontakAdc/namaAdc
@@ -251,18 +334,18 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           existingMember.pendidikanTerakhir ||
           (existingMember.nrp === '98010710' ? 'S1 Teknik Informatika' : 'Akpol 1996 / Sespimti'),
         fotoUrl: isSelf
-          ? resolveAvatarUrl(existingMember.fotoUrl, currentUser.fotoUrl)
+          ? resolveAvatarUrl(existingMember.fotoUrl, activeUser.fotoUrl)
           : getAvatarUrl(existingMember.fotoUrl),
-        coverUrl: existingMember.coverUrl || (isSelf ? currentUser.coverUrl : undefined),
+        coverUrl: existingMember.coverUrl || (isSelf ? activeUser.coverUrl : undefined),
         email:
           existingMember.email ||
-          (isSelf ? currentUser.email : undefined) ||
+          (isSelf ? activeUser.email : undefined) ||
           (existingMember.nrp ? `${existingMember.nrp}@polri.go.id` : ''),
         secondaryEmail:
           existingMember.secondaryEmail ||
-          (isSelf ? currentUser.secondaryEmail : undefined) ||
+          (isSelf ? activeUser.secondaryEmail : undefined) ||
           (existingMember.nrp === '98010710' ? 'superadmin@example.com' : ''),
-        bio: existingMember.bio || (isSelf ? currentUser.bio : '') || '',
+        bio: existingMember.bio || (isSelf ? activeUser.bio : '') || '',
       });
 
       // Extract any custom diseases not in DAFTAR_PENYAKIT
@@ -272,27 +355,27 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       } else {
         setPenyakitLainnya('');
       }
-    } else if (currentUser.role === 'ANGGOTA') {
-      const resolvedKind = resolveDefaultJenisAnggota(undefined, currentUser);
-      const calc58 = calculateRetirement58(undefined, currentUser.nrp);
+    } else if (activeUser.role === 'ANGGOTA') {
+      const resolvedKind = resolveDefaultJenisAnggota(undefined, activeUser);
+      const calc58 = calculateRetirement58(undefined, activeUser.nrp);
       setFormData((prev) => ({
         ...prev,
-        nrp: currentUser.nrp,
-        namaLengkap: currentUser.nama,
-        pangkat: currentUser.pangkat,
+        nrp: activeUser.nrp,
+        namaLengkap: activeUser.nama,
+        pangkat: activeUser.pangkat,
         tempatLahir: 'Jakarta',
         tanggalLahir: calc58.tanggalLahir,
         usia: calc58.usiaTahun,
         tahunPurnaTugas: calc58.tahunPurnaTugas,
         sisaTahunDinas: calc58.sisaTahunDinas,
         jenisAnggota: resolvedKind,
-        satuanKerja: currentUser.satker || 'Bareskrim Polri',
-        polda: currentUser.polda || 'MABES POLRI',
-        fotoUrl: resolveAvatarUrl(currentUser.fotoUrl),
-        coverUrl: currentUser.coverUrl,
-        email: currentUser.email || (currentUser.nrp ? `${currentUser.nrp}@polri.go.id` : ''),
-        secondaryEmail: currentUser.secondaryEmail || '',
-        bio: currentUser.bio || '',
+        satuanKerja: activeUser.satker || 'Bareskrim Polri',
+        polda: activeUser.polda || 'MABES POLRI',
+        fotoUrl: resolveAvatarUrl(activeUser.fotoUrl),
+        coverUrl: activeUser.coverUrl,
+        email: activeUser.email || (activeUser.nrp ? `${activeUser.nrp}@polri.go.id` : ''),
+        secondaryEmail: activeUser.secondaryEmail || '',
+        bio: activeUser.bio || '',
         daftarAdc: [],
       }));
     } else {
@@ -324,7 +407,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       }));
       setPenyakitLainnya('');
     }
-  }, [existingMember, currentUser]);
+  }, [existingMember, activeUser]);
 
   const retirementCalc = React.useMemo(
     () => calculateRetirement58(formData.tanggalLahir, formData.nrp),
@@ -335,10 +418,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     field: keyof FormWizardData,
     value: string | number | string[] | undefined
   ) => {
+    if (errorMsg) setErrorMsg(null);
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleBirthDateChange = (newBirthDate: string) => {
+    if (errorMsg) setErrorMsg(null);
     const calc = calculateRetirement58(newBirthDate, formData.nrp);
     setFormData((prev) => ({
       ...prev,
@@ -383,7 +468,6 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       const currentItem = updated[index];
       if (!currentItem) return prev;
       const nextItem: AdcPersonel = { ...currentItem, [field]: value };
-      // Auto-fill official email and birth date when NRP is typed
       if (field === 'nrp') {
         const cleanNrp = value.replace(/\s+/g, '');
         const oldAutoEmail = currentItem.nrp ? `${currentItem.nrp.replace(/\s+/g, '')}@polri.go.id` : '';
@@ -428,6 +512,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   };
 
   const handleUpdateChild = (index: number, field: keyof Anak, value: string) => {
+    if (errorMsg) setErrorMsg(null);
     setFormData((prev) => {
       const updated = [...(prev.daftarAnak || [])];
       updated[index] = { ...updated[index], [field]: value };
@@ -436,24 +521,120 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   };
 
   const handleToggleDisease = (disease: string) => {
+    if (errorMsg) setErrorMsg(null);
     setFormData((prev) => {
       const current = prev.daftarPenyakit || [];
       const updated = current.includes(disease)
         ? current.filter((d) => d !== disease)
         : [...current, disease];
-      return { ...prev, daftarPenyakit: updated };
+      return {
+        ...prev,
+        daftarPenyakit: updated,
+        adaPenyakitKronis: updated.length > 0 ? 'ADA' : prev.adaPenyakitKronis,
+      };
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.namaLengkap || !formData.nrp) {
-      alert('Mohon lengkapi Nama Lengkap dan NRP');
-      setCurrentStep(1);
-      return;
+  const handleToggleInsurance = (ins: 'BPJS' | 'ASURANSI KESEHATAN' | 'ASURANSI JIWA' | 'TIDAK ADA') => {
+    setFormData((prev) => {
+      const current = (prev.asuransiAktif || []) as ('BPJS' | 'ASURANSI KESEHATAN' | 'ASURANSI JIWA' | 'TIDAK ADA')[];
+      if (ins === 'TIDAK ADA') {
+        return { ...prev, asuransiAktif: ['TIDAK ADA'] };
+      }
+      const withoutNone = current.filter((x) => x !== 'TIDAK ADA');
+      const updated = withoutNone.includes(ins)
+        ? withoutNone.filter((x) => x !== ins)
+        : [...withoutNone, ins];
+      return { ...prev, asuransiAktif: updated.length > 0 ? updated : ['BPJS'] };
+    });
+  };
+
+  // Per-Tab Validation
+  const validateTab = (tabNum: 1 | 2 | 3 | 4): boolean => {
+    setErrorMsg(null);
+
+    // If creating a brand new member who doesn't exist yet in baselineMember,
+    // require Tab 1 core identity (namaLengkap & nrp) first.
+    if (!baselineMember && tabNum !== 1) {
+      if (!formData.namaLengkap?.trim() || !formData.nrp?.trim()) {
+        setStep(1);
+        setErrorMsg(
+          'Untuk personel baru yang belum terdaftar, mohon isi Nama Lengkap dan NRP pada Tab 1 (Kedinasan & Kontak) terlebih dahulu.'
+        );
+        return false;
+      }
     }
 
-    const derivedPolda = formData.polda || 'MABES POLRI';
+    if (tabNum === 1) {
+      if (!formData.namaLengkap?.trim()) {
+        setErrorMsg('Mohon lengkapi Nama Lengkap & Gelar personel pada Tab 1.');
+        return false;
+      }
+      const cleanNrp = (formData.nrp || '').replace(/\s+/g, '').trim();
+      if (!cleanNrp) {
+        setErrorMsg('Mohon lengkapi NRP / NIP personel pada Tab 1.');
+        return false;
+      }
+      if (!/^\d{6,18}$/.test(cleanNrp)) {
+        setErrorMsg('NRP / NIP harus berupa angka yang valid (minimal 8 digit NRP Polri).');
+        return false;
+      }
+      if (!formData.satuanKerja?.trim() && !formData.satkerMabes?.trim()) {
+        setErrorMsg('Mohon pilih Satuan Kerja (Satker) pada Tab 1.');
+        return false;
+      }
+      if (isExternalJabatan && !formData.jabatanTerakhir?.trim()) {
+        setErrorMsg('Mohon ketik nama Jabatan Eksternal (Luar Struktur Polri) pada Tab 1.');
+        return false;
+      }
+      return true;
+    }
+
+    if (tabNum === 2) {
+      if (Array.isArray(formData.daftarAnak) && formData.daftarAnak.length > 0) {
+        const emptyChildIdx = formData.daftarAnak.findIndex((c) => !c.nama?.trim());
+        if (emptyChildIdx >= 0) {
+          setErrorMsg(
+            `Mohon isi Nama Anak ke-${emptyChildIdx + 1} pada Tab 2, atau hapus baris anak yang masih kosong.`
+          );
+          return false;
+        }
+      }
+      return true;
+    }
+
+    if (tabNum === 3) {
+      if (!formData.statusRumahPurnaTugas) {
+        setErrorMsg('Mohon pilih Status Tempat Tinggal Setelah Pensiun pada Tab 3.');
+        return false;
+      }
+      return true;
+    }
+
+    if (tabNum === 4) {
+      const hasCheckedDisease = (formData.daftarPenyakit?.length || 0) > 0;
+      const hasCustomDisease = penyakitLainnya.trim().length > 0;
+      const hasMedicalNote = Boolean(formData.kondisiSaatIni?.trim());
+      if (
+        formData.adaPenyakitKronis === 'ADA' &&
+        !hasCheckedDisease &&
+        !hasCustomDisease &&
+        !hasMedicalNote
+      ) {
+        setErrorMsg(
+          'Anda memilih Riwayat Penyakit Kronis "ADA". Mohon centang minimal satu diagnosa medis atau isi Diagnosa Lainnya / Kondisi Terkini.'
+        );
+        return false;
+      }
+      return true;
+    }
+
+    return true;
+  };
+
+  // Build full AnggotaWiraSatya snapshot from current formData
+  const buildFullMemberFromForm = (base?: AnggotaWiraSatya): AnggotaWiraSatya => {
+    const derivedPolda = formData.polda || base?.polda || 'MABES POLRI';
     const derivedSatker =
       formData.satuanKerja ||
       (formData.subSatker
@@ -475,7 +656,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
     const finalFotoUrl = avatarCleared
       ? DEFAULT_AVATAR_URL
-      : resolveAvatarUrl(formData.fotoUrl, existingMember?.fotoUrl);
+      : resolveAvatarUrl(formData.fotoUrl, base?.fotoUrl);
 
     const rawAdcList = [...(formData.daftarAdc || [])];
     const validAdcList = rawAdcList.filter(
@@ -483,9 +664,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     );
     const primaryAdc = validAdcList[0];
     const primaryAdcNrp = (primaryAdc?.nrp || '').trim();
-    const primaryAdcNama = (primaryAdc?.nama || '').trim();
     const primaryAdcPangkat = primaryAdc?.pangkat || 'Briptu';
-    const primaryAdcKontak = (primaryAdc?.noHp || '').trim();
 
     const syncedKontakAdc =
       validAdcList.length > 0
@@ -504,17 +683,28 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       formData.jabatanTerakhir,
       formData.jenisAnggota
     );
+
+    const groups = getJabatanGroupsForPangkat(formData.pangkat, formData.nrp);
+    const fallbackJab = groups[0]?.options[0] || 'Staf';
+    const rawJab = formData.jabatanTerakhir || (!isExternalJabatan ? fallbackJab : '');
     const cleanJabTitle =
-      extractCleanJabatanTitle(cleanJabatanOnly(formData.jabatanTerakhir) || formData.jabatanTerakhir) ||
-      cleanJabatanOnly(formData.jabatanTerakhir) ||
-      formData.jabatanTerakhir ||
+      extractCleanJabatanTitle(cleanJabatanOnly(rawJab) || rawJab) ||
+      cleanJabatanOnly(rawJab) ||
+      rawJab ||
       '';
 
-    const memberToSave: AnggotaWiraSatya = {
-      id: existingMember?.id || 'ws-' + (formData.nrp || Date.now()),
-      nrp: formData.nrp || '',
-      namaLengkap: formData.namaLengkap || '',
-      pangkat: formData.pangkat || 'Kombes Pol',
+    const nowIso = new Date().toISOString();
+
+    return {
+      id: base?.id || 'ws-' + (formData.nrp || Date.now()),
+      nrp: (formData.nrp || base?.nrp || '').trim(),
+      ...(base?.oldNrp
+        ? { oldNrp: base.oldNrp }
+        : base?.nrp && formData.nrp && base.nrp !== formData.nrp.trim()
+        ? { oldNrp: base.nrp }
+        : {}),
+      namaLengkap: (formData.namaLengkap || base?.namaLengkap || '').trim(),
+      pangkat: formData.pangkat || base?.pangkat || 'Kombes Pol',
       jabatanTerakhir: cleanJabTitle,
       statusKedinasan: resolvedStatusKedinasan,
       statusDinas: resolvedStatusKedinasan,
@@ -534,7 +724,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       usia: finalCalc58.usiaTahun,
       jenisKelamin: formData.jenisKelamin || 'LAKI-LAKI',
       noHp: formData.noHp || '',
-      email: formData.email || `${formData.nrp}@polri.go.id`,
+      email: formData.email || `${(formData.nrp || base?.nrp || '').trim()}@polri.go.id`,
       secondaryEmail: formData.secondaryEmail || '',
       kontakAdc: syncedKontakAdc,
       namaAdc: syncedNamaAdc,
@@ -589,212 +779,429 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       harapanLayananKesehatan: formData.harapanLayananKesehatan || '',
       harapanDukunganLeting: formData.harapanDukunganLeting || '',
 
-      createdAt: existingMember?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: base?.createdAt || nowIso,
+      updatedAt: nowIso,
     };
+  };
 
-    // Save ADC mapping in ws96_adc_registry_v1 and ws96_user_overrides_v1 if nrpAdc is provided
+  // Per-Tab Partial Save
+  const handleSaveTab = (tabNum: 1 | 2 | 3 | 4, stayOpen: boolean) => {
+    if (!validateTab(tabNum)) return;
+
+    const fullSnapshot = buildFullMemberFromForm(baselineMember);
+    const nowIso = new Date().toISOString();
+
+    let mergedMember: AnggotaWiraSatya;
+
+    if (!baselineMember) {
+      mergedMember = fullSnapshot;
+    } else if (tabNum === 1) {
+      // Tab 1: Kedinasan & Kontak ONLY
+      mergedMember = {
+        ...baselineMember,
+        nrp: fullSnapshot.nrp,
+        ...(fullSnapshot.oldNrp ? { oldNrp: fullSnapshot.oldNrp } : {}),
+        namaLengkap: fullSnapshot.namaLengkap,
+        pangkat: fullSnapshot.pangkat,
+        jabatanTerakhir: fullSnapshot.jabatanTerakhir,
+        statusKedinasan: fullSnapshot.statusKedinasan,
+        statusDinas: fullSnapshot.statusDinas,
+        satuanKerja: fullSnapshot.satuanKerja,
+        tipeSatker: fullSnapshot.tipeSatker,
+        satkerMabes: fullSnapshot.satkerMabes,
+        subSatker: fullSnapshot.subSatker,
+        namaPolres: fullSnapshot.namaPolres,
+        namaPolsek: fullSnapshot.namaPolsek,
+        jenisAnggota: fullSnapshot.jenisAnggota,
+        polda: fullSnapshot.polda,
+        pendidikanTerakhir: fullSnapshot.pendidikanTerakhir,
+        nomorKtp: fullSnapshot.nomorKtp,
+        tempatLahir: fullSnapshot.tempatLahir,
+        tanggalLahir: fullSnapshot.tanggalLahir,
+        usia: fullSnapshot.usia,
+        tahunPurnaTugas: fullSnapshot.tahunPurnaTugas,
+        sisaTahunDinas: fullSnapshot.sisaTahunDinas,
+        jenisKelamin: fullSnapshot.jenisKelamin,
+        noHp: fullSnapshot.noHp,
+        email: fullSnapshot.email,
+        secondaryEmail: fullSnapshot.secondaryEmail,
+        kontakAdc: fullSnapshot.kontakAdc,
+        namaAdc: fullSnapshot.namaAdc,
+        pangkatAdc: fullSnapshot.pangkatAdc,
+        nrpAdc: fullSnapshot.nrpAdc,
+        daftarAdc: fullSnapshot.daftarAdc,
+        fotoUrl: fullSnapshot.fotoUrl,
+        coverUrl: fullSnapshot.coverUrl,
+        bio: fullSnapshot.bio,
+        alamatTempatTinggal: fullSnapshot.alamatTempatTinggal,
+        statusTempatTinggal: fullSnapshot.statusTempatTinggal,
+        updatedAt: nowIso,
+      };
+    } else if (tabNum === 2) {
+      // Tab 2: Domisili & Keluarga ONLY
+      mergedMember = {
+        ...baselineMember,
+        alamatTempatTinggal: fullSnapshot.alamatTempatTinggal,
+        statusTempatTinggal: fullSnapshot.statusTempatTinggal,
+        statusPerkawinan: fullSnapshot.statusPerkawinan,
+        namaIstri: fullSnapshot.namaIstri,
+        tempatLahirIstri: fullSnapshot.tempatLahirIstri,
+        tanggalLahirIstri: fullSnapshot.tanggalLahirIstri,
+        usiaIstri: fullSnapshot.usiaIstri,
+        kontakIstri: fullSnapshot.kontakIstri,
+        jumlahAnak: fullSnapshot.jumlahAnak,
+        daftarAnak: fullSnapshot.daftarAnak,
+        tanggunganLain: fullSnapshot.tanggunganLain,
+        updatedAt: nowIso,
+      };
+    } else if (tabNum === 3) {
+      // Tab 3: Purna Tugas & Usaha ONLY
+      mergedMember = {
+        ...baselineMember,
+        tanggalLahir: fullSnapshot.tanggalLahir,
+        usia: fullSnapshot.usia,
+        tahunPurnaTugas: fullSnapshot.tahunPurnaTugas,
+        sisaTahunDinas: fullSnapshot.sisaTahunDinas,
+        alamatPurnaTugas: fullSnapshot.alamatPurnaTugas,
+        statusRumahPurnaTugas: fullSnapshot.statusRumahPurnaTugas,
+        detailSewaPurnaTugas: fullSnapshot.detailSewaPurnaTugas,
+        biayaSewaTahunan: fullSnapshot.biayaSewaTahunan,
+        sudahPembekalan: fullSnapshot.sudahPembekalan,
+        rencanaAktivitas: fullSnapshot.rencanaAktivitas,
+        jenisUsaha: fullSnapshot.jenisUsaha,
+        statusUsaha: fullSnapshot.statusUsaha,
+        kebutuhanPembekalan: fullSnapshot.kebutuhanPembekalan,
+        sumberPenghasilanPasca: fullSnapshot.sumberPenghasilanPasca,
+        kecukupanDanaPensiun: fullSnapshot.kecukupanDanaPensiun,
+        kesiapanPensiun: fullSnapshot.kesiapanPensiun,
+        perasaanPensiun: fullSnapshot.perasaanPensiun,
+        dukunganKeluarga: fullSnapshot.dukunganKeluarga,
+        updatedAt: nowIso,
+      };
+    } else {
+      // Tab 4: Kesehatan & Asuransi ONLY
+      mergedMember = {
+        ...baselineMember,
+        adaPenyakitKronis: fullSnapshot.adaPenyakitKronis,
+        kondisiKesehatan: fullSnapshot.kondisiKesehatan,
+        daftarPenyakit: fullSnapshot.daftarPenyakit,
+        lamaMenderita: fullSnapshot.lamaMenderita,
+        kondisiSaatIni: fullSnapshot.kondisiSaatIni,
+        penangananPengobatan: fullSnapshot.penangananPengobatan,
+        biayaPengobatanDitanggung: fullSnapshot.biayaPengobatanDitanggung,
+        asuransiAktif: fullSnapshot.asuransiAktif,
+        rutinMcu: fullSnapshot.rutinMcu,
+        mcuTerakhir: fullSnapshot.mcuTerakhir,
+        harapanLayananKesehatan: fullSnapshot.harapanLayananKesehatan,
+        harapanDukunganLeting: fullSnapshot.harapanDukunganLeting,
+        catatanMedis: fullSnapshot.catatanMedis,
+        updatedAt: nowIso,
+      };
+    }
+
+    // Update initialized key ref so parent existingMember update won't wipe unsaved edits on other tabs
+    initializedMemberKeyRef.current = `${mergedMember.id || ''}:${mergedMember.nrp || ''}`;
+    setBaselineMember(mergedMember);
+    setSavedTabs((prev) => ({ ...prev, [tabNum]: true }));
+
+    const tabMeta = TAB_CONFIG.find((t) => t.num === tabNum) || TAB_CONFIG[0];
+
+    // Persist ADC registry & overrides if Tab 1 or new member
     if (typeof window !== 'undefined') {
-      const adcsToRegister = validAdcList.filter((a) => a.nrp && a.nrp.trim().length > 0);
-      if (memberToSave.nrpAdc?.trim() && !adcsToRegister.some((a) => a.nrp?.trim() === memberToSave.nrpAdc?.trim())) {
-        adcsToRegister.unshift({
-          id: 'adc-reg-primary',
-          nama: memberToSave.namaAdc || `ADC ${memberToSave.namaLengkap}`,
-          nrp: memberToSave.nrpAdc.trim(),
-          pangkat: memberToSave.pangkatAdc || 'Briptu',
-          noHp: memberToSave.kontakAdc || '',
-        });
-      }
-
-      if (adcsToRegister.length > 0) {
-        try {
-          const rawReg = localStorage.getItem('ws96_adc_registry_v1');
-          const regMap: Record<string, any> = rawReg ? JSON.parse(rawReg) : {};
-          const rawUOv = localStorage.getItem('ws96_user_overrides_v1');
-          const uOvMap: Record<string, any> = rawUOv ? JSON.parse(rawUOv) : {};
-
-          adcsToRegister.forEach((adcItem) => {
-            const cleanAdcNrp = (adcItem.nrp || '').replace(/\s+/g, '').trim();
-            if (!cleanAdcNrp || cleanAdcNrp === memberToSave.nrp) return;
-            const adcNamaClean = (adcItem.nama || memberToSave.namaAdc || `ADC ${memberToSave.namaLengkap}`).trim();
-            const adcPangkatClean = adcItem.pangkat || memberToSave.pangkatAdc || 'Briptu';
-            const adcNoHpClean = adcItem.noHp || memberToSave.kontakAdc || '';
-
-            regMap[cleanAdcNrp] = {
-              adcNrp: cleanAdcNrp,
-              adcNama: adcNamaClean,
-              adcPangkat: adcPangkatClean,
-              adcNoHp: adcNoHpClean,
-              pimpinanNrp: memberToSave.nrp,
-              pimpinanNama: memberToSave.namaLengkap,
-              pimpinanPangkat: memberToSave.pangkat,
-            };
-
-            const existingAdcOv = uOvMap[cleanAdcNrp] || {};
-            uOvMap[cleanAdcNrp] = {
-              ...existingAdcOv,
-              id: existingAdcOv.id || `u-adc-${cleanAdcNrp}`,
-              profileId: memberToSave.id,
-              nrp: cleanAdcNrp,
-              nama: adcNamaClean,
-              pangkat: adcPangkatClean,
-              role: 'ANGGOTA',
-              jabatanTerakhir: 'ADC',
-              satker: memberToSave.satuanKerja,
-              polda: memberToSave.polda,
-              email: `${cleanAdcNrp}@polri.go.id`,
-              noHp: adcNoHpClean,
-              isAdcAccount: true,
-              adcOfNrp: memberToSave.nrp,
-              adcOfNama: memberToSave.namaLengkap,
-              adcOfPangkat: memberToSave.pangkat,
-              password: existingAdcOv.password || `WS96@${cleanAdcNrp}`,
-              status: 'AKTIF',
-              updatedAt: new Date().toISOString(),
-            };
+      if (tabNum === 1 || !baselineMember) {
+        const validAdcList = mergedMember.daftarAdc || [];
+        const adcsToRegister = validAdcList.filter((a) => a.nrp && a.nrp.trim().length > 0);
+        if (
+          mergedMember.nrpAdc?.trim() &&
+          !adcsToRegister.some((a) => a.nrp?.trim() === mergedMember.nrpAdc?.trim())
+        ) {
+          adcsToRegister.unshift({
+            id: 'adc-reg-primary',
+            nama: mergedMember.namaAdc || `ADC ${mergedMember.namaLengkap}`,
+            nrp: mergedMember.nrpAdc.trim(),
+            pangkat: mergedMember.pangkatAdc || 'Briptu',
+            noHp: mergedMember.kontakAdc || '',
           });
+        }
 
-          localStorage.setItem('ws96_adc_registry_v1', JSON.stringify(regMap));
-          localStorage.setItem('ws96_user_overrides_v1', JSON.stringify(uOvMap));
-        } catch {
-          // ignore storage errors
+        if (adcsToRegister.length > 0) {
+          try {
+            const rawReg = localStorage.getItem('ws96_adc_registry_v1');
+            const regMap: Record<string, any> = rawReg ? JSON.parse(rawReg) : {};
+            const rawUOv = localStorage.getItem('ws96_user_overrides_v1');
+            const uOvMap: Record<string, any> = rawUOv ? JSON.parse(rawUOv) : {};
+
+            adcsToRegister.forEach((adcItem) => {
+              const cleanAdcNrp = (adcItem.nrp || '').replace(/\s+/g, '').trim();
+              if (!cleanAdcNrp || cleanAdcNrp === mergedMember.nrp) return;
+              const adcNamaClean = (
+                adcItem.nama ||
+                mergedMember.namaAdc ||
+                `ADC ${mergedMember.namaLengkap}`
+              ).trim();
+              const adcPangkatClean = adcItem.pangkat || mergedMember.pangkatAdc || 'Briptu';
+              const adcNoHpClean = adcItem.noHp || mergedMember.kontakAdc || '';
+
+              regMap[cleanAdcNrp] = {
+                adcNrp: cleanAdcNrp,
+                adcNama: adcNamaClean,
+                adcPangkat: adcPangkatClean,
+                adcNoHp: adcNoHpClean,
+                pimpinanNrp: mergedMember.nrp,
+                pimpinanNama: mergedMember.namaLengkap,
+                pimpinanPangkat: mergedMember.pangkat,
+              };
+
+              const existingAdcOv = uOvMap[cleanAdcNrp] || {};
+              uOvMap[cleanAdcNrp] = {
+                ...existingAdcOv,
+                id: existingAdcOv.id || `u-adc-${cleanAdcNrp}`,
+                profileId: mergedMember.id,
+                nrp: cleanAdcNrp,
+                nama: adcNamaClean,
+                pangkat: adcPangkatClean,
+                role: 'ANGGOTA',
+                jabatanTerakhir: 'ADC',
+                satker: mergedMember.satuanKerja,
+                polda: mergedMember.polda,
+                email: `${cleanAdcNrp}@polri.go.id`,
+                noHp: adcNoHpClean,
+                isAdcAccount: true,
+                adcOfNrp: mergedMember.nrp,
+                adcOfNama: mergedMember.namaLengkap,
+                adcOfPangkat: mergedMember.pangkat,
+                password: existingAdcOv.password || `WS96@${cleanAdcNrp}`,
+                status: 'AKTIF',
+                updatedAt: nowIso,
+              };
+            });
+
+            localStorage.setItem('ws96_adc_registry_v1', JSON.stringify(regMap));
+            localStorage.setItem('ws96_user_overrides_v1', JSON.stringify(uOvMap));
+          } catch {
+            // ignore storage errors
+          }
         }
       }
 
       if (getActiveAdcSessionFromStorage()) {
         recordAdcActivityToAuditLog({
           action: 'AKTIVITAS_ADC',
-          details:
-            'Memperbarui formulir data diri & kedinasan Pimpinan ' +
-            memberToSave.pangkat +
-            ' ' +
-            memberToSave.namaLengkap,
+          details: `Memperbarui Tab ${tabNum} (${tabMeta.title}) Pimpinan ${mergedMember.pangkat} ${mergedMember.namaLengkap}`,
         });
       }
-    }
 
-    // Sync to ws96_auth_user if editing own profile
-    if (memberToSave.nrp === currentUser.nrp && typeof window !== 'undefined') {
-      try {
-        const rawAuth = localStorage.getItem('ws96_auth_user');
-        const parsedAuth = rawAuth ? JSON.parse(rawAuth) : currentUser;
-        const updatedAuth: AuthUser = {
-          ...parsedAuth,
-          nama: memberToSave.namaLengkap,
-          pangkat: memberToSave.pangkat,
-          fotoUrl: memberToSave.fotoUrl,
-          coverUrl: memberToSave.coverUrl,
-          bio: memberToSave.bio,
-          email: memberToSave.email || parsedAuth.email,
-          secondaryEmail: memberToSave.secondaryEmail,
-          satker: memberToSave.satuanKerja,
-          polda: memberToSave.polda,
-          statusKedinasan: memberToSave.statusKedinasan,
-        };
-        localStorage.setItem('ws96_auth_user', JSON.stringify(updatedAuth));
-        localStorage.setItem('ws96_active_user', JSON.stringify(updatedAuth));
-        localStorage.setItem('wirasatya96_current_user', JSON.stringify(updatedAuth));
-        window.dispatchEvent(new Event('ws96_user_updated'));
-      } catch {
-        // Ignore storage errors
+      // Sync to ws96_auth_user if editing own profile
+      if (mergedMember.nrp === activeUser.nrp) {
+        try {
+          const rawAuth = localStorage.getItem('ws96_auth_user');
+          const parsedAuth = rawAuth ? JSON.parse(rawAuth) : activeUser;
+          const updatedAuth: AuthUser = {
+            ...parsedAuth,
+            nama: mergedMember.namaLengkap,
+            pangkat: mergedMember.pangkat,
+            fotoUrl: mergedMember.fotoUrl,
+            coverUrl: mergedMember.coverUrl,
+            bio: mergedMember.bio,
+            email: mergedMember.email || parsedAuth.email,
+            secondaryEmail: mergedMember.secondaryEmail,
+            satker: mergedMember.satuanKerja,
+            polda: mergedMember.polda,
+            statusKedinasan: mergedMember.statusKedinasan,
+          };
+          localStorage.setItem('ws96_auth_user', JSON.stringify(updatedAuth));
+          localStorage.setItem('ws96_active_user', JSON.stringify(updatedAuth));
+          localStorage.setItem('wirasatya96_current_user', JSON.stringify(updatedAuth));
+          window.dispatchEvent(new Event('ws96_user_updated'));
+        } catch {
+          // Ignore storage errors
+        }
       }
     }
 
-    onSave(memberToSave);
-    setIsSubmitted(true);
+    // Show saved banner with 5s auto-hide
+    const timestamp = new Date().toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    setSavedBanner({
+      tabNum,
+      tabName: tabMeta.title,
+      timestamp,
+    });
+    if (bannerTimerRef.current) {
+      clearTimeout(bannerTimerRef.current);
+    }
+    bannerTimerRef.current = setTimeout(() => {
+      setSavedBanner(null);
+    }, 5000);
+
+    if (onSaveTab) {
+      onSaveTab(mergedMember, tabNum, stayOpen);
+    } else {
+      onSave(mergedMember);
+    }
   };
 
-  if (isSubmitted) {
-    return (
-      <div className="max-w-xl mx-auto my-8 p-8 bg-white rounded-2xl border border-slate-200 shadow-xl text-center space-y-4">
-        <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-          <CheckCircle2 className="w-10 h-10" />
-        </div>
-        <h3 className="text-xl font-extrabold text-slate-900">Data Berhasil Diperbarui!</h3>
-        <p className="text-sm text-slate-600 leading-relaxed">
-          Perubahan data profil, kedinasan, dan keluarga telah disimpan serta disinkronkan ke direktori portal.
-        </p>
-        <div className="pt-4 flex justify-center gap-3">
-          <button
-            onClick={onCancel}
-            className="px-6 py-2.5 rounded-lg bg-polri-navy hover:bg-polri-navyLight text-polri-gold text-sm font-bold shadow-md transition-colors"
-          >
-            Selesai &amp; Kembali
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSaveTab(step, true);
+  };
 
-  const steps = [
-    { num: 1, title: 'Kedinasan & Kontak', icon: Shield },
-    { num: 2, title: 'Keluarga', icon: Users },
-    { num: 3, title: 'Purna Tugas', icon: Home },
-    { num: 4, title: 'Kesehatan', icon: Activity },
-  ];
+  const currentTabMeta = TAB_CONFIG.find((t) => t.num === step) || TAB_CONFIG[0];
 
   return (
     <div className="max-w-4xl mx-auto space-y-5 pb-24 md:pb-12">
-      {/* Compact Header & Stepper */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+      {/* Compact Header & Free Tab Navigation */}
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3.5">
         <div className="flex items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
           <div className="flex items-center gap-2 min-w-0">
             <h2 className="text-base sm:text-lg font-extrabold text-polri-navy truncate">
-              {existingMember ? 'Edit Profil & Data Personel' : 'Tambah Data Personel'}
+              {baselineMember ? 'Edit Profil & Data Personel' : 'Tambah Data Personel'}
             </h2>
             <span
-              title="Formulir pembaruan identitas kedinasan, kontak, keluarga, purna tugas, dan kesehatan personel"
+              title="Setiap tab dapat diklik langsung dan disimpan secara terpisah (independen) tanpa harus mengisi tab lainnya terlebih dahulu"
               className="inline-flex items-center text-slate-400 hover:text-slate-600 cursor-help flex-shrink-0"
             >
               <Info className="w-4 h-4" />
             </span>
-            {currentUser.role === 'ANGGOTA' && (
+            {activeUser.role === 'ANGGOTA' && (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 hidden sm:inline-flex items-center gap-1">
                 <Lock className="w-3 h-3" /> Mandiri
               </span>
             )}
           </div>
-          <span className="text-[11px] font-bold px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-full flex-shrink-0">
-            Langkah {currentStep}/4
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-[11px] font-bold px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-full">
+              Tab {step}/4 &bull; {currentTabMeta.shortTitle}
+            </span>
+          </div>
         </div>
 
-        {/* Stepper Navigation */}
-        <div className="grid grid-cols-4 gap-2 pt-3.5">
-          {steps.map((s) => {
+        {/* 4 Freely Clickable Interactive Tabs */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {TAB_CONFIG.map((s) => {
             const Icon = s.icon;
-            const isActive = currentStep === s.num;
-            const isDone = currentStep > s.num;
+            const isActive = step === s.num;
+            const isSaved = Boolean(savedTabs[s.num]);
             return (
               <button
                 key={s.num}
                 type="button"
-                onClick={() => setCurrentStep(s.num)}
-                className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl transition-all ${
+                onClick={() => {
+                  setStep(s.num);
+                  setErrorMsg(null);
+                }}
+                className={`relative flex flex-col items-start sm:items-center justify-center gap-1 py-2.5 px-3 rounded-xl border text-left sm:text-center transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-polri-navy text-white shadow-sm'
-                    : isDone
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                    : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                    ? 'bg-polri-navy text-white border-polri-navy shadow-sm ring-2 ring-polri-gold/40'
+                    : isSaved
+                    ? 'bg-emerald-50/90 text-emerald-900 border-emerald-300 hover:bg-emerald-100/70'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                <span className="text-[11px] sm:text-xs font-bold truncate max-w-full">
-                  {s.title}
-                </span>
+                <div className="flex items-center justify-between sm:justify-center w-full gap-1.5">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Icon
+                      className={`w-4 h-4 flex-shrink-0 ${
+                        isActive ? 'text-polri-gold' : isSaved ? 'text-emerald-600' : 'text-slate-500'
+                      }`}
+                    />
+                    <span className="text-[11px] sm:text-xs font-extrabold truncate">
+                      {s.num}. {s.title}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 mt-0.5">
+                  {isSaved ? (
+                    <span
+                      className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full inline-flex items-center gap-1 ${
+                        isActive
+                          ? 'bg-emerald-400/20 text-emerald-200 border border-emerald-300/30'
+                          : 'bg-emerald-100 text-emerald-800'
+                      }`}
+                    >
+                      &#10003; Tersimpan
+                    </span>
+                  ) : isActive ? (
+                    <span className="text-[10px] font-bold text-polri-gold/90">
+                      Sedang Dibuka
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-400">
+                      Klik untuk buka
+                    </span>
+                  )}
+                </div>
               </button>
             );
           })}
         </div>
+
+        {/* Helper note about independent per-tab saving */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600">
+          <span>
+            💡 <strong>Simpan Per Tab Independen:</strong> Anda bebas berpindah tab kapan saja dan menyimpan perubahan hanya pada tab yang sedang dibuka.
+          </span>
+          {baselineMember && (
+            <span className="font-bold text-polri-navy">
+              Personel: {baselineMember.pangkat} {baselineMember.namaLengkap}
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* Saved Toast / Banner */}
+      {savedBanner && (
+        <div className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-300 text-emerald-950 shadow-sm flex items-start justify-between gap-3 animate-fadeIn">
+          <div className="flex items-start gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <div className="text-xs sm:text-sm font-extrabold text-emerald-900">
+                Perubahan Tab {savedBanner.tabName} berhasil disimpan &amp; disinkronkan ke Profil, Beranda, Jabatan, Anev, dan User!
+              </div>
+              <div className="text-[11px] text-emerald-700">
+                Disimpan pada pukul {savedBanner.timestamp} WIB &bull; Hanya data pada Tab {savedBanner.tabNum} ({savedBanner.tabName}) yang diperbarui.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSavedBanner(null)}
+            className="text-xs font-bold text-emerald-700 hover:text-emerald-950 px-2 py-1 rounded-lg hover:bg-emerald-100 transition-colors flex-shrink-0"
+          >
+            Tutup
+          </button>
+        </div>
+      )}
+
+      {/* Validation Error Banner */}
+      {errorMsg && (
+        <div className="p-4 rounded-2xl bg-red-50 border-2 border-red-200 text-red-900 shadow-sm flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="text-xs sm:text-sm font-bold leading-relaxed">{errorMsg}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMsg(null)}
+            className="text-xs font-bold text-red-700 hover:text-red-900 px-2 py-1 rounded-lg hover:bg-red-100 transition-colors flex-shrink-0"
+          >
+            Tutup
+          </button>
+        </div>
+      )}
 
       {/* Main Form Body */}
       <form
-        onSubmit={handleSubmit}
+        onSubmit={handleFormSubmit}
+        noValidate
         className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200 shadow-sm space-y-6"
       >
         {/* STEP 1: KEDINASAN & KONTAK */}
-        {currentStep === 1 && (
+        {step === 1 && (
           <div className="space-y-6">
             {/* SEKSI 1: SATUAN KERJA & JABATAN */}
             <div className="bg-slate-50/70 border border-slate-200 p-4 sm:p-5 rounded-xl space-y-4">
@@ -918,7 +1325,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-bold text-slate-700">
-                      {formData.statusKedinasan === 'ALMARHUM' || formData.statusKedinasan === 'PURNA_TUGAS' || formData.statusKedinasan === 'PTDH'
+                      {formData.statusKedinasan === 'ALMARHUM' ||
+                      formData.statusKedinasan === 'PURNA_TUGAS' ||
+                      formData.statusKedinasan === 'PTDH'
                         ? 'Jabatan Terakhir Sebelum Purna Tugas / Wafat / PTDH'
                         : 'Jabatan Organisasi Polri Saat Ini'}{' '}
                       <span className="text-red-500">*</span>
@@ -989,7 +1398,6 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             </label>
                             <input
                               type="text"
-                              required
                               placeholder="Contoh: Deputi Pemberantasan BNN / Direktur Penyidikan KPK / Staf Ahli Kementerian..."
                               value={formData.jabatanTerakhir || ''}
                               onChange={(e) => handleInputChange('jabatanTerakhir', e.target.value)}
@@ -1045,8 +1453,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                               const resized = await resizeImageFile(
                                 file,
                                 'AVATAR',
-                                currentUser.nrp,
-                                formData.nrp || currentUser.nrp
+                                activeUser.nrp,
+                                formData.nrp || activeUser.nrp
                               );
                               setAvatarCleared(false);
                               handleInputChange('fotoUrl', resized);
@@ -1099,8 +1507,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                               const resized = await resizeImageFile(
                                 file,
                                 'COVER',
-                                currentUser.nrp,
-                                formData.nrp || currentUser.nrp
+                                activeUser.nrp,
+                                formData.nrp || activeUser.nrp
                               );
                               handleInputChange('coverUrl', resized);
                             } catch {
@@ -1131,7 +1539,6 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   </label>
                   <input
                     type="text"
-                    required
                     placeholder="Contoh: Eko Agung"
                     value={formData.namaLengkap || ''}
                     onChange={(e) => handleInputChange('namaLengkap', e.target.value)}
@@ -1145,8 +1552,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   </label>
                   <input
                     type="text"
-                    required
-                    readOnly={currentUser.role === 'ANGGOTA' && !!existingMember}
+                    readOnly={activeUser.role === 'ANGGOTA' && !!baselineMember}
                     placeholder="Contoh: 74000000"
                     value={formData.nrp || ''}
                     onChange={(e) => {
@@ -1160,12 +1566,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       }
                     }}
                     className={`w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none ${
-                      currentUser.role === 'ANGGOTA' && existingMember
+                      activeUser.role === 'ANGGOTA' && baselineMember
                         ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
                         : ''
                     }`}
                   />
-                  {currentUser.role === 'ANGGOTA' && existingMember && (
+                  {activeUser.role === 'ANGGOTA' && baselineMember && (
                     <span className="text-[10px] text-slate-400 mt-1 block">
                       NRP terkunci sebagai identitas utama akun.
                     </span>
@@ -1199,7 +1605,6 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="date"
-                      required
                       value={formData.tanggalLahir || retirementCalc.tanggalLahir}
                       onChange={(e) => handleBirthDateChange(e.target.value)}
                       className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -1507,16 +1912,55 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           </div>
         )}
 
-        {/* STEP 2: KELUARGA */}
-        {currentStep === 2 && (
+        {/* STEP 2: DOMISILI & KELUARGA */}
+        {step === 2 && (
           <div className="space-y-6">
             <div className="border-b pb-2.5 flex items-center justify-between">
               <h3 className="text-sm sm:text-base font-extrabold text-polri-navy flex items-center gap-2">
                 <Users className="w-4 h-4 text-polri-gold" />
-                Data Keluarga &amp; Tanggungan Anak
+                Domisili Saat Ini, Data Keluarga &amp; Tanggungan Anak
               </h3>
             </div>
 
+            {/* Domisili & Tempat Tinggal Saat Ini */}
+            <div className="bg-slate-50/70 border border-slate-200 p-4 rounded-xl space-y-3.5">
+              <span className="text-xs font-black uppercase tracking-wider text-polri-navy flex items-center gap-1.5">
+                <Home className="w-3.5 h-3.5 text-polri-gold" />
+                1. Domisili &amp; Tempat Tinggal Saat Ini
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Status Tempat Tinggal Saat Ini
+                  </label>
+                  <select
+                    value={formData.statusTempatTinggal || 'MILIK PRIBADI'}
+                    onChange={(e) => handleInputChange('statusTempatTinggal', e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                  >
+                    <option value="MILIK PRIBADI">MILIK PRIBADI</option>
+                    <option value="RUMAH KELUARGA">RUMAH KELUARGA</option>
+                    <option value="DINAS">DINAS</option>
+                    <option value="SEWA/KONTRAK">SEWA/KONTRAK</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Alamat / Kota Domisili Saat Ini
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Jakarta Selatan / Bandung..."
+                    value={formData.alamatTempatTinggal || ''}
+                    onChange={(e) => handleInputChange('alamatTempatTinggal', e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Data Keluarga & Pasangan */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Status Perkawinan</label>
@@ -1591,7 +2035,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 <button
                   type="button"
                   onClick={handleAddChild}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-polri-navy text-white text-xs font-semibold hover:bg-polri-navyLight transition-colors"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-polri-navy text-white text-xs font-semibold hover:bg-polri-navyLight transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Tambah Anak
@@ -1611,7 +2055,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     <button
                       type="button"
                       onClick={() => handleRemoveChild(idx)}
-                      className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1"
+                      className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       Hapus
@@ -1621,7 +2065,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 mb-1">
-                        Nama Anak
+                        Nama Anak <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -1677,8 +2121,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           </div>
         )}
 
-        {/* STEP 3: PURNA TUGAS */}
-        {currentStep === 3 && (
+        {/* STEP 3: PURNA TUGAS & USAHA */}
+        {step === 3 && (
           <div className="space-y-5">
             <div className="border-b pb-2.5 flex items-center justify-between">
               <h3 className="text-sm sm:text-base font-extrabold text-polri-navy flex items-center gap-2">
@@ -1747,7 +2191,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Status Tempat Tinggal Setelah Pensiun</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Status Tempat Tinggal Setelah Pensiun
+                </label>
                 <select
                   value={formData.statusRumahPurnaTugas || 'MILIK PRIBADI'}
                   onChange={(e) => handleInputChange('statusRumahPurnaTugas', e.target.value)}
@@ -1761,7 +2207,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Alamat Rencana Domisili Purna Tugas</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Alamat Rencana Domisili Purna Tugas
+                </label>
                 <input
                   type="text"
                   placeholder="Kota / Wilayah rencana domisili pensiun..."
@@ -1772,7 +2220,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Rencana Jenis Usaha / Aktivitas</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Rencana Jenis Usaha / Aktivitas
+                </label>
                 <input
                   type="text"
                   placeholder="Contoh: Kuliner / Konsultan / Perkebunan / Peternakan"
@@ -1783,7 +2233,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Status Kesiapan Usaha</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Status Kesiapan Usaha
+                </label>
                 <select
                   value={formData.statusUsaha || 'MASIH RENCANA'}
                   onChange={(e) => handleInputChange('statusUsaha', e.target.value)}
@@ -1796,7 +2248,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Kebutuhan Dukungan Paguyuban</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Kebutuhan Dukungan Paguyuban
+                </label>
                 <select
                   value={formData.kebutuhanPembekalan?.[0] || 'PELATIHAN'}
                   onChange={(e) => handleInputChange('kebutuhanPembekalan', [e.target.value])}
@@ -1810,7 +2264,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Kesiapan Menghadapi Purna Tugas</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Kesiapan Menghadapi Purna Tugas
+                </label>
                 <select
                   value={formData.perasaanPensiun || 'OPTIMIS'}
                   onChange={(e) => handleInputChange('perasaanPensiun', e.target.value)}
@@ -1826,19 +2282,21 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           </div>
         )}
 
-        {/* STEP 4: KESEHATAN */}
-        {currentStep === 4 && (
+        {/* STEP 4: KESEHATAN & ASURANSI */}
+        {step === 4 && (
           <div className="space-y-6">
             <div className="border-b pb-2.5 flex items-center justify-between">
               <h3 className="text-sm sm:text-base font-extrabold text-polri-navy flex items-center gap-2">
                 <Activity className="w-4 h-4 text-polri-gold" />
-                Riwayat Kesehatan &amp; Kesejahteraan
+                Riwayat Kesehatan, Asuransi &amp; Kesejahteraan
               </h3>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Riwayat Penyakit Kronis</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Riwayat Penyakit Kronis
+                </label>
                 <select
                   value={formData.adaPenyakitKronis || 'TIDAK ADA'}
                   onChange={(e) => handleInputChange('adaPenyakitKronis', e.target.value)}
@@ -1850,7 +2308,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Kondisi Kesehatan Saat Ini</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Kondisi Kesehatan Saat Ini
+                </label>
                 <select
                   value={formData.kondisiKesehatan || 'BAIK'}
                   onChange={(e) => handleInputChange('kondisiKesehatan', e.target.value)}
@@ -1863,10 +2323,65 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <option value="SAKIT">SAKIT</option>
                 </select>
               </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Rutin Medical Check-Up (MCU)
+                </label>
+                <select
+                  value={formData.rutinMcu || 'YA'}
+                  onChange={(e) => handleInputChange('rutinMcu', e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                >
+                  <option value="YA">YA (Rutin MCU)</option>
+                  <option value="TIDAK">TIDAK</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Pelaksanaan MCU Terakhir
+                </label>
+                <select
+                  value={formData.mcuTerakhir || '< 6 BULAN'}
+                  onChange={(e) => handleInputChange('mcuTerakhir', e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                >
+                  <option value="< 6 BULAN">&lt; 6 Bulan Terakhir</option>
+                  <option value="6-12 BULAN">6 - 12 Bulan Terakhir</option>
+                  <option value="> 1 TAHUN">&gt; 1 Tahun Lalu</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Jaminan Kesehatan / Asuransi Aktif */}
+            <div className="pt-1">
+              <label className="block text-xs font-bold text-slate-800 mb-2">
+                Jaminan Kesehatan &amp; Asuransi Aktif:
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                {DAFTAR_ASURANSI.map((ins) => {
+                  const isChecked = formData.asuransiAktif?.includes(ins);
+                  return (
+                    <label
+                      key={ins}
+                      className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer p-1"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={Boolean(isChecked)}
+                        onChange={() => handleToggleInsurance(ins)}
+                        className="rounded text-polri-navy focus:ring-polri-navy"
+                      />
+                      <span className={isChecked ? 'font-bold text-polri-navy' : ''}>{ins}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Checkbox Penyakit */}
-            <div className="pt-2">
+            <div className="pt-1">
               <label className="block text-xs font-bold text-slate-800 mb-2">
                 Riwayat Diagnosa Medis (Opsional):
               </label>
@@ -1874,10 +2389,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 {DAFTAR_PENYAKIT.map((penyakit) => {
                   const isChecked = formData.daftarPenyakit?.includes(penyakit);
                   return (
-                    <label key={penyakit} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer p-1">
+                    <label
+                      key={penyakit}
+                      className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer p-1"
+                    >
                       <input
                         type="checkbox"
-                        checked={isChecked}
+                        checked={Boolean(isChecked)}
                         onChange={() => handleToggleDisease(penyakit)}
                         className="rounded text-polri-navy focus:ring-polri-navy"
                       />
@@ -1899,7 +2417,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 type="text"
                 placeholder="Contoh: GERD, Vertigo..."
                 value={penyakitLainnya}
-                onChange={(e) => setPenyakitLainnya(e.target.value)}
+                onChange={(e) => {
+                  if (errorMsg) setErrorMsg(null);
+                  setPenyakitLainnya(e.target.value);
+                }}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-amber-300 text-xs font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white text-slate-800 placeholder-slate-400"
               />
             </div>
@@ -1932,45 +2453,67 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           </div>
         )}
 
-        {/* Navigation Buttons */}
-        <div className="flex items-center justify-between pt-6 border-t border-slate-200">
-          {currentStep > 1 ? (
-            <button
-              type="button"
-              onClick={() => setCurrentStep((prev) => prev - 1)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Kembali
-            </button>
-          ) : (
+        {/* Unified Action Footer on ALL 4 Tabs */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-6 border-t border-slate-200">
+          {/* Left Side: Batal / Kembali + Tab Sebelumnya */}
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-500 hover:bg-slate-50"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
             >
-              Batal
+              Batal / Kembali
             </button>
-          )}
 
-          {currentStep < 4 ? (
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStep((step - 1) as 1 | 2 | 3 | 4);
+                  setErrorMsg(null);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Tab Sebelumnya
+              </button>
+            )}
+          </div>
+
+          {/* Right Side: Simpan Tab [Nama Tab] + Simpan & Lihat Profil + Tab Berikutnya */}
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
-              onClick={() => setCurrentStep((prev) => prev + 1)}
-              className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-lg bg-polri-navy hover:bg-polri-navyLight text-polri-gold text-xs font-bold shadow-md transition-colors"
-            >
-              Lanjut
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-md transition-colors"
+              onClick={() => handleSaveTab(step, true)}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-polri-navy hover:bg-polri-navyLight text-polri-gold text-xs font-extrabold shadow-md transition-colors cursor-pointer"
             >
               <Save className="w-4 h-4" />
-              Simpan Pembaruan Data
+              <span>Simpan Tab {currentTabMeta.shortTitle}</span>
             </button>
-          )}
+
+            <button
+              type="button"
+              onClick={() => handleSaveTab(step, false)}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm transition-colors cursor-pointer"
+            >
+              <Eye className="w-4 h-4" />
+              <span>Simpan &amp; Lihat Profil</span>
+            </button>
+
+            {step < 4 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStep((step + 1) as 1 | 2 | 3 | 4);
+                  setErrorMsg(null);
+                }}
+                className="inline-flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl border border-polri-navy/30 bg-slate-50 hover:bg-slate-100 text-polri-navy text-xs font-bold transition-colors cursor-pointer"
+              >
+                <span>Tab Berikutnya</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </form>
 

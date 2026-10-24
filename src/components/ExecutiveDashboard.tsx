@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { AnggotaWiraSatya, AuthUser } from '@/types';
 import { DAFTAR_38_POLDA } from '@/data/polriStructure';
 import { generateLeakageTrackedFileName } from '@/lib/mediaSecurity';
-import { isSuperadminAccount } from '@/lib/avatarUtils';
+import { isSuperadminAccount, detectStatusKedinasan } from '@/lib/avatarUtils';
 import { 
   BarChart3, 
   Heart, 
@@ -563,20 +563,36 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ members,
                   <span>Satker &amp; Status</span>
                 </div>
                 <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-                  {alumniMembers.map((m) => (
-                    <div key={m.id} className="px-4 py-2.5 text-xs hover:bg-slate-50 flex items-center justify-between">
-                      <div>
-                        <span className="font-bold text-slate-900 block">{m.namaLengkap}</span>
-                        <span className="text-slate-500 text-[11px]">{m.polda} • {m.satuanKerja}</span>
-                        {m.subSatker && (
-                          <span className="text-[10px] text-amber-800 font-semibold block">{m.subSatker}</span>
-                        )}
+                  {alumniMembers.map((m) => {
+                    const statusDinas = detectStatusKedinasan(
+                      m.statusKedinasan || m.statusDinas,
+                      m.jabatanTerakhir,
+                      m.jenisAnggota
+                    );
+                    const badgeConfig =
+                      statusDinas === 'PURNA_TUGAS'
+                        ? { label: 'Purna Tugas', cls: 'bg-amber-100 text-amber-800 border border-amber-200' }
+                        : statusDinas === 'PTDH'
+                        ? { label: 'PTDH', cls: 'bg-red-100 text-red-800 border border-red-200' }
+                        : statusDinas === 'ALMARHUM'
+                        ? { label: 'Almarhum', cls: 'bg-slate-200 text-slate-700 border border-slate-300' }
+                        : { label: 'Aktif', cls: 'bg-emerald-100 text-emerald-800 border border-emerald-200' };
+
+                    return (
+                      <div key={m.id} className="px-4 py-2.5 text-xs hover:bg-slate-50 flex items-center justify-between gap-2">
+                        <div>
+                          <span className="font-bold text-slate-900 block">{m.namaLengkap}</span>
+                          <span className="text-slate-500 text-[11px]">{m.polda} • {m.satuanKerja}</span>
+                          {m.subSatker && (
+                            <span className="text-[10px] text-amber-800 font-semibold block">{m.subSatker}</span>
+                          )}
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${badgeConfig.cls}`}>
+                          {badgeConfig.label}
+                        </span>
                       </div>
-                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                        Aktif
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

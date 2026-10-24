@@ -49,6 +49,7 @@ export default function Home() {
   const [navbarSearchQuery, setNavbarSearchQuery] = useState('');
   const [viewingMember, setViewingMember] = useState<AnggotaWiraSatya | null>(null);
   const [editingMember, setEditingMember] = useState<AnggotaWiraSatya | null | 'NEW'>(null);
+  const [editingInitialTab, setEditingInitialTab] = useState<1 | 2 | 3 | 4>(1);
   const [messagingTargetMember, setMessagingTargetMember] = useState<AnggotaWiraSatya | null>(null);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [isOnlineStatus, setIsOnlineStatus] = useState(true);
@@ -368,27 +369,42 @@ export default function Home() {
               : m;
 
             if (uOverride) {
-              const effectiveNrp = uOverride.nrp || baseMember.nrp;
-              const effectiveBirth = uOverride.tanggalLahir || baseMember.tanggalLahir;
+              const memberOvTime = localOverride?.updatedAt ? new Date(localOverride.updatedAt).getTime() : 0;
+              const userOvTime = uOverride?.updatedAt ? new Date(uOverride.updatedAt).getTime() : 0;
+              const preferLocalMemberOv = Boolean(localOverride && memberOvTime > userOvTime);
+
+              const effectiveNrp = (preferLocalMemberOv ? baseMember.nrp : uOverride.nrp) || baseMember.nrp;
+              const effectiveBirth =
+                (preferLocalMemberOv ? baseMember.tanggalLahir : uOverride.tanggalLahir) || baseMember.tanggalLahir;
               const calc58 = calculateRetirement58(effectiveBirth || undefined, effectiveNrp);
+              const resolvedStatusKedinasan =
+                (preferLocalMemberOv
+                  ? baseMember.statusKedinasan || uOverride.statusKedinasan
+                  : uOverride.statusKedinasan || baseMember.statusKedinasan) || baseMember.statusDinas;
               baseMember = {
                 ...baseMember,
                 id: m.id,
                 nrp: effectiveNrp,
                 oldNrp: canonicalOldNrp,
-                namaLengkap: uOverride.nama || baseMember.namaLengkap,
-                pangkat: uOverride.pangkat || baseMember.pangkat,
-                satuanKerja: uOverride.satker || baseMember.satuanKerja,
-                polda: uOverride.polda || baseMember.polda,
-                jabatanTerakhir: uOverride.jabatanTerakhir || baseMember.jabatanTerakhir,
+                namaLengkap: (preferLocalMemberOv ? baseMember.namaLengkap : uOverride.nama) || baseMember.namaLengkap,
+                pangkat: (preferLocalMemberOv ? baseMember.pangkat : uOverride.pangkat) || baseMember.pangkat,
+                satuanKerja: (preferLocalMemberOv ? baseMember.satuanKerja : uOverride.satker) || baseMember.satuanKerja,
+                polda: (preferLocalMemberOv ? baseMember.polda : uOverride.polda) || baseMember.polda,
+                jabatanTerakhir:
+                  (preferLocalMemberOv ? baseMember.jabatanTerakhir : uOverride.jabatanTerakhir) ||
+                  baseMember.jabatanTerakhir,
+                ...(resolvedStatusKedinasan
+                  ? { statusKedinasan: resolvedStatusKedinasan, statusDinas: resolvedStatusKedinasan }
+                  : {}),
                 tanggalLahir: calc58.tanggalLahir,
                 usia: calc58.usiaTahun,
                 tahunPurnaTugas: calc58.tahunPurnaTugas,
                 sisaTahunDinas: calc58.sisaTahunDinas,
-                email: uOverride.email || baseMember.email,
+                email: (preferLocalMemberOv ? baseMember.email : uOverride.email) || baseMember.email,
                 secondaryEmail:
                   uOverride.secondaryEmail !== undefined ? uOverride.secondaryEmail : baseMember.secondaryEmail,
-                noHp: uOverride.noHp || baseMember.noHp,
+                noHp: (preferLocalMemberOv ? baseMember.noHp : uOverride.noHp) || baseMember.noHp,
+                bio: (preferLocalMemberOv ? baseMember.bio : uOverride.bio) ?? baseMember.bio,
               };
             }
 
@@ -992,7 +1008,7 @@ export default function Home() {
   };
 
   // Start editing a specific member (Admin/Sekretaris, self, or ADC of that Alumni)
-  const handleStartEditMember = (member: AnggotaWiraSatya) => {
+  const handleStartEditMember = (member: AnggotaWiraSatya, initialTab: 1 | 2 | 3 | 4 = 1) => {
     const isAdcOfTarget =
       Boolean(currentUser.isAdcAccount && currentUser.adcOfNrp && currentUser.adcOfNrp === member.nrp);
     if (
@@ -1003,6 +1019,7 @@ export default function Home() {
       return;
     }
     setViewingMember(null);
+    setEditingInitialTab(initialTab);
     setEditingMember(member);
     setActiveTab('form');
   };
@@ -1013,6 +1030,7 @@ export default function Home() {
       return;
     }
     setViewingMember(null);
+    setEditingInitialTab(1);
     setEditingMember('NEW');
     setActiveTab('form');
   };
@@ -1028,13 +1046,18 @@ export default function Home() {
   const persistMemberOverride = (member: AnggotaWiraSatya) => {
     if (typeof window === 'undefined') return;
     try {
+      const nowIso = new Date().toISOString();
       const calc58 = calculateRetirement58(member.tanggalLahir, member.nrp);
+      const resolvedStatusKedinasan = member.statusKedinasan || member.statusDinas || 'AKTIF';
       const normalizedMember: AnggotaWiraSatya = {
         ...member,
+        statusKedinasan: resolvedStatusKedinasan,
+        statusDinas: resolvedStatusKedinasan,
         tanggalLahir: calc58.tanggalLahir,
         usia: calc58.usiaTahun,
         tahunPurnaTugas: calc58.tahunPurnaTugas,
         sisaTahunDinas: calc58.sisaTahunDinas,
+        updatedAt: nowIso,
       };
       const raw = localStorage.getItem('ws96_member_overrides_v1');
       const map: Record<string, AnggotaWiraSatya> = raw ? JSON.parse(raw) : {};
@@ -1057,7 +1080,6 @@ export default function Home() {
       const parentPassword =
         existingUOv.password ||
         (currentUser.nrp === normalizedMember.nrp ? currentUser.password : undefined);
-      const nowIso = new Date().toISOString();
 
       userMap[normalizedMember.nrp] = {
         ...existingUOv,
@@ -1068,6 +1090,7 @@ export default function Home() {
         satker: normalizedMember.satuanKerja,
         polda: normalizedMember.polda,
         jabatanTerakhir: normalizedMember.jabatanTerakhir,
+        statusKedinasan: resolvedStatusKedinasan,
         tanggalLahir: calc58.tanggalLahir,
         tempatLahir: normalizedMember.tempatLahir,
         email: normalizedMember.email || existingUOv.email || `${normalizedMember.nrp}@polri.go.id`,
@@ -1077,6 +1100,7 @@ export default function Home() {
             : existingUOv.secondaryEmail,
         noHp: normalizedMember.noHp || existingUOv.noHp,
         fotoUrl: normalizedMember.fotoUrl,
+        bio: normalizedMember.bio !== undefined ? normalizedMember.bio : existingUOv.bio,
         ...(normalizedMember.coverUrl ? { coverUrl: normalizedMember.coverUrl } : {}),
         ...(parentPassword ? { password: parentPassword, status: 'AKTIF' } : {}),
         updatedAt: nowIso,
@@ -1134,23 +1158,125 @@ export default function Home() {
     }
   };
 
-  // Save member profile
-  const handleSaveMember = async (newMember: AnggotaWiraSatya) => {
+  // Synchronize Feed Posts & Comments author metadata when a member's profile changes
+  const syncMemberMetadataAcrossFeedAndIuran = (cleanMember: AnggotaWiraSatya, preservedOldNrp?: string) => {
+    const memberStatus = cleanMember.statusKedinasan || cleanMember.statusDinas || 'AKTIF';
+    setIuranList((prev) => {
+      let nextIuran: IuranAnggota[];
+      if (memberStatus !== 'AKTIF') {
+        nextIuran = prev.filter(
+          (i) => i.nrp !== cleanMember.nrp && (!preservedOldNrp || i.nrp !== preservedOldNrp)
+        );
+      } else {
+        nextIuran = prev.map((i) => {
+          if (i.nrp === cleanMember.nrp || (preservedOldNrp && i.nrp === preservedOldNrp)) {
+            return {
+              ...i,
+              nrp: cleanMember.nrp,
+              namaLengkap: cleanMember.namaLengkap,
+              pangkat: cleanMember.pangkat,
+              polda: cleanMember.polda,
+            };
+          }
+          return i;
+        });
+      }
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('wirasatya96_iuran', JSON.stringify(nextIuran));
+        } catch {
+          // ignore
+        }
+      }
+      return nextIuran;
+    });
+
+    setPosts((prevPosts) => {
+      let changed = false;
+      const matchNrp = (nrp?: string) =>
+        Boolean(nrp && (nrp === cleanMember.nrp || (preservedOldNrp && nrp === preservedOldNrp)));
+      const nextPosts = prevPosts.map((post) => {
+        let updatedPost = post;
+        if (matchNrp(post.authorNrp)) {
+          changed = true;
+          updatedPost = {
+            ...updatedPost,
+            authorNrp: cleanMember.nrp,
+            authorName: cleanMember.namaLengkap,
+            authorPangkat: cleanMember.pangkat,
+            authorJabatan: cleanMember.jabatanTerakhir,
+            authorSatker: cleanMember.satuanKerja,
+            authorPolda: cleanMember.polda,
+            authorAvatar: getAvatarUrl(cleanMember.fotoUrl),
+          };
+        }
+        if (Array.isArray(updatedPost.comments) && updatedPost.comments.length > 0) {
+          const nextComments = updatedPost.comments.map((c) => {
+            let nextComment = c;
+            if (matchNrp(c.authorNrp)) {
+              changed = true;
+              nextComment = {
+                ...nextComment,
+                authorNrp: cleanMember.nrp,
+                authorName: cleanMember.namaLengkap,
+                authorPangkat: cleanMember.pangkat,
+                authorAvatar: getAvatarUrl(cleanMember.fotoUrl),
+              };
+            }
+            if (Array.isArray(nextComment.replies) && nextComment.replies.length > 0) {
+              const nextReplies = nextComment.replies.map((r) => {
+                if (matchNrp(r.authorNrp)) {
+                  changed = true;
+                  return {
+                    ...r,
+                    authorNrp: cleanMember.nrp,
+                    authorName: cleanMember.namaLengkap,
+                    authorPangkat: cleanMember.pangkat,
+                    authorAvatar: getAvatarUrl(cleanMember.fotoUrl),
+                  };
+                }
+                return r;
+              });
+              nextComment = { ...nextComment, replies: nextReplies };
+            }
+            return nextComment;
+          });
+          updatedPost = { ...updatedPost, comments: nextComments };
+        }
+        return updatedPost;
+      });
+      if (changed && typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('wirasatya96_posts', JSON.stringify(nextPosts));
+        } catch {
+          // ignore
+        }
+      }
+      return changed ? nextPosts : prevPosts;
+    });
+  };
+
+  // Save member profile (supports per-tab partial save with stayInEditor=true or full save with stayInEditor=false)
+  const handleSaveMember = async (newMember: AnggotaWiraSatya, stayInEditor: boolean = false) => {
     const prevEditing = editingMember !== 'NEW' && editingMember ? editingMember : null;
     const calc58 = calculateRetirement58(newMember.tanggalLahir, newMember.nrp);
     const preservedOldNrp =
       newMember.oldNrp ||
       prevEditing?.oldNrp ||
       (prevEditing && prevEditing.nrp !== newMember.nrp ? prevEditing.nrp : undefined);
+    const resolvedStatus = newMember.statusKedinasan || newMember.statusDinas || 'AKTIF';
 
     const cleanMember: AnggotaWiraSatya = {
       ...newMember,
       ...(preservedOldNrp ? { oldNrp: preservedOldNrp } : {}),
+      statusKedinasan: resolvedStatus,
+      statusDinas: resolvedStatus,
       tanggalLahir: calc58.tanggalLahir,
       usia: calc58.usiaTahun,
       tahunPurnaTugas: calc58.tahunPurnaTugas,
       sisaTahunDinas: calc58.sisaTahunDinas,
       fotoUrl: getAvatarUrl(newMember.fotoUrl),
+      updatedAt: new Date().toISOString(),
     };
     const existingIndex = members.findIndex(
       (m) =>
@@ -1158,25 +1284,28 @@ export default function Home() {
         (preservedOldNrp && m.nrp === preservedOldNrp) ||
         (cleanMember.id && m.id === cleanMember.id)
     );
+    let savedMemberRecord: AnggotaWiraSatya;
     let updatedList: AnggotaWiraSatya[];
     if (existingIndex >= 0) {
-      updatedList = [...members];
-      updatedList[existingIndex] = {
+      savedMemberRecord = {
+        ...members[existingIndex],
         ...cleanMember,
         id: members[existingIndex].id || cleanMember.id || ('ws-' + Date.now()),
       };
+      updatedList = [...members];
+      updatedList[existingIndex] = savedMemberRecord;
     } else {
-      const createdMember: AnggotaWiraSatya = {
+      savedMemberRecord = {
         ...cleanMember,
         id: cleanMember.id || ('ws-' + Date.now()),
       };
-      updatedList = [createdMember, ...members];
+      updatedList = [savedMemberRecord, ...members];
       if (typeof window !== 'undefined') {
         try {
           const rawDeleted = localStorage.getItem('ws96_deleted_nrps_v1');
           if (rawDeleted) {
             const parsedDeleted: string[] = JSON.parse(rawDeleted);
-            const nextDeleted = parsedDeleted.filter((n) => n !== cleanMember.nrp);
+            const nextDeleted = parsedDeleted.filter((n) => n !== savedMemberRecord.nrp);
             localStorage.setItem('ws96_deleted_nrps_v1', JSON.stringify(nextDeleted));
           }
         } catch {
@@ -1185,37 +1314,39 @@ export default function Home() {
       }
     }
     setMembers(updatedList);
-    persistMemberOverride(cleanMember);
+    persistMemberOverride(savedMemberRecord);
     if (typeof window !== 'undefined') {
       localStorage.setItem('wirasatya96_members', JSON.stringify(updatedList));
     }
 
-    const memberStatus = cleanMember.statusKedinasan || cleanMember.statusDinas || 'AKTIF';
-    if (memberStatus !== 'AKTIF') {
-      setIuranList((prev) =>
-        prev.filter(
-          (i) => i.nrp !== cleanMember.nrp && (!preservedOldNrp || i.nrp !== preservedOldNrp)
-        )
-      );
-    }
+    syncMemberMetadataAcrossFeedAndIuran(savedMemberRecord, preservedOldNrp);
 
-    // If the user updated their own profile, sync currentUser as well
+    // If the user updated their own profile, sync currentUser as well (including all contact/bio/status fields)
     if (
-      cleanMember.nrp === currentUser.nrp ||
+      savedMemberRecord.nrp === currentUser.nrp ||
       (preservedOldNrp && preservedOldNrp === currentUser.nrp)
     ) {
       const updatedUser: AuthUser = {
         ...currentUser,
-        nrp: cleanMember.nrp,
+        nrp: savedMemberRecord.nrp,
         ...(preservedOldNrp ? { oldNrp: preservedOldNrp } : {}),
-        nama: cleanMember.namaLengkap,
-        pangkat: cleanMember.pangkat,
-        satker: cleanMember.satuanKerja,
-        polda: cleanMember.polda,
-        jabatanTerakhir: cleanMember.jabatanTerakhir,
-        tanggalLahir: cleanMember.tanggalLahir,
-        tempatLahir: cleanMember.tempatLahir,
-        fotoUrl: getAvatarUrl(cleanMember.fotoUrl),
+        nama: savedMemberRecord.namaLengkap,
+        pangkat: savedMemberRecord.pangkat,
+        satker: savedMemberRecord.satuanKerja,
+        polda: savedMemberRecord.polda,
+        jabatanTerakhir: savedMemberRecord.jabatanTerakhir,
+        statusKedinasan: resolvedStatus,
+        tanggalLahir: savedMemberRecord.tanggalLahir,
+        tempatLahir: savedMemberRecord.tempatLahir,
+        email: savedMemberRecord.email || currentUser.email,
+        secondaryEmail:
+          savedMemberRecord.secondaryEmail !== undefined
+            ? savedMemberRecord.secondaryEmail
+            : currentUser.secondaryEmail,
+        noHp: savedMemberRecord.noHp || currentUser.noHp,
+        fotoUrl: getAvatarUrl(savedMemberRecord.fotoUrl),
+        coverUrl: savedMemberRecord.coverUrl || currentUser.coverUrl,
+        bio: savedMemberRecord.bio !== undefined ? savedMemberRecord.bio : currentUser.bio,
       };
       setCurrentUser(updatedUser);
       if (typeof window !== 'undefined') {
@@ -1225,24 +1356,55 @@ export default function Home() {
       }
     }
 
-    setEditingMember(null);
-    setViewingMember(cleanMember);
-    setActiveTab('direktori');
+    if (stayInEditor) {
+      if (editingMember !== null) {
+        setEditingMember(savedMemberRecord);
+      }
+      if (viewingMember && (viewingMember.nrp === savedMemberRecord.nrp || viewingMember.id === savedMemberRecord.id)) {
+        setViewingMember(savedMemberRecord);
+      }
+    } else {
+      setEditingMember(null);
+      setViewingMember(savedMemberRecord);
+      setActiveTab('direktori');
+    }
 
     if (getActiveAdcSessionFromStorage()) {
       recordAdcActivityToAuditLog({
         action: 'AKTIVITAS_ADC',
-        details: `Menyimpan pembaruan profil & data kedinasan Pimpinan ${cleanMember.pangkat} ${cleanMember.namaLengkap}`,
+        details: `Menyimpan pembaruan profil & data kedinasan Pimpinan ${savedMemberRecord.pangkat} ${savedMemberRecord.namaLengkap}`,
       });
     }
 
-    // Try sync with API
+    // Try sync with API (/api/members & /api/users)
     try {
       await fetch('/api/members', {
         method: existingIndex >= 0 ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cleanMember),
+        body: JSON.stringify(savedMemberRecord),
       });
+      await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nrp: savedMemberRecord.nrp,
+          oldNrp: preservedOldNrp || savedMemberRecord.oldNrp || savedMemberRecord.nrp,
+          nama: savedMemberRecord.namaLengkap,
+          pangkat: savedMemberRecord.pangkat,
+          satker: savedMemberRecord.satuanKerja,
+          polda: savedMemberRecord.polda,
+          jabatanTerakhir: savedMemberRecord.jabatanTerakhir,
+          statusKedinasan: resolvedStatus,
+          tanggalLahir: savedMemberRecord.tanggalLahir,
+          tempatLahir: savedMemberRecord.tempatLahir,
+          email: savedMemberRecord.email,
+          secondaryEmail: savedMemberRecord.secondaryEmail,
+          noHp: savedMemberRecord.noHp,
+          fotoUrl: savedMemberRecord.fotoUrl,
+          coverUrl: savedMemberRecord.coverUrl,
+          bio: savedMemberRecord.bio,
+        }),
+      }).catch(() => {});
     } catch (err) {
       console.log('Saved to local storage, API sync skipped', err);
     }
@@ -1598,12 +1760,28 @@ export default function Home() {
       jabatanTerakhir: jabatanBaru,
       satuanKerja: satkerBaru,
       polda: poldaBaru,
+      updatedAt: new Date().toISOString(),
     };
     const updatedList = members.map((m) => (m.nrp === nrp ? updatedMember : m));
     setMembers(updatedList);
     persistMemberOverride(updatedMember);
+    syncMemberMetadataAcrossFeedAndIuran(updatedMember, target.oldNrp);
     if (typeof window !== 'undefined') {
       localStorage.setItem('wirasatya96_members', JSON.stringify(updatedList));
+    }
+    if (nrp === currentUser.nrp) {
+      const nextUser: AuthUser = {
+        ...currentUser,
+        jabatanTerakhir: jabatanBaru,
+        satker: satkerBaru,
+        polda: poldaBaru,
+      };
+      setCurrentUser(nextUser);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ws96_auth_user', JSON.stringify(nextUser));
+        localStorage.setItem('ws96_active_user', JSON.stringify(nextUser));
+        localStorage.setItem('wirasatya96_current_user', JSON.stringify(nextUser));
+      }
     }
     if (getActiveAdcSessionFromStorage()) {
       recordAdcActivityToAuditLog({
@@ -1630,12 +1808,15 @@ export default function Home() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('ws96-reveal-visible');
-            io.unobserve(entry.target);
+            const el = entry.target as HTMLElement;
+            el.classList.add('ws96-reveal-visible');
+            el.classList.remove('ws96-reveal-init');
+            el.style.transitionDelay = '';
+            io.unobserve(el);
           }
         });
       },
-      { threshold: 0.06, rootMargin: '0px 0px -18px 0px' }
+      { threshold: 0.01, rootMargin: '24px 0px 0px 0px' }
     );
 
     const registerCards = () => {
@@ -1645,12 +1826,14 @@ export default function Home() {
         '.bg-white.rounded-xl, .bg-white.rounded-2xl, .ws96-gold-card'
       );
       cards.forEach((card, idx) => {
-        if (!card.dataset.ws96RevealBound) {
-          card.dataset.ws96RevealBound = '1';
-          card.style.transitionDelay = `${(idx % 5) * 45}ms`;
-          card.classList.add('ws96-reveal-init');
-          io.observe(card);
+        if (card.dataset.ws96RevealBound) return;
+        card.dataset.ws96RevealBound = '1';
+        if (card.closest('[data-no-reveal="true"]') || card.offsetHeight > 900) {
+          return;
         }
+        card.style.transitionDelay = `${(idx % 5) * 35}ms`;
+        card.classList.add('ws96-reveal-init');
+        io.observe(card);
       });
     };
 
@@ -1662,7 +1845,7 @@ export default function Home() {
         })
       : null;
     if (mainNode && mo) {
-      mo.observe(mainNode, { childList: true, subtree: true });
+      mo.observe(mainNode, { childList: true });
     }
 
     return () => {
@@ -1785,44 +1968,15 @@ export default function Home() {
             currentUser={currentUser}
             memberRole={viewingMember.nrp === currentUser.nrp ? currentUser.role : undefined}
             onClose={() => setViewingMember(null)}
-            onEditProfile={(targetMember) => {
-              handleStartEditMember(targetMember || viewingMember);
+            onEditProfile={(targetMember, initialTab) => {
+              handleStartEditMember(targetMember || viewingMember, initialTab || 1);
             }}
             onOpenChat={handleOpenChatWithMember}
             allMembers={members}
             onSelectMember={(m) => setViewingMember(m)}
             onUpdateMemberDirect={(updated) => {
-              persistMemberOverride(updated);
-              if (getActiveAdcSessionFromStorage()) {
-                recordAdcActivityToAuditLog({
-                  action: 'AKTIVITAS_ADC',
-                  details: `Memperbarui profil langsung Pimpinan ${updated.pangkat} ${updated.namaLengkap}`,
-                });
-              }
-              setMembers((prev) => {
-                const nextList = prev.map((m) => (m.nrp === updated.nrp || m.id === updated.id ? updated : m));
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('wirasatya96_members', JSON.stringify(nextList));
-                }
-                return nextList;
-              });
+              handleSaveMember(updated, true);
               setViewingMember(updated);
-              if (updated.nrp === currentUser.nrp) {
-                const nextUser: AuthUser = {
-                  ...currentUser,
-                  nama: updated.namaLengkap,
-                  pangkat: updated.pangkat,
-                  fotoUrl: updated.fotoUrl,
-                  coverUrl: updated.coverUrl,
-                  bio: updated.bio,
-                };
-                setCurrentUser(nextUser);
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('ws96_auth_user', JSON.stringify(nextUser));
-                  localStorage.setItem('ws96_active_user', JSON.stringify(nextUser));
-                  localStorage.setItem('wirasatya96_current_user', JSON.stringify(nextUser));
-                }
-              }
             }}
           />
         ) : (
@@ -1834,6 +1988,9 @@ export default function Home() {
                 onAddNew={handleAddNewMember}
                 currentUser={currentUser}
                 onEditMember={handleStartEditMember}
+                onUpdateMemberDirect={(updated) => {
+                  handleSaveMember(updated, true);
+                }}
                 onOpenChat={handleOpenChatWithMember}
                 onNavigateToJabatan={() => setActiveTab('purnaTugas')}
                 onNavigateToBendahara={() => setActiveTab('bendahara')}
@@ -1858,7 +2015,7 @@ export default function Home() {
               <LinkedInJobsPage
                 currentUser={currentUser}
                 members={members}
-                onOpenFormWizard={() => handleStartEditMember(currentMemberProfile)}
+                onOpenFormWizard={() => handleStartEditMember(currentMemberProfile, 1)}
                 onSelectMember={(m) => setViewingMember(m)}
                 onOpenChat={handleOpenChatWithMember}
                 onUpdateMemberJabatan={handleUpdateMemberJabatan}
@@ -1904,6 +2061,7 @@ export default function Home() {
             {activeTab === 'form' && (
               <FormWizard
                 currentUser={currentUser}
+                initialTab={editingInitialTab}
                 existingMember={
                   editingMember === 'NEW'
                     ? undefined
@@ -1911,9 +2069,17 @@ export default function Home() {
                     ? editingMember
                     : currentMemberProfile
                 }
-                onSave={handleSaveMember}
+                onSave={(updatedMember) => handleSaveMember(updatedMember, false)}
+                onSaveTab={(updatedMember, _tabNum, stayOpen) =>
+                  handleSaveMember(updatedMember, Boolean(stayOpen))
+                }
                 onCancel={() => {
+                  const targetToView =
+                    editingMember && editingMember !== 'NEW' ? editingMember : currentMemberProfile;
                   setEditingMember(null);
+                  if (targetToView) {
+                    setViewingMember(targetToView);
+                  }
                   setActiveTab('direktori');
                 }}
               />
@@ -1969,8 +2135,28 @@ export default function Home() {
                 onEditMemberByNrp={(nrp) => {
                   const found = members.find((m) => m.nrp === nrp);
                   if (found) {
-                    handleStartEditMember(found);
+                    handleStartEditMember(found, 1);
                   }
+                }}
+                onMemberSynced={(synced) => {
+                  const target = members.find(
+                    (m) =>
+                      (synced.nrp && (m.nrp === synced.nrp || m.oldNrp === synced.nrp)) ||
+                      (synced.oldNrp && (m.nrp === synced.oldNrp || m.oldNrp === synced.oldNrp)) ||
+                      (synced.id && m.id === synced.id)
+                  );
+                  if (target) {
+                    handleSaveMember(
+                      {
+                        ...target,
+                        ...synced,
+                        namaLengkap: synced.namaLengkap || synced.name || target.namaLengkap,
+                        satuanKerja: synced.satuanKerja || synced.satker || target.satuanKerja,
+                      } as AnggotaWiraSatya,
+                      true
+                    );
+                  }
+                  fetchPendingVerificationCount();
                 }}
                 onVerificationUpdate={fetchPendingVerificationCount}
               />
@@ -1980,23 +2166,45 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Manajemen Pengguna & Verifikasi Modal (Fallback if opened as modal) */}
-      <AdminVerificationModal
-        isOpen={isVerificationModalOpen}
-        onClose={() => setIsVerificationModalOpen(false)}
-        adminName={currentUser.nama}
-        currentUserRole={currentUser?.role}
-        currentUserNrp={currentUser?.nrp}
-        onImpersonateUser={handleImpersonateUser}
-        onOpenFullWizard={handleAddNewMember}
-        onEditMemberByNrp={(nrp) => {
-          const found = members.find((m) => m.nrp === nrp);
-          if (found) {
-            handleStartEditMember(found);
-          }
-        }}
-        onVerificationUpdate={fetchPendingVerificationCount}
-      />
+      {/* Manajemen Pengguna & Verifikasi Modal (Fallback if opened as modal when not on 'users' tab) */}
+      {activeTab !== 'users' && isVerificationModalOpen && (
+        <AdminVerificationModal
+          isOpen={isVerificationModalOpen}
+          onClose={() => setIsVerificationModalOpen(false)}
+          adminName={currentUser.nama}
+          currentUserRole={currentUser?.role}
+          currentUserNrp={currentUser?.nrp}
+          onImpersonateUser={handleImpersonateUser}
+          onOpenFullWizard={handleAddNewMember}
+          onEditMemberByNrp={(nrp) => {
+            const found = members.find((m) => m.nrp === nrp);
+            if (found) {
+              handleStartEditMember(found, 1);
+            }
+          }}
+          onMemberSynced={(synced) => {
+            const target = members.find(
+              (m) =>
+                (synced.nrp && (m.nrp === synced.nrp || m.oldNrp === synced.nrp)) ||
+                (synced.oldNrp && (m.nrp === synced.oldNrp || m.oldNrp === synced.oldNrp)) ||
+                (synced.id && m.id === synced.id)
+            );
+            if (target) {
+              handleSaveMember(
+                {
+                  ...target,
+                  ...synced,
+                  namaLengkap: synced.namaLengkap || synced.name || target.namaLengkap,
+                  satuanKerja: synced.satuanKerja || synced.satker || target.satuanKerja,
+                } as AnggotaWiraSatya,
+                true
+              );
+            }
+            fetchPendingVerificationCount();
+          }}
+          onVerificationUpdate={fetchPendingVerificationCount}
+        />
+      )}
 
       {/* Alumnus Registration Modal */}
       <RegistrationModal

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AuthUser, AnggotaWiraSatya, RiwayatJabatanLeting, FungsiPolri } from '@/types';
 import {
   DAFTAR_38_POLDA,
@@ -201,6 +201,88 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
     }
     return [];
   });
+
+  // Live Sync active positions with `members` prop whenever a member is updated in FormWizard or Menu User
+  useEffect(() => {
+    if (!members || members.length === 0) return;
+    setCustomJabatanList((prev) => {
+      if (prev.length === 0) return prev;
+      let changed = false;
+      const next = prev.map((j) => {
+        const matched = members.find((m) => m.nrp === j.perwiraNrp);
+        if (!matched) return j;
+        const isActivePosition =
+          j.isCurrent !== false || (j as unknown as { status?: string }).status === 'SAAT_INI';
+        const nextNama = matched.namaLengkap || j.namaPerwira;
+        const nextPangkat = matched.pangkat || j.pangkat;
+        const nextAvatar = getAvatarUrl(matched.fotoUrl);
+        const nextStatusKedinasan = detectStatusKedinasan(
+          matched.statusKedinasan || matched.statusDinas,
+          matched.jabatanTerakhir || matched.jabatan,
+          matched.jenisAnggota
+        );
+
+        if (isActivePosition) {
+          const nextJabatan =
+            extractCleanJabatanTitle(matched.jabatanTerakhir || matched.jabatan) || j.jabatan;
+          const nextSatker = matched.satuanKerja || matched.satker || j.satker;
+          const nextPolda = matched.polda || j.polda;
+          const nextFungsi = inferFungsiPolri(nextJabatan, nextSatker, nextPolda);
+
+          if (
+            j.namaPerwira !== nextNama ||
+            j.pangkat !== nextPangkat ||
+            j.avatarUrl !== nextAvatar ||
+            j.jabatan !== nextJabatan ||
+            j.satker !== nextSatker ||
+            j.polda !== nextPolda ||
+            j.fungsiPolri !== nextFungsi ||
+            j.statusKedinasan !== nextStatusKedinasan
+          ) {
+            changed = true;
+            return {
+              ...j,
+              namaPerwira: nextNama,
+              pangkat: nextPangkat,
+              avatarUrl: nextAvatar,
+              jabatan: nextJabatan,
+              satker: nextSatker,
+              polda: nextPolda,
+              fungsiPolri: nextFungsi,
+              statusKedinasan: nextStatusKedinasan,
+            };
+          }
+          return j;
+        }
+
+        if (
+          j.namaPerwira !== nextNama ||
+          j.pangkat !== nextPangkat ||
+          j.avatarUrl !== nextAvatar ||
+          j.statusKedinasan !== nextStatusKedinasan
+        ) {
+          changed = true;
+          return {
+            ...j,
+            namaPerwira: nextNama,
+            pangkat: nextPangkat,
+            avatarUrl: nextAvatar,
+            statusKedinasan: nextStatusKedinasan,
+          };
+        }
+        return j;
+      });
+
+      if (changed && typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('wirasatya96_riwayat_jabatan_v4', JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [members]);
 
   const jabatanList = useMemo(() => {
     const visibleMembers = members.filter(

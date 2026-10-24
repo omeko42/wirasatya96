@@ -52,98 +52,64 @@ body {
 }
 
 /* ============================================================================
- * 2. SCROLL-REVEAL & STAGGERED CARD ENTRANCE (INVIEE-STYLE FLUID MOTION)
+ * 2. SCROLL-REVEAL & STAGGERED CARD ENTRANCE (ZERO HIT-TARGET SHIFT)
  * ============================================================================ */
-@keyframes ws96FadeUp {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 20px, 0) scale(0.985);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-}
-
 @keyframes ws96TabEnter {
   0% {
     opacity: 0;
-    transform: translate3d(0, 14px, 0);
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
   }
 }
 
 .ws96-tab-enter {
-  animation: ws96TabEnter 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ws96TabEnter 0.28s ease-out;
 }
 
 /* Scroll-triggered reveal state managed by IntersectionObserver */
 .ws96-reveal-init {
   opacity: 0;
-  transform: translate3d(0, 22px, 0) scale(0.982);
+  transform: translate3d(0, 18px, 0);
   transition:
-    opacity 0.58s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.58s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.3s ease;
-  will-change: opacity, transform;
+    opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .ws96-reveal-init.ws96-reveal-visible {
   opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: none;
 }
 
 /* ============================================================================
- * 3. EYE-CATCHING INTERACTIVE CARD LIFT, GLOW & MICRO-INTERACTIONS
+ * 3. EYE-CATCHING CARD GLOW & SHADOW ELEVATION (ZERO COORDINATE JUMP ON CLICK)
  * ============================================================================ */
 main .bg-white.rounded-xl,
 main .bg-white.rounded-2xl {
   transition:
-    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.28s ease;
+    box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s ease;
 }
 
 @media (hover: hover) {
   main .bg-white.rounded-xl:hover,
   main .bg-white.rounded-2xl:hover {
-    transform: translateY(-3px);
     box-shadow:
-      0 14px 30px -8px rgba(15, 23, 42, 0.085),
-      0 4px 12px -2px rgba(153, 27, 27, 0.055);
+      0 12px 28px -6px rgba(15, 23, 42, 0.085),
+      0 4px 12px -2px rgba(153, 27, 27, 0.06);
     border-color: rgba(185, 28, 28, 0.24);
   }
 }
 
-/* Touch feedback on mobile */
-main .bg-white.rounded-xl:active,
-main .bg-white.rounded-2xl:active {
-  transform: scale(0.996);
-}
-
-/* Smooth button press & hover elevation */
+/* Smooth button color & shadow transitions without shifting button hitboxes */
 main button,
 main a {
   transition:
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.22s ease,
-    background-color 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
-}
-
-@media (hover: hover) {
-  main button:not(:disabled):hover {
-    transform: translateY(-1px);
-  }
-}
-
-main button:not(:disabled):active {
-  transform: translateY(0px) scale(0.98);
+    box-shadow 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    opacity 0.18s ease;
 }
 
 /* ============================================================================
@@ -173,28 +139,19 @@ main button:not(:disabled):active {
   overflow: hidden;
   background: linear-gradient(
     110deg,
-    rgba(254, 243, 199, 0.75) 0%,
-    rgba(253, 230, 138, 0.45) 35%,
-    rgba(255, 251, 235, 0.92) 50%,
-    rgba(253, 230, 138, 0.45) 65%,
-    rgba(254, 243, 199, 0.75) 100%
+    rgba(254, 243, 199, 0.78) 0%,
+    rgba(253, 230, 138, 0.48) 35%,
+    rgba(255, 251, 235, 0.95) 50%,
+    rgba(253, 230, 138, 0.48) 65%,
+    rgba(254, 243, 199, 0.78) 100%
   );
   background-size: 220% 100%;
   animation:
     ws96GoldShimmer 7s ease-in-out infinite,
     ws96FloatSlow 4.5s ease-in-out infinite;
   box-shadow:
-    0 6px 18px -4px rgba(217, 119, 6, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-.ws96-gold-card:hover {
-  box-shadow:
-    0 10px 24px -4px rgba(217, 119, 6, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    0 6px 18px -4px rgba(217, 119, 6, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 /* ============================================================================
@@ -257,13 +214,11 @@ main button:not(:disabled):active {
 @keyframes ws96FloatPulse {
   0%,
   100% {
-    transform: translateY(0px);
     box-shadow:
       0 10px 25px -5px rgba(153, 27, 27, 0.45),
       0 0 0 0 rgba(185, 28, 28, 0.35);
   }
   50% {
-    transform: translateY(-4px);
     box-shadow:
       0 16px 30px -5px rgba(153, 27, 27, 0.55),
       0 0 0 8px rgba(185, 28, 28, 0);
@@ -271,7 +226,7 @@ main button:not(:disabled):active {
 }
 
 .ws96-float-cta {
-  animation: ws96FloatPulse 3.6s ease-in-out infinite;
+  animation: ws96FloatPulse 3.2s ease-in-out infinite;
 }
 
 /* ============================================================================
@@ -280,14 +235,14 @@ main button:not(:disabled):active {
 @keyframes ws96AccordionSlideDown {
   0% {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-6px);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
 .ws96-accordion-body {
-  animation: ws96AccordionSlideDown 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ws96AccordionSlideDown 0.26s ease-out;
 }

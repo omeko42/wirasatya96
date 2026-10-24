@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
+  AnggotaWiraSatya,
   AuthUser,
   PendingRegistration,
   UserAccountStatus,
@@ -72,6 +73,7 @@ interface AdminVerificationModalProps {
   onVerificationUpdate?: () => void;
   onOpenFullWizard?: () => void;
   onEditMemberByNrp?: (nrp: string) => void;
+  onMemberSynced?: (updatedFields: Partial<AnggotaWiraSatya> & { nrp?: string; id?: string; name?: string }) => void;
   initialTab?: 'USERS' | 'VERIFICATION' | 'AUDIT_LOG' | 'ADD_USER';
   asPage?: boolean;
   currentUserRole?: UserRole;
@@ -103,6 +105,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
   onVerificationUpdate,
   onOpenFullWizard,
   onEditMemberByNrp,
+  onMemberSynced,
   initialTab = 'USERS',
   asPage = false,
   currentUserRole,
@@ -110,6 +113,8 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
   onImpersonateUser,
 }) => {
   const [activeTab, setActiveTab] = useState<'USERS' | 'VERIFICATION' | 'AUDIT_LOG' | 'ADD_USER'>(initialTab);
+  const initializedRef = useRef(false);
+  const prevInitialTabRef = useRef(initialTab);
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [registrations, setRegistrations] = useState<PendingRegistration[]>([]);
   const [auditLogs, setAuditLogs] = useState<UserAuditLog[]>([]);
@@ -140,6 +145,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
   const [editNama, setEditNama] = useState('');
   const [editPangkat, setEditPangkat] = useState('Kombes Pol');
   const [editRole, setEditRole] = useState<UserRole>('ANGGOTA');
+  const [editStatusKedinasan, setEditStatusKedinasan] = useState<StatusKedinasan>('AKTIF');
   const [editJabatan, setEditJabatan] = useState('');
   const [editIsExternalJabatan, setEditIsExternalJabatan] = useState(false);
   const [editTanggalLahir, setEditTanggalLahir] = useState('');
@@ -341,7 +347,9 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
       const regData = await regRes.json();
 
       let deletedSet = new Set<string>();
-      let parsedOverrides: Record<string, Partial<AuthUser> & { oldNrp?: string }> = {};
+      let parsedOverrides: Record<string, Partial<AuthUser> & { oldNrp?: string; name?: string; jabatan?: string; avatar?: string }> = {};
+      let parsedMemberOverrides: Record<string, Partial<AnggotaWiraSatya> & { nama?: string; name?: string; avatar?: string }> = {};
+      let cachedMembers: (Partial<AnggotaWiraSatya> & { nama?: string; name?: string; avatar?: string })[] = [];
       let regOverrides: Record<string, Partial<PendingRegistration> & { role?: UserRole }> = {};
 
       if (typeof window !== 'undefined') {
@@ -385,6 +393,27 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
           }
         } catch {
           parsedOverrides = {};
+        }
+
+        try {
+          const rawMemberOv = localStorage.getItem('ws96_member_overrides_v1');
+          if (rawMemberOv) {
+            parsedMemberOverrides = JSON.parse(rawMemberOv) || {};
+          }
+        } catch {
+          parsedMemberOverrides = {};
+        }
+
+        try {
+          const rawCachedMembers = localStorage.getItem('wirasatya96_members');
+          if (rawCachedMembers) {
+            const parsedList = JSON.parse(rawCachedMembers);
+            if (Array.isArray(parsedList)) {
+              cachedMembers = parsedList;
+            }
+          }
+        } catch {
+          cachedMembers = [];
         }
 
         try {
@@ -433,11 +462,11 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
         });
 
         // Deduplicate & heal parsedOverrides by baseName so stale oldNrp keys never duplicate a person
-        const cleanedOverridesByKey: Record<string, Partial<AuthUser> & { oldNrp?: string }> = {};
+        const cleanedOverridesByKey: Record<string, Partial<AuthUser> & { oldNrp?: string; name?: string; jabatan?: string; avatar?: string }> = {};
         const seenOverrideNames = new Map<string, string>();
         Object.entries(parsedOverrides).forEach(([, ov]) => {
           if (!ov || !ov.nrp) return;
-          const bName = getBasePersonName(ov.nama);
+          const bName = getBasePersonName(ov.nama || ov.name);
           if (bName && PURGED_NON_1996_BASE_NAMES.has(bName)) return;
           if (bName && seenOverrideNames.has(bName)) {
             const prevKey = seenOverrideNames.get(bName)!;
@@ -451,74 +480,245 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
 
         const consumedOverrideNrps = new Set<string>();
 
-        fetchedUsers = fetchedUsers.map((u) => {
-          const uBaseName = getBasePersonName(u.nama);
-          const isAlumniSlot = Boolean(u.id?.startsWith('u-7409'));
+        const applyMemberAndUserOverridesToUsers = (rawUsers: AuthUser[]): AuthUser[] => {
+          return rawUsers.map((u) => {
+            const uBaseName = getBasePersonName(u.nama);
+            const isAlumniSlot = Boolean(u.id?.startsWith('u-7409'));
+            const origFromId = u.id?.startsWith('u-') ? u.id.slice(2).trim() : '';
+            const cleanNrp = (u.nrp || '').trim();
+            const cleanOld = (u.oldNrp || origFromId || '').trim();
 
-          // 1. Match by exact person baseName first (safest across any NRP or index changes)
-          let ov = Object.values(parsedOverrides).find(
-            (item) =>
-              item &&
-              item.nrp &&
-              !consumedOverrideNrps.has(item.nrp) &&
-              uBaseName &&
-              getBasePersonName(item.nama) === uBaseName
-          );
+            // 1. Match User Override by exact person baseName first, then by NRP/id
+            let uOv = Object.values(parsedOverrides).find(
+              (item) =>
+                item &&
+                item.nrp &&
+                !consumedOverrideNrps.has(item.nrp) &&
+                uBaseName &&
+                getBasePersonName(item.nama || item.name) === uBaseName
+            );
 
-          // 2. Otherwise match by NRP only if not an alumni slot belonging to someone else
-          if (!ov) {
-            const candidateByNrp =
-              parsedOverrides[u.nrp] || (u.oldNrp ? parsedOverrides[u.oldNrp] : undefined);
-            if (
-              candidateByNrp &&
-              candidateByNrp.nrp &&
-              !consumedOverrideNrps.has(candidateByNrp.nrp) &&
-              (!isAlumniSlot || !candidateByNrp.nama || getBasePersonName(candidateByNrp.nama) === uBaseName)
-            ) {
-              ov = candidateByNrp;
+            if (!uOv) {
+              const candidateByNrp =
+                parsedOverrides[cleanNrp] ||
+                (cleanOld ? parsedOverrides[cleanOld] : undefined) ||
+                Object.values(parsedOverrides).find(
+                  (item) =>
+                    item &&
+                    item.nrp &&
+                    !consumedOverrideNrps.has(item.nrp) &&
+                    ((u.id && item.id === u.id) ||
+                      item.nrp === cleanNrp ||
+                      (cleanOld && (item.nrp === cleanOld || item.oldNrp === cleanOld)))
+                );
+              if (
+                candidateByNrp &&
+                candidateByNrp.nrp &&
+                !consumedOverrideNrps.has(candidateByNrp.nrp) &&
+                (!isAlumniSlot ||
+                  !(candidateByNrp.nama || candidateByNrp.name) ||
+                  getBasePersonName(candidateByNrp.nama || candidateByNrp.name) === uBaseName)
+              ) {
+                uOv = candidateByNrp;
+              }
             }
-          }
 
-          if (ov && ov.nrp) {
-            consumedOverrideNrps.add(ov.nrp);
+            if (uOv && uOv.nrp) {
+              consumedOverrideNrps.add(uOv.nrp);
+            }
+
+            // 2. Match Member Override from ws96_member_overrides_v1 (saved by FormWizard / Profil / Menu User)
+            const mOv =
+              parsedMemberOverrides[cleanNrp] ||
+              (uOv?.nrp ? parsedMemberOverrides[uOv.nrp] : undefined) ||
+              (cleanOld ? parsedMemberOverrides[cleanOld] : undefined) ||
+              Object.values(parsedMemberOverrides).find((item) => {
+                if (!item) return false;
+                const itemBase = getBasePersonName(item.namaLengkap || item.nama || item.name);
+                return (
+                  (u.profileId && item.id === u.profileId) ||
+                  (cleanOld && item.id === `ws-${cleanOld}`) ||
+                  item.nrp === cleanNrp ||
+                  (uOv?.nrp && item.nrp === uOv.nrp) ||
+                  (cleanOld && (item.nrp === cleanOld || item.oldNrp === cleanOld)) ||
+                  (!u.isAdcAccount && uBaseName && itemBase === uBaseName)
+                );
+              });
+
+            // 3. Match cached Member from wirasatya96_members
+            const cachedMember = cachedMembers.find((item) => {
+              if (!item) return false;
+              const itemBase = getBasePersonName(item.namaLengkap || item.nama || item.name);
+              return (
+                (u.profileId && item.id === u.profileId) ||
+                (cleanOld && item.id === `ws-${cleanOld}`) ||
+                item.nrp === cleanNrp ||
+                (uOv?.nrp && item.nrp === uOv.nrp) ||
+                (cleanOld && (item.nrp === cleanOld || item.oldNrp === cleanOld)) ||
+                (!u.isAdcAccount && uBaseName && itemBase === uBaseName)
+              );
+            });
+
+            if (!uOv && !mOv && !cachedMember) {
+              return u;
+            }
+
+            // Order sources by updatedAt ascending so the most recently saved source wins
+            const sources: {
+              ts: number;
+              nrp?: string;
+              oldNrp?: string;
+              nama?: string;
+              pangkat?: string;
+              satker?: string;
+              polda?: string;
+              jabatanTerakhir?: string;
+              email?: string;
+              secondaryEmail?: string;
+              noHp?: string;
+              fotoUrl?: string;
+              statusKedinasan?: StatusKedinasan;
+              tanggalLahir?: string;
+            }[] = [];
+
+            if (cachedMember) {
+              sources.push({
+                ts: cachedMember.updatedAt ? new Date(cachedMember.updatedAt).getTime() || 1 : 1,
+                nrp: cachedMember.nrp,
+                oldNrp: cachedMember.oldNrp,
+                nama: cachedMember.namaLengkap || cachedMember.nama || cachedMember.name,
+                pangkat: cachedMember.pangkat,
+                satker: cachedMember.satuanKerja || cachedMember.satker,
+                polda: cachedMember.polda,
+                jabatanTerakhir: cachedMember.jabatanTerakhir || cachedMember.jabatan,
+                email: cachedMember.email,
+                secondaryEmail: cachedMember.secondaryEmail,
+                noHp: cachedMember.noHp,
+                fotoUrl: cachedMember.fotoUrl || cachedMember.avatar,
+                statusKedinasan: (cachedMember.statusKedinasan || cachedMember.statusDinas) as StatusKedinasan | undefined,
+                tanggalLahir: cachedMember.tanggalLahir,
+              });
+            }
+
+            if (mOv) {
+              sources.push({
+                ts: mOv.updatedAt ? new Date(mOv.updatedAt).getTime() || 2 : 2,
+                nrp: mOv.nrp,
+                oldNrp: mOv.oldNrp,
+                nama: mOv.namaLengkap || mOv.nama || mOv.name,
+                pangkat: mOv.pangkat,
+                satker: mOv.satuanKerja || mOv.satker,
+                polda: mOv.polda,
+                jabatanTerakhir: mOv.jabatanTerakhir || mOv.jabatan,
+                email: mOv.email,
+                secondaryEmail: mOv.secondaryEmail,
+                noHp: mOv.noHp,
+                fotoUrl: mOv.fotoUrl || mOv.avatar,
+                statusKedinasan: (mOv.statusKedinasan || mOv.statusDinas) as StatusKedinasan | undefined,
+                tanggalLahir: mOv.tanggalLahir,
+              });
+            }
+
+            if (uOv) {
+              sources.push({
+                ts: uOv.updatedAt ? new Date(uOv.updatedAt).getTime() || 3 : 3,
+                nrp: uOv.nrp,
+                oldNrp: uOv.oldNrp,
+                nama: uOv.nama || uOv.name,
+                pangkat: uOv.pangkat,
+                satker: uOv.satker,
+                polda: uOv.polda,
+                jabatanTerakhir: uOv.jabatanTerakhir || uOv.jabatan,
+                email: uOv.email,
+                secondaryEmail: uOv.secondaryEmail,
+                noHp: uOv.noHp,
+                fotoUrl: uOv.fotoUrl || uOv.avatar,
+                statusKedinasan: uOv.statusKedinasan,
+                tanggalLahir: uOv.tanggalLahir,
+              });
+            }
+
+            sources.sort((a, b) => a.ts - b.ts);
+
+            let enrichedUser: AuthUser = {
+              ...u,
+              ...(uOv || {}),
+            };
+
+            for (const src of sources) {
+              if (src.nrp) enrichedUser.nrp = src.nrp;
+              if (src.nama) enrichedUser.nama = stripRankFromName(src.nama) || src.nama;
+              if (src.pangkat) enrichedUser.pangkat = src.pangkat;
+              if (src.satker) enrichedUser.satker = src.satker;
+              if (src.polda) enrichedUser.polda = src.polda;
+              if (src.jabatanTerakhir) enrichedUser.jabatanTerakhir = src.jabatanTerakhir;
+              if (src.email) enrichedUser.email = src.email;
+              if (src.secondaryEmail !== undefined && src.secondaryEmail !== '') {
+                enrichedUser.secondaryEmail = src.secondaryEmail;
+              }
+              if (src.noHp) enrichedUser.noHp = src.noHp;
+              if (src.fotoUrl) enrichedUser.fotoUrl = src.fotoUrl;
+              if (
+                src.statusKedinasan === 'AKTIF' ||
+                src.statusKedinasan === 'PURNA_TUGAS' ||
+                src.statusKedinasan === 'PTDH' ||
+                src.statusKedinasan === 'ALMARHUM'
+              ) {
+                enrichedUser.statusKedinasan = src.statusKedinasan;
+              }
+              if (src.tanggalLahir) enrichedUser.tanggalLahir = src.tanggalLahir;
+            }
+
             const canonicalOldNrp =
-              (u.id?.startsWith('u-7409') ? u.id.slice(2) : undefined) || u.oldNrp || ov.oldNrp || u.nrp;
+              (u.id?.startsWith('u-7409') ? u.id.slice(2) : undefined) ||
+              u.oldNrp ||
+              uOv?.oldNrp ||
+              mOv?.oldNrp ||
+              u.nrp;
+
+            enrichedUser = {
+              ...enrichedUser,
+              id: u.id,
+              profileId: u.profileId,
+              oldNrp: canonicalOldNrp,
+              nrp: enrichedUser.nrp || u.nrp,
+              role: (uOv?.role as UserRole) || u.role,
+            };
 
             const needsServerSync =
-              (ov.nrp && u.nrp !== ov.nrp) ||
-              (ov.role && u.role !== ov.role) ||
-              (ov.nama && u.nama !== ov.nama) ||
-              (ov.pangkat && u.pangkat !== ov.pangkat) ||
-              (ov.satker && u.satker !== ov.satker) ||
-              (ov.tanggalLahir && u.tanggalLahir !== ov.tanggalLahir);
+              (enrichedUser.nrp && u.nrp !== enrichedUser.nrp) ||
+              (enrichedUser.role && u.role !== enrichedUser.role) ||
+              (enrichedUser.nama && u.nama !== enrichedUser.nama) ||
+              (enrichedUser.pangkat && u.pangkat !== enrichedUser.pangkat) ||
+              (enrichedUser.satker && u.satker !== enrichedUser.satker) ||
+              (enrichedUser.polda && u.polda !== enrichedUser.polda) ||
+              (enrichedUser.jabatanTerakhir && u.jabatanTerakhir !== enrichedUser.jabatanTerakhir) ||
+              (enrichedUser.statusKedinasan && u.statusKedinasan !== enrichedUser.statusKedinasan) ||
+              (enrichedUser.noHp && u.noHp !== enrichedUser.noHp) ||
+              (enrichedUser.tanggalLahir && u.tanggalLahir !== enrichedUser.tanggalLahir);
 
             if (needsServerSync) {
               fetch('/api/users', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  ...ov,
+                  ...enrichedUser,
                   nrp: u.nrp,
                   originalNrp: canonicalOldNrp,
                   oldNrp: canonicalOldNrp,
-                  newNrp: ov.nrp || u.nrp,
+                  newNrp: enrichedUser.nrp || u.nrp,
                   id: u.id,
                   profileId: u.profileId,
                   isBackgroundSync: true,
                 }),
               }).catch(() => {});
             }
-            return {
-              ...u,
-              ...ov,
-              id: u.id,
-              profileId: u.profileId,
-              oldNrp: canonicalOldNrp,
-              nrp: ov.nrp || u.nrp,
-            };
-          }
-          return u;
-        });
+
+            return enrichedUser;
+          });
+        };
+
+        fetchedUsers = applyMemberAndUserOverridesToUsers(fetchedUsers);
 
         // Strict deduplication of fetchedUsers by NRP and by baseName (for non-ADC accounts)
         const dedupedUsers: AuthUser[] = [];
@@ -619,11 +819,32 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
   };
 
   useEffect(() => {
-    if (isOpen || asPage) {
+    const isVisible = Boolean(isOpen || asPage);
+    if (isVisible && !initializedRef.current) {
+      initializedRef.current = true;
+      prevInitialTabRef.current = initialTab;
       setActiveTab(initialTab);
       fetchAllData();
+    } else if (!isVisible && initializedRef.current) {
+      initializedRef.current = false;
+    } else if (isVisible && prevInitialTabRef.current !== initialTab) {
+      prevInitialTabRef.current = initialTab;
+      setActiveTab(initialTab);
     }
   }, [isOpen, asPage, initialTab]);
+
+  useEffect(() => {
+    if (!isOpen && !asPage) return;
+    const handleSyncEvent = () => {
+      fetchAllData();
+    };
+    window.addEventListener('ws96_user_updated', handleSyncEvent);
+    window.addEventListener('storage', handleSyncEvent);
+    return () => {
+      window.removeEventListener('ws96_user_updated', handleSyncEvent);
+      window.removeEventListener('storage', handleSyncEvent);
+    };
+  }, [isOpen, asPage]);
 
   if (!isOpen && !asPage) return null;
 
@@ -704,9 +925,11 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
       (r) => r.nrp === u.nrp || (knownOldNrp && r.nrp === knownOldNrp)
     );
 
-    // Lookup member's current jabatanTerakhir & tanggalLahir from u, localStorage cache, and overrides
+    // Lookup member's current jabatanTerakhir, tanggalLahir, noHp & statusKedinasan from u, localStorage cache, and overrides
     let memberJabatan = u.jabatanTerakhir || '';
     let memberBirthDate = u.tanggalLahir || '';
+    let memberNoHp = u.noHp || regMatch?.noHp || '';
+    const resolvedStatusKedinasan = resolveUserStatusKedinasan(u);
     if (typeof window !== 'undefined') {
       try {
         const rawMembers = localStorage.getItem('wirasatya96_members');
@@ -726,6 +949,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             if (matchedMember) {
               if (matchedMember.jabatanTerakhir) memberJabatan = matchedMember.jabatanTerakhir;
               if (matchedMember.tanggalLahir) memberBirthDate = matchedMember.tanggalLahir;
+              if (matchedMember.noHp) memberNoHp = matchedMember.noHp;
             }
           }
         }
@@ -748,6 +972,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             if (mOv) {
               if (mOv.jabatanTerakhir) memberJabatan = mOv.jabatanTerakhir;
               if (mOv.tanggalLahir) memberBirthDate = mOv.tanggalLahir;
+              if (mOv.noHp) memberNoHp = mOv.noHp;
             }
           }
         }
@@ -771,6 +996,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             if (uOv) {
               if (uOv.jabatanTerakhir) memberJabatan = uOv.jabatanTerakhir;
               if (uOv.tanggalLahir) memberBirthDate = uOv.tanggalLahir;
+              if (uOv.noHp) memberNoHp = uOv.noHp;
             }
           }
         }
@@ -792,6 +1018,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
     setEditNama(stripRankFromName(u.nama) || u.nama);
     setEditPangkat(u.pangkat || 'Kombes Pol');
     setEditRole(u.role);
+    setEditStatusKedinasan(resolvedStatusKedinasan);
     setEditJabatan(defaultJab);
     setEditIsExternalJabatan(poldaVal === 'KEMEN/LEMBAGA');
     setEditTanggalLahir(calc58.tanggalLahir);
@@ -802,7 +1029,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
     setEditKodeSatker('060.01.00.01');
     setEditEmail(u.email || `${u.nrp}@polri.go.id`);
     setEditSecondaryEmail(u.secondaryEmail || regMatch?.secondaryEmail || '');
-    setEditNoHp(u.noHp || regMatch?.noHp || '');
+    setEditNoHp(memberNoHp);
     setEditPassword('');
     setShowEditPassword(false);
   };
@@ -872,9 +1099,12 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
           oldNrp: preservedOldNrp,
           nrp: nextNrp,
           nama: cleanNamaNoRank,
+          name: cleanNamaNoRank,
           pangkat: editPangkat,
           role: editRole,
+          statusKedinasan: editStatusKedinasan,
           jabatanTerakhir: cleanedJabatan || undefined,
+          jabatan: cleanedJabatan || undefined,
           tanggalLahir: calc58.tanggalLahir,
           polda: editPolda || 'MABES POLRI',
           satker: composedSatker,
@@ -924,9 +1154,13 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
           nrp: nextNrp,
           namaLengkap: cleanNamaNoRank,
           pangkat: editPangkat,
+          statusKedinasan: editStatusKedinasan,
+          statusDinas: editStatusKedinasan,
           satuanKerja: composedSatker,
+          satker: composedSatker,
           polda: editPolda || 'MABES POLRI',
           jabatanTerakhir: cleanedJabatan || prevMemberOverride.jabatanTerakhir || 'Staf',
+          jabatan: cleanedJabatan || prevMemberOverride.jabatanTerakhir || 'Staf',
           tanggalLahir: calc58.tanggalLahir,
           usia: calc58.usiaTahun,
           tahunPurnaTugas: calc58.tahunPurnaTugas,
@@ -958,9 +1192,13 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                     nrp: nextNrp,
                     namaLengkap: cleanNamaNoRank,
                     pangkat: editPangkat,
+                    statusKedinasan: editStatusKedinasan,
+                    statusDinas: editStatusKedinasan,
                     satuanKerja: composedSatker,
+                    satker: composedSatker,
                     polda: editPolda || 'MABES POLRI',
                     jabatanTerakhir: cleanedJabatan || m.jabatanTerakhir,
+                    jabatan: cleanedJabatan || m.jabatan,
                     tanggalLahir: calc58.tanggalLahir,
                     usia: calc58.usiaTahun,
                     tahunPurnaTugas: calc58.tahunPurnaTugas,
@@ -993,6 +1231,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
               nama: cleanNamaNoRank,
               pangkat: editPangkat,
               role: editRole,
+              statusKedinasan: editStatusKedinasan,
               jabatanTerakhir: cleanedJabatan || parsedAuth.jabatanTerakhir,
               tanggalLahir: calc58.tanggalLahir,
               polda: editPolda || 'MABES POLRI',
@@ -1005,12 +1244,38 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             localStorage.setItem('ws96_auth_user', JSON.stringify(nextAuth));
             localStorage.setItem('ws96_active_user', JSON.stringify(nextAuth));
             localStorage.setItem('wirasatya96_current_user', JSON.stringify(nextAuth));
-            window.dispatchEvent(new Event('ws96_user_updated'));
           }
         }
+        window.dispatchEvent(new Event('ws96_user_updated'));
       } catch {
         // ignore storage error
       }
+    }
+
+    if (onMemberSynced) {
+      onMemberSynced({
+        id: editingUser.profileId || `ws-${preservedOldNrp}`,
+        nrp: nextNrp,
+        oldNrp: preservedOldNrp,
+        name: cleanNamaNoRank,
+        namaLengkap: cleanNamaNoRank,
+        pangkat: editPangkat,
+        statusKedinasan: editStatusKedinasan,
+        statusDinas: editStatusKedinasan,
+        satuanKerja: composedSatker,
+        satker: composedSatker,
+        polda: editPolda || 'MABES POLRI',
+        jabatanTerakhir: cleanedJabatan || undefined,
+        jabatan: cleanedJabatan || undefined,
+        tanggalLahir: calc58.tanggalLahir,
+        usia: calc58.usiaTahun,
+        tahunPurnaTugas: calc58.tahunPurnaTugas,
+        sisaTahunDinas: calc58.sisaTahunDinas,
+        email: cleanedEmail,
+        secondaryEmail: cleanedSecondaryEmail,
+        noHp: cleanedNoHp,
+        updatedAt: nowIso,
+      });
     }
 
     appendClientAuditLog({
@@ -1035,6 +1300,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
               nama: cleanNamaNoRank,
               pangkat: editPangkat,
               role: editRole,
+              statusKedinasan: editStatusKedinasan,
               jabatanTerakhir: cleanedJabatan || u.jabatanTerakhir,
               tanggalLahir: calc58.tanggalLahir,
               polda: editPolda || 'MABES POLRI',
@@ -1063,6 +1329,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
           nama: cleanNamaNoRank,
           pangkat: editPangkat,
           role: editRole,
+          statusKedinasan: editStatusKedinasan,
           jabatanTerakhir: cleanedJabatan || undefined,
           tanggalLahir: calc58.tanggalLahir,
           polda: editPolda || 'MABES POLRI',
@@ -1774,17 +2041,132 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
   });
 
   const resolveUserStatusKedinasan = (u: AuthUser): StatusKedinasan => {
-    if (
-      u.statusKedinasan === 'AKTIF' ||
-      u.statusKedinasan === 'PURNA_TUGAS' ||
-      u.statusKedinasan === 'PTDH' ||
-      u.statusKedinasan === 'ALMARHUM'
-    ) {
+    const cleanNrp = (u.nrp || '').trim();
+    const origFromId = u.id?.startsWith('u-') ? u.id.slice(2).trim() : '';
+    const cleanOld = (u.oldNrp || origFromId || '').trim();
+    const baseName = (stripRankFromName(u.nama) || u.nama).split(',')[0].trim().toLowerCase();
+    const isValidStatus = (val: unknown): val is StatusKedinasan =>
+      val === 'AKTIF' || val === 'PURNA_TUGAS' || val === 'PTDH' || val === 'ALMARHUM';
+
+    if (typeof window !== 'undefined') {
+      try {
+        let memberOvStatus: StatusKedinasan | undefined;
+        let memberOvTs = 0;
+        let memberOvJabatan: string | undefined;
+        const rawMemberOv = localStorage.getItem('ws96_member_overrides_v1');
+        if (rawMemberOv) {
+          const parsedMemberOv = JSON.parse(rawMemberOv) || {};
+          const mOv =
+            parsedMemberOv[cleanNrp] ||
+            (cleanOld ? parsedMemberOv[cleanOld] : undefined) ||
+            Object.values(parsedMemberOv).find((item: any) => {
+              if (!item) return false;
+              const itemBase = (stripRankFromName(item.namaLengkap || item.nama || '') || item.namaLengkap || item.nama || '')
+                .split(',')[0]
+                .trim()
+                .toLowerCase();
+              return (
+                (u.profileId && item.id === u.profileId) ||
+                (cleanOld && item.id === `ws-${cleanOld}`) ||
+                item.nrp === cleanNrp ||
+                (cleanOld && (item.nrp === cleanOld || item.oldNrp === cleanOld)) ||
+                (!u.isAdcAccount && baseName && itemBase === baseName)
+              );
+            });
+          if (mOv) {
+            const st = mOv.statusKedinasan || mOv.statusDinas;
+            if (isValidStatus(st)) {
+              memberOvStatus = st;
+              memberOvTs = mOv.updatedAt ? new Date(mOv.updatedAt).getTime() || 2 : 2;
+            }
+            if (mOv.jabatanTerakhir || mOv.jabatan) {
+              memberOvJabatan = mOv.jabatanTerakhir || mOv.jabatan;
+            }
+          }
+        }
+
+        let userOvStatus: StatusKedinasan | undefined;
+        let userOvTs = 0;
+        let userOvJabatan: string | undefined;
+        const rawUserOv = localStorage.getItem('ws96_user_overrides_v1');
+        if (rawUserOv) {
+          const parsedUserOv = JSON.parse(rawUserOv) || {};
+          const uOv =
+            parsedUserOv[cleanNrp] ||
+            (cleanOld ? parsedUserOv[cleanOld] : undefined) ||
+            Object.values(parsedUserOv).find((item: any) => {
+              if (!item) return false;
+              const itemBase = (stripRankFromName(item.nama || item.name || '') || item.nama || item.name || '')
+                .split(',')[0]
+                .trim()
+                .toLowerCase();
+              return (
+                (u.id && item.id === u.id) ||
+                item.nrp === cleanNrp ||
+                (cleanOld && (item.nrp === cleanOld || item.oldNrp === cleanOld)) ||
+                (!u.isAdcAccount && baseName && itemBase === baseName)
+              );
+            });
+          if (uOv) {
+            if (isValidStatus(uOv.statusKedinasan)) {
+              userOvStatus = uOv.statusKedinasan;
+              userOvTs = uOv.updatedAt ? new Date(uOv.updatedAt).getTime() || 1 : 1;
+            }
+            if (uOv.jabatanTerakhir || uOv.jabatan) {
+              userOvJabatan = uOv.jabatanTerakhir || uOv.jabatan;
+            }
+          }
+        }
+
+        if (memberOvStatus && userOvStatus) {
+          return memberOvTs >= userOvTs ? memberOvStatus : userOvStatus;
+        }
+        if (memberOvStatus) return memberOvStatus;
+        if (userOvStatus) return userOvStatus;
+
+        const rawMembers = localStorage.getItem('wirasatya96_members');
+        if (rawMembers) {
+          const parsedMembers = JSON.parse(rawMembers);
+          if (Array.isArray(parsedMembers)) {
+            const cachedM = parsedMembers.find((m: any) => {
+              if (!m) return false;
+              const mBase = (stripRankFromName(m.namaLengkap || m.nama || '') || m.namaLengkap || m.nama || '')
+                .split(',')[0]
+                .trim()
+                .toLowerCase();
+              return (
+                (u.profileId && m.id === u.profileId) ||
+                (cleanOld && m.id === `ws-${cleanOld}`) ||
+                m.nrp === cleanNrp ||
+                (cleanOld && (m.nrp === cleanOld || m.oldNrp === cleanOld)) ||
+                (!u.isAdcAccount && baseName && mBase === baseName)
+              );
+            });
+            if (cachedM) {
+              const st = cachedM.statusKedinasan || cachedM.statusDinas;
+              if (isValidStatus(st)) {
+                return st;
+              }
+            }
+          }
+        }
+
+        if (memberOvJabatan || userOvJabatan) {
+          const detectedFromOvJab = detectStatusKedinasan(
+            u.statusKedinasan,
+            memberOvJabatan || userOvJabatan || u.jabatanTerakhir
+          );
+          if (detectedFromOvJab !== 'AKTIF') return detectedFromOvJab;
+        }
+      } catch {
+        // ignore storage errors
+      }
+    }
+
+    if (isValidStatus(u.statusKedinasan)) {
       return u.statusKedinasan;
     }
-    const cleanNrp = (u.nrp || '').trim();
-    const cleanOld = (u.oldNrp || '').trim();
-    const baseName = (stripRankFromName(u.nama) || u.nama).split(',')[0].trim().toLowerCase();
+
     const matchedMember = AKPOL_1996_MEMBERS.find(
       (m) =>
         m.nrp === cleanNrp ||
@@ -2188,6 +2570,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
 
   const innerContent = (
     <div
+      data-no-reveal="true"
       className={
         asPage
           ? 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col'
@@ -2238,6 +2621,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
         </div>
         {!asPage && (
           <button
+            type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
           >
@@ -2247,14 +2631,16 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
       </div>
 
       {/* Navigation Tabs */}
-      <div className="bg-slate-100 px-4 pt-2.5 border-b border-slate-200 flex items-center justify-between gap-2 overflow-x-auto">
+      <div className="bg-slate-100 px-4 pt-2 border-b border-slate-200 flex items-center justify-between gap-2 overflow-x-auto">
         <div className="flex items-center gap-1.5">
           <button
+            type="button"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={() => setActiveTab('USERS')}
-            className={`px-3.5 sm:px-4 py-2 rounded-t-xl text-xs font-bold flex items-center gap-1.5 sm:gap-2 border-t border-x transition-all whitespace-nowrap ${
+            className={`py-2.5 px-4 border-b-2 text-xs font-semibold flex items-center gap-2 cursor-pointer select-none transition-colors rounded-t-xl whitespace-nowrap ${
               activeTab === 'USERS'
-                ? 'bg-white text-red-900 border-slate-200 shadow-sm -mb-px pb-2.5'
-                : 'bg-transparent text-slate-600 border-transparent hover:bg-white/60'
+                ? 'bg-white text-red-900 border-red-800 shadow-sm'
+                : 'bg-transparent text-slate-600 border-transparent hover:bg-white/60 hover:text-slate-900'
             }`}
           >
             <Users className="w-4 h-4" />
@@ -2262,11 +2648,13 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
           </button>
 
           <button
+            type="button"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={() => setActiveTab('VERIFICATION')}
-            className={`px-3.5 sm:px-4 py-2 rounded-t-xl text-xs font-bold flex items-center gap-1.5 sm:gap-2 border-t border-x transition-all whitespace-nowrap ${
+            className={`py-2.5 px-4 border-b-2 text-xs font-semibold flex items-center gap-2 cursor-pointer select-none transition-colors rounded-t-xl whitespace-nowrap ${
               activeTab === 'VERIFICATION'
-                ? 'bg-white text-red-900 border-slate-200 shadow-sm -mb-px pb-2.5'
-                : 'bg-transparent text-slate-600 border-transparent hover:bg-white/60'
+                ? 'bg-white text-red-900 border-red-800 shadow-sm'
+                : 'bg-transparent text-slate-600 border-transparent hover:bg-white/60 hover:text-slate-900'
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
@@ -2280,11 +2668,13 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
           </button>
 
           <button
+            type="button"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={() => setActiveTab('AUDIT_LOG')}
-            className={`px-3.5 sm:px-4 py-2 rounded-t-xl text-xs font-bold flex items-center gap-1.5 sm:gap-2 border-t border-x transition-all whitespace-nowrap ${
+            className={`py-2.5 px-4 border-b-2 text-xs font-semibold flex items-center gap-2 cursor-pointer select-none transition-colors rounded-t-xl whitespace-nowrap ${
               activeTab === 'AUDIT_LOG'
-                ? 'bg-white text-red-900 border-slate-200 shadow-sm -mb-px pb-2.5'
-                : 'bg-transparent text-slate-600 border-transparent hover:bg-white/60'
+                ? 'bg-white text-red-900 border-red-800 shadow-sm'
+                : 'bg-transparent text-slate-600 border-transparent hover:bg-white/60 hover:text-slate-900'
             }`}
           >
             <History className="w-4 h-4" />
@@ -2293,9 +2683,11 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
         </div>
 
         <button
+          type="button"
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={fetchAllData}
           disabled={loading}
-          className="mb-1.5 p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-red-800 hover:bg-slate-50 transition-colors"
+          className="mb-1.5 p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-red-800 hover:bg-slate-50 transition-colors cursor-pointer"
           title="Segarkan data"
         >
           <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin text-red-800' : ''}`} />
@@ -2582,6 +2974,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
 
             <div className="flex items-center gap-1 overflow-x-auto text-xs">
               <button
+                type="button"
                 onClick={() => setFilterStatus('PENDING_VERIFIKASI')}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all whitespace-nowrap ${
                   filterStatus === 'PENDING_VERIFIKASI'
@@ -2592,6 +2985,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 Menunggu ({pendingCount})
               </button>
               <button
+                type="button"
                 onClick={() => setFilterStatus('DISETUJUI_BELUM_PASSWORD')}
                 className={`px-3 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap ${
                   filterStatus === 'DISETUJUI_BELUM_PASSWORD'
@@ -2602,6 +2996,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 Disetujui
               </button>
               <button
+                type="button"
                 onClick={() => setFilterStatus('ALL')}
                 className={`px-3 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap ${
                   filterStatus === 'ALL'
@@ -2728,6 +3123,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                           </div>
                           <div className="flex sm:flex-row gap-2 w-full sm:w-44">
                             <button
+                              type="button"
                               onClick={() => handleVerify(reg, 'APPROVE')}
                               disabled={actionLoadingId === reg.id}
                               className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1 transition-colors shadow-sm disabled:opacity-50"
@@ -2736,6 +3132,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                               <span>{actionLoadingId === reg.id ? '...' : 'Setujui'}</span>
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleVerify(reg, 'REJECT')}
                               disabled={actionLoadingId === reg.id}
                               className="py-1.5 px-3 rounded-lg bg-white border border-red-300 text-red-700 hover:bg-red-50 font-bold text-xs flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
@@ -3230,6 +3627,21 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                     </div>
                   </div>
 
+                  {/* STATUS KEDINASAN PERSONEL */}
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Status Kedinasan</label>
+                    <select
+                      value={editStatusKedinasan}
+                      onChange={(e) => setEditStatusKedinasan(e.target.value as StatusKedinasan)}
+                      className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:outline-none"
+                    >
+                      <option value="AKTIF">Aktif Berdinas</option>
+                      <option value="PURNA_TUGAS">Purna Tugas / Pensiun</option>
+                      <option value="PTDH">PTDH</option>
+                      <option value="ALMARHUM">Almarhum / Gugur</option>
+                    </select>
+                  </div>
+
                   {/* JABATAN ORGANISASI POLRI (DROPDOWN STANDAR PERPOL 4/2025 + EKSTERNAL) */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
@@ -3521,6 +3933,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
         </div>
         {!asPage && (
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold transition-colors"
           >
@@ -3533,14 +3946,14 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
 
   if (asPage) {
     return (
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-5 space-y-4">
+      <div data-no-reveal="true" className="max-w-7xl mx-auto px-3 sm:px-6 py-5 space-y-4">
         {innerContent}
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+    <div data-no-reveal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
       {innerContent}
     </div>
   );

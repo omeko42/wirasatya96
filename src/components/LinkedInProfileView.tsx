@@ -59,7 +59,7 @@ export interface LinkedInProfileViewProps {
   member: AnggotaWiraSatya;
   currentUser: AuthUser;
   memberRole?: UserRole;
-  onEditProfile?: (targetMember?: AnggotaWiraSatya) => void;
+  onEditProfile?: (member: AnggotaWiraSatya, initialTab?: 1 | 2 | 3 | 4) => void;
   onUpdateMemberDirect?: (updated: AnggotaWiraSatya) => Promise<void> | void;
   onOpenChat?: (member: AnggotaWiraSatya) => void;
   onClose?: () => void;
@@ -136,19 +136,30 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
   const peersSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    let userOverrideJabatan = '';
-    let userOverridePangkat = '';
-    let userOverrideSatker = '';
+    let fallbackCoverUrl: string | undefined;
+    let fallbackBio: string | undefined;
+    let fallbackSecondaryEmail: string | undefined;
+
     if (typeof window !== 'undefined') {
       try {
+        const rawMemberOverrides = localStorage.getItem('ws96_member_overrides_v1');
+        if (rawMemberOverrides) {
+          const parsedMemberOverrides = JSON.parse(rawMemberOverrides);
+          const mOv = parsedMemberOverrides?.[member.nrp] || parsedMemberOverrides?.[member.id];
+          if (mOv) {
+            fallbackCoverUrl = mOv.coverUrl || fallbackCoverUrl;
+            fallbackBio = mOv.bio || fallbackBio;
+            fallbackSecondaryEmail = mOv.secondaryEmail || fallbackSecondaryEmail;
+          }
+        }
         const rawUserOverrides = localStorage.getItem('ws96_user_overrides_v1');
         if (rawUserOverrides) {
           const parsedUserOverrides = JSON.parse(rawUserOverrides);
           const uOv = parsedUserOverrides?.[member.nrp];
           if (uOv) {
-            userOverrideJabatan = uOv.jabatanTerakhir || '';
-            userOverridePangkat = uOv.pangkat || '';
-            userOverrideSatker = uOv.satker || '';
+            fallbackCoverUrl = fallbackCoverUrl || uOv.coverUrl;
+            fallbackBio = fallbackBio || uOv.bio;
+            fallbackSecondaryEmail = fallbackSecondaryEmail || uOv.secondaryEmail;
           }
         }
       } catch {
@@ -156,36 +167,57 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
       }
     }
 
+    const resolvedSatker =
+      member.satuanKerja ||
+      member.satker ||
+      (member.nrp === currentUser.nrp && currentUser.satker ? currentUser.satker : '');
+    const resolvedPangkat =
+      member.pangkat ||
+      (member.nrp === currentUser.nrp && currentUser.pangkat ? currentUser.pangkat : '');
+    const resolvedJabatan =
+      member.jabatanTerakhir === 'Lead Developer'
+        ? 'Staf'
+        : member.jabatanTerakhir || member.jabatan || '';
+    const resolvedCover =
+      member.coverUrl && member.coverUrl !== DEFAULT_COVER_URL
+        ? member.coverUrl
+        : fallbackCoverUrl && fallbackCoverUrl !== DEFAULT_COVER_URL
+        ? fallbackCoverUrl
+        : member.nrp === currentUser.nrp
+        ? currentUser.coverUrl || member.coverUrl
+        : member.coverUrl;
+    const resolvedBio =
+      member.bio !== undefined && member.bio !== ''
+        ? member.bio
+        : fallbackBio || (member.nrp === currentUser.nrp ? currentUser.bio : '');
+    const resolvedSecondaryEmail =
+      member.secondaryEmail !== undefined && member.secondaryEmail !== ''
+        ? member.secondaryEmail
+        : fallbackSecondaryEmail || (member.nrp === currentUser.nrp ? currentUser.secondaryEmail : undefined);
+
     setLocalMember({
       ...member,
-      pangkat:
-        userOverridePangkat ||
-        (member.nrp === currentUser.nrp && currentUser.pangkat ? currentUser.pangkat : member.pangkat),
-      satuanKerja:
-        userOverrideSatker ||
-        (member.nrp === currentUser.nrp && currentUser.satker ? currentUser.satker : member.satuanKerja),
-      jabatanTerakhir:
-        userOverrideJabatan ||
-        (member.jabatanTerakhir === 'Lead Developer' ? 'Staf' : member.jabatanTerakhir),
+      pangkat: resolvedPangkat,
+      satuanKerja: resolvedSatker,
+      satker: resolvedSatker,
+      jabatanTerakhir: resolvedJabatan,
       fotoUrl:
         member.nrp === currentUser.nrp
           ? resolveAvatarUrl(member.fotoUrl, currentUser.fotoUrl)
           : getAvatarUrl(member.fotoUrl),
-      coverUrl:
-        member.nrp === currentUser.nrp
-          ? member.coverUrl && member.coverUrl !== DEFAULT_COVER_URL
-            ? member.coverUrl
-            : currentUser.coverUrl || member.coverUrl
-          : member.coverUrl,
+      coverUrl: resolvedCover,
+      bio: resolvedBio,
+      secondaryEmail: resolvedSecondaryEmail,
     });
-    setDraftBio(member.bio || '');
-  }, [member, currentUser.nrp, currentUser.pangkat, currentUser.satker, currentUser.fotoUrl, currentUser.coverUrl]);
+    setDraftBio(resolvedBio || '');
+  }, [member, currentUser.nrp, currentUser.pangkat, currentUser.satker, currentUser.fotoUrl, currentUser.coverUrl, currentUser.bio, currentUser.secondaryEmail]);
 
   const isLeadership = ['SUPERADMIN', 'SEKRETARIAT'].includes(currentUser.role);
   const isOwnProfile = currentUser.nrp === localMember.nrp;
   const isSelf = isOwnProfile;
   const isOwner = isOwnProfile;
   const canEdit = isLeadership || isOwnProfile;
+  const canEditProfile = canEdit;
   const canManageProfile = isOwnProfile || canEdit;
 
   // Accurate Role & Personnel Classification (No dummy Akpol 1996 labels on non-Akpol96 users)
@@ -255,24 +287,88 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
     setIsSaving(true);
 
     try {
-      // Sync localStorage auth session if updating own profile
-      if (typeof window !== 'undefined' && currentUser.nrp === updated.nrp) {
-        const rawAuth = localStorage.getItem('ws96_auth_user');
-        if (rawAuth) {
-          try {
-            const parsedAuth = JSON.parse(rawAuth);
-            const nextAuth = {
-              ...parsedAuth,
-              fotoUrl: updated.fotoUrl,
-              coverUrl: updated.coverUrl,
-              bio: updated.bio,
-            };
-            localStorage.setItem('ws96_auth_user', JSON.stringify(nextAuth));
-            localStorage.setItem('ws96_active_user', JSON.stringify(nextAuth));
-            localStorage.setItem('wirasatya96_current_user', JSON.stringify(nextAuth));
-            window.dispatchEvent(new Event('ws96_user_updated'));
-          } catch {
-            // ignore
+      if (typeof window !== 'undefined') {
+        // Sync ws96_member_overrides_v1
+        try {
+          const rawMemOv = localStorage.getItem('ws96_member_overrides_v1');
+          const memOvMap = rawMemOv ? JSON.parse(rawMemOv) : {};
+          memOvMap[updated.nrp] = { ...(memOvMap[updated.nrp] || {}), ...updated };
+          if (updated.id) {
+            memOvMap[updated.id] = { ...(memOvMap[updated.id] || {}), ...updated };
+          }
+          localStorage.setItem('ws96_member_overrides_v1', JSON.stringify(memOvMap));
+        } catch {
+          // ignore
+        }
+
+        // Sync ws96_user_overrides_v1 so it is always 100% in sync
+        try {
+          const rawUserOv = localStorage.getItem('ws96_user_overrides_v1');
+          const userOvMap = rawUserOv ? JSON.parse(rawUserOv) : {};
+          const existingUOv = userOvMap[updated.nrp] || {};
+          userOvMap[updated.nrp] = {
+            ...existingUOv,
+            nrp: updated.nrp,
+            nama: updated.namaLengkap,
+            pangkat: updated.pangkat,
+            jabatanTerakhir: updated.jabatanTerakhir,
+            satker: updated.satuanKerja || updated.satker,
+            polda: updated.polda,
+            statusKedinasan: updated.statusKedinasan,
+            noHp: updated.noHp,
+            email: updated.email,
+            secondaryEmail: updated.secondaryEmail,
+            fotoUrl: updated.fotoUrl,
+            coverUrl: updated.coverUrl,
+            bio: updated.bio,
+            updatedAt: updated.updatedAt,
+          };
+          localStorage.setItem('ws96_user_overrides_v1', JSON.stringify(userOvMap));
+        } catch {
+          // ignore
+        }
+
+        // Sync wirasatya96_members
+        try {
+          const rawMembers = localStorage.getItem('wirasatya96_members');
+          if (rawMembers) {
+            const parsedMembers: AnggotaWiraSatya[] = JSON.parse(rawMembers);
+            if (Array.isArray(parsedMembers)) {
+              const nextMembers = parsedMembers.map((m) =>
+                m.nrp === updated.nrp || m.id === updated.id ? { ...m, ...updated } : m
+              );
+              localStorage.setItem('wirasatya96_members', JSON.stringify(nextMembers));
+            }
+          }
+        } catch {
+          // ignore
+        }
+
+        // Sync localStorage auth session if updating own profile
+        if (currentUser.nrp === updated.nrp) {
+          const rawAuth = localStorage.getItem('ws96_auth_user');
+          if (rawAuth) {
+            try {
+              const parsedAuth = JSON.parse(rawAuth);
+              const nextAuth = {
+                ...parsedAuth,
+                nama: updated.namaLengkap,
+                pangkat: updated.pangkat,
+                satker: updated.satuanKerja || updated.satker,
+                polda: updated.polda,
+                fotoUrl: updated.fotoUrl,
+                coverUrl: updated.coverUrl,
+                bio: updated.bio,
+                email: updated.email || parsedAuth.email,
+                secondaryEmail: updated.secondaryEmail,
+              };
+              localStorage.setItem('ws96_auth_user', JSON.stringify(nextAuth));
+              localStorage.setItem('ws96_active_user', JSON.stringify(nextAuth));
+              localStorage.setItem('wirasatya96_current_user', JSON.stringify(nextAuth));
+              window.dispatchEvent(new Event('ws96_user_updated'));
+            } catch {
+              // ignore
+            }
           }
         }
       }
@@ -820,9 +916,10 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       <span className="hidden sm:inline">Pengaturan &amp; Keamanan</span>
                     </button>
                   )}
-                  {canEdit && (
+                  {canEditProfile && (
                     <button
-                      onClick={() => onEditProfile && onEditProfile(localMember)}
+                      type="button"
+                      onClick={() => onEditProfile && onEditProfile(localMember, 1)}
                       className="p-2 rounded-full border border-slate-300 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
                       title="Edit Profil"
                     >
@@ -953,9 +1050,10 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                   </button>
                 )}
 
-                {canEdit ? (
+                {canEditProfile ? (
                   <button
-                    onClick={() => onEditProfile && onEditProfile(localMember)}
+                    type="button"
+                    onClick={() => onEditProfile && onEditProfile(localMember, 1)}
                     className="px-4 py-2 rounded-full bg-red-800 hover:bg-red-900 text-white font-bold text-xs sm:text-sm transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4" />
@@ -1216,14 +1314,26 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
 
           {/* 3. SECTION: JEJAK KEDINASAN */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
+            <div className="flex items-center justify-between border-b pb-3 gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                 <Briefcase className="w-5 h-5 text-polri-navy" />
                 Jejak Kedinasan
               </h2>
-              <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                Tipe: {localMember.tipeSatker || 'POLDA'}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                  Tipe: {localMember.tipeSatker || 'POLDA'}
+                </span>
+                {canEditProfile && (
+                  <button
+                    type="button"
+                    onClick={() => onEditProfile && onEditProfile(localMember, 1)}
+                    className="px-3 py-1 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-200 text-red-800 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Edit Kedinasan</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -1261,119 +1371,123 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
             </div>
           </div>
 
-          {/* 4. SECTION: KELUARGA (Alumni Only) */}
-          {!isSuperadminDev && (
+          {/* 4. SECTION: KESEHATAN & KEBUGARAN */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-polri-navy" />
-                Keluarga
-              </h2>
-              <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                Status: {localMember.statusPerkawinan}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-slate-50/70 p-3.5 rounded-xl border border-slate-200">
-              <div>
-                <span className="text-slate-500 block">Nama Pasangan:</span>
-                <span className="font-bold text-slate-900">
-                  {localMember.namaIstri || '—'}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 block">Kontak Pasangan:</span>
-                <span className="font-semibold text-slate-900">
-                  {localMember.kontakIstri || '-'}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 block">Jumlah Anak:</span>
-                <span className="font-bold text-blue-700">
-                  {localMember.jumlahAnak || 0} Anak
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 block">Tanggungan Lain:</span>
-                <span className="font-semibold text-slate-800">
-                  {localMember.tanggunganLain?.jumlah || 0} Orang (
-                  {localMember.tanggunganLain?.rincian || 'Tidak ada'})
-                </span>
-              </div>
-            </div>
-
-            {/* List of Children */}
-            {localMember.daftarAnak && localMember.daftarAnak.length > 0 && (
-              <div className="space-y-2 pt-2">
-                <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Daftar Putra-Putri:
-                </p>
-                <div className="grid grid-cols-1 gap-2">
-                  {localMember.daftarAnak.map((anak, idx) => (
-                    <div
-                      key={anak.id || idx}
-                      className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-[11px]">
-                          {idx + 1}
-                        </span>
-                        <div>
-                          <p className="font-bold text-slate-900">
-                            {anak.nama || `Anak ke-${idx + 1}`}
-                          </p>
-                          <p className="text-[11px] text-slate-500">
-                            {anak.status} • Lahir: {anak.tanggalLahir || '-'}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="px-2.5 py-1 rounded bg-blue-50 text-blue-800 font-semibold text-[11px] border border-blue-200">
-                        {anak.biayaPendidikanTahunan
-                          ? `Biaya: ${anak.biayaPendidikanTahunan}`
-                          : 'Pelajar'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          )}
-
-          {/* 5. SECTION: KESEHATAN (Alumni Only) */}
-          {!isSuperadminDev && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
+            <div className="flex items-center justify-between border-b pb-3 gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                 <Heart className="w-5 h-5 text-red-600" />
-                Kesehatan
+                Kesehatan &amp; Kebugaran
               </h2>
-              <span
-                className={`text-[11px] font-bold px-2 py-0.5 rounded ${
-                  localMember.adaPenyakitKronis === 'ADA'
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-emerald-100 text-emerald-800'
-                }`}
-              >
-                Penyakit Kronis: {localMember.adaPenyakitKronis}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                    localMember.adaPenyakitKronis === 'ADA' ||
+                    localMember.kondisiKesehatan === 'SAKIT' ||
+                    localMember.kondisiKesehatan === 'PERLU PERHATIAN KHUSUS'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}
+                >
+                  Kondisi Saat Ini: {localMember.kondisiSaatIni || localMember.kondisiKesehatan || 'SEHAT'}
+                </span>
+                {canEditProfile && (
+                  <button
+                    type="button"
+                    onClick={() => onEditProfile && onEditProfile(localMember, 4)}
+                    className="px-3 py-1 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-200 text-red-800 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Edit Kesehatan</span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div>
-                <span className="text-slate-500 block">Kondisi Kesehatan:</span>
-                <span className="font-bold text-slate-900">
-                  {localMember.kondisiKesehatan}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 block">Rutin MCU:</span>
-                <span className="font-semibold text-slate-900">
-                  {localMember.rutinMcu === 'YA' ? 'Ya (Rutin)' : 'Tidak'} • MCU:{' '}
-                  {localMember.mcuTerakhir || '-'}
-                </span>
-              </div>
-            </div>
+            {(() => {
+              const extHealth = localMember as unknown as Record<string, unknown>;
+              const golonganDarah = (extHealth.golonganDarah as string) || 'O / Terdata di Dokkes';
+              const bpjsStatus =
+                (extHealth.bpjsStatus as string) ||
+                (localMember.asuransiAktif?.includes('BPJS')
+                  ? 'AKTIF'
+                  : localMember.biayaPengobatanDitanggung || 'AKTIF');
+              const asuransiKesehatan = Array.isArray(localMember.asuransiAktif)
+                ? localMember.asuransiAktif.join(', ')
+                : (extHealth.asuransiAktif as string) || 'BPJS Kesehatan';
+              const penyakitKronisText =
+                (extHealth.penyakitKronis as string) ||
+                (localMember.daftarPenyakit && localMember.daftarPenyakit.length > 0
+                  ? localMember.daftarPenyakit.join(', ')
+                  : localMember.adaPenyakitKronis === 'ADA'
+                  ? 'Ada Riwayat Penyakit Kronis'
+                  : 'Tidak Ada');
+              const alergiText = (extHealth.alergi as string) || 'Tidak Ada';
+              const catatanMedisText =
+                localMember.catatanMedis ||
+                localMember.kondisiSaatIni ||
+                localMember.penangananPengobatan ||
+                'Kondisi kebugaran terpantau baik';
+              const kontakDaruratNama =
+                (extHealth.kontakDaruratNama as string) || localMember.namaIstri || '—';
+              const kontakDaruratHubungan =
+                (extHealth.kontakDaruratHubungan as string) ||
+                (localMember.namaIstri ? 'Pasangan / Keluarga' : 'Keluarga');
+              const kontakDaruratHp =
+                (extHealth.kontakDaruratHp as string) ||
+                localMember.kontakIstri ||
+                localMember.noHp ||
+                '—';
+
+              return (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-slate-50/70 p-3.5 rounded-xl border border-slate-200">
+                    <div>
+                      <span className="text-slate-500 block">Kondisi Kesehatan:</span>
+                      <span className="font-bold text-slate-900">
+                        {localMember.kondisiKesehatan || 'BAIK'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Golongan Darah:</span>
+                      <span className="font-bold text-slate-900">{golonganDarah}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Rutin MCU:</span>
+                      <span className="font-semibold text-slate-900">
+                        {localMember.rutinMcu === 'YA' ? 'Ya (Rutin)' : 'Tidak'} • MCU:{' '}
+                        {localMember.mcuTerakhir || '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Status BPJS:</span>
+                      <span className="font-bold text-emerald-700">{bpjsStatus}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Asuransi Kesehatan:</span>
+                      <span className="font-semibold text-slate-900">{asuransiKesehatan}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Alergi:</span>
+                      <span className="font-semibold text-slate-900">{alergiText}</span>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <span className="text-slate-500 block">Riwayat Penyakit / Kondisi Medis:</span>
+                      <span className="font-bold text-slate-900">{penyakitKronisText}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Kontak Darurat:</span>
+                      <span className="font-semibold text-slate-900">
+                        {kontakDaruratNama} ({kontakDaruratHubungan}) • {kontakDaruratHp}
+                      </span>
+                    </div>
+                    <div className="sm:col-span-3 pt-1 border-t border-slate-200/70">
+                      <span className="text-slate-500 block">Catatan Medis &amp; Penanganan:</span>
+                      <span className="font-semibold text-slate-800">{catatanMedisText}</span>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
             {/* Diagnosa Penyakit */}
             {localMember.daftarPenyakit && localMember.daftarPenyakit.length > 0 && (
@@ -1405,23 +1519,64 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
               </div>
             )}
           </div>
-          )}
 
-          {/* 6. SECTION: PURNA TUGAS (BUP 58 TAHUN) (Alumni Only) */}
-          {!isSuperadminDev && (
+          {/* 5. SECTION: RENCANA PURNA TUGAS & KEWIRAUSAHAAN (BUP 58 TAHUN) */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
             {(() => {
               const ret58 = calculateRetirement58(localMember.tanggalLahir, localMember.nrp);
+              const extPurna = localMember as unknown as Record<string, unknown>;
+              const estimasiTahunPensiun =
+                (extPurna.estimasiTahunPensiun as number | string) ||
+                ret58.tahunPurnaTugas ||
+                localMember.tahunPurnaTugas;
+              const rencanaSetelahPensiun =
+                (extPurna.rencanaSetelahPensiun as string) ||
+                (localMember.rencanaAktivitas || []).join(', ') ||
+                'USAHA SENDIRI';
+              const targetDomisiliParts = [
+                localMember.alamatPurnaTugas,
+                extPurna.kotaPurnaTugas as string,
+                extPurna.provinsiPurnaTugas as string,
+              ].filter(Boolean);
+              const targetDomisiliText =
+                targetDomisiliParts.length > 0 ? targetDomisiliParts.join(', ') : '—';
+              const bidangUsahaText =
+                (extPurna.bidangUsaha as string) || localMember.jenisUsaha || '—';
+              const jenisUsahaText = localMember.jenisUsaha || (extPurna.bidangUsaha as string) || '—';
+              const statusUsahaText = localMember.statusUsaha || 'MASIH RENCANA';
+              const lokasiUsahaText =
+                (extPurna.lokasiUsaha as string) || localMember.alamatPurnaTugas || '—';
+              const keahlianKhususText =
+                (extPurna.keahlianKhusus as string) ||
+                (localMember.kebutuhanPembekalan || []).join(', ') ||
+                '—';
+              const minatKomunitasText =
+                (extPurna.minatKomunitas as string) ||
+                (localMember.sumberPenghasilanPasca || []).join(', ') ||
+                '—';
+
               return (
                 <>
-                  <div className="flex items-center justify-between border-b pb-3">
+                  <div className="flex items-center justify-between border-b pb-3 gap-2 flex-wrap">
                     <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                       <Home className="w-5 h-5 text-polri-goldDark" />
-                      Purna Tugas (BUP {RETIREMENT_AGE_POLRI} Tahun)
+                      Rencana Purna Tugas &amp; Kewirausahaan
                     </h2>
-                    <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
-                      Pensiun {ret58.tahunPurnaTugas} • {ret58.sisaMasaDinasLabel}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
+                        Pensiun {estimasiTahunPensiun} • {ret58.sisaMasaDinasLabel}
+                      </span>
+                      {canEditProfile && (
+                        <button
+                          type="button"
+                          onClick={() => onEditProfile && onEditProfile(localMember, 3)}
+                          className="px-3 py-1 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-200 text-red-800 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit Purna Tugas &amp; Usaha</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
@@ -1439,45 +1594,185 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     </div>
                     <div>
                       <span className="text-slate-500 block text-[11px]">
-                        Jatuh Tempo Pensiun ({RETIREMENT_AGE_POLRI} Thn):
+                        Estimasi Tahun Pensiun ({RETIREMENT_AGE_POLRI} Thn):
                       </span>
                       <span className="font-extrabold text-amber-800">
-                        {ret58.formattedTanggalPensiun}
+                        {estimasiTahunPensiun} ({ret58.formattedTanggalPensiun})
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-slate-500 block">Rencana Purna Tugas:</span>
+                      <span className="font-bold text-slate-900">
+                        {rencanaSetelahPensiun}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Target Domisili Pensiun:</span>
+                      <span className="font-semibold text-slate-900">
+                        {targetDomisiliText} ({localMember.statusRumahPurnaTugas || 'MILIK PRIBADI'})
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Bidang &amp; Jenis Usaha:</span>
+                      <span className="font-bold text-slate-900">
+                        {bidangUsahaText !== jenisUsahaText
+                          ? `${bidangUsahaText} • ${jenisUsahaText}`
+                          : jenisUsahaText}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Status &amp; Lokasi Usaha:</span>
+                      <span className="font-semibold text-slate-900">
+                        {statusUsahaText} • {lokasiUsahaText}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Keahlian Khusus / Pembekalan:</span>
+                      <span className="font-semibold text-slate-900">
+                        {keahlianKhususText}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Minat Komunitas / Penghasilan Pasca:</span>
+                      <span className="font-semibold text-slate-900">
+                        {minatKomunitasText}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Kesiapan Pensiun:</span>
+                      <span className="font-semibold text-slate-900">
+                        {localMember.kesiapanPensiun} ({localMember.perasaanPensiun})
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Dana Pensiun:</span>
+                      <span className="font-semibold text-slate-900">
+                        {localMember.kecukupanDanaPensiun}
                       </span>
                     </div>
                   </div>
                 </>
               );
             })()}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div>
-                <span className="text-slate-500 block">Rencana Pasca Purna:</span>
-                <span className="font-bold text-slate-900">
-                  {(localMember.rencanaAktivitas || []).join(', ') || 'USAHA SENDIRI'}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 block">Rumah Purna Tugas:</span>
-                <span className="font-semibold text-slate-900">
-                  {localMember.statusRumahPurnaTugas}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 block">Kesiapan Pensiun:</span>
-                <span className="font-semibold text-slate-900">
-                  {localMember.kesiapanPensiun} ({localMember.perasaanPensiun})
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 block">Dana Pensiun:</span>
-                <span className="font-semibold text-slate-900">
-                  {localMember.kecukupanDanaPensiun}
-                </span>
-              </div>
-            </div>
           </div>
-          )}
+
+          {/* 6. SECTION: DATA KELUARGA & DOMISILI */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+            {(() => {
+              const extKel = localMember as unknown as Record<string, unknown>;
+              const statusKeluarga =
+                (extKel.statusKeluarga as string) || localMember.statusPerkawinan || 'MENIKAH';
+              const namaPasangan =
+                (extKel.namaPasangan as string) || localMember.namaIstri || '—';
+              const noHpPasangan =
+                (extKel.noHpPasangan as string) || localMember.kontakIstri || '-';
+              const alamatDomisili =
+                (extKel.alamatDomisili as string) || localMember.alamatTempatTinggal || '—';
+              const kotaDomisili = (extKel.kotaDomisili as string) || '—';
+              const provinsiDomisili =
+                (extKel.provinsiDomisili as string) || localMember.polda || '—';
+              const anakList =
+                (extKel.anak as typeof localMember.daftarAnak) || localMember.daftarAnak || [];
+
+              return (
+                <>
+                  <div className="flex items-center justify-between border-b pb-3 gap-2 flex-wrap">
+                    <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                      <GraduationCap className="w-5 h-5 text-polri-navy" />
+                      Data Keluarga &amp; Domisili
+                    </h2>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                        Status: {statusKeluarga}
+                      </span>
+                      {canEditProfile && (
+                        <button
+                          type="button"
+                          onClick={() => onEditProfile && onEditProfile(localMember, 2)}
+                          className="px-3 py-1 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-200 text-red-800 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit Keluarga &amp; Domisili</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-slate-50/70 p-3.5 rounded-xl border border-slate-200">
+                    <div>
+                      <span className="text-slate-500 block">Nama Pasangan:</span>
+                      <span className="font-bold text-slate-900">{namaPasangan}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Kontak Pasangan:</span>
+                      <span className="font-semibold text-slate-900">{noHpPasangan}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Jumlah Anak:</span>
+                      <span className="font-bold text-blue-700">
+                        {anakList.length || localMember.jumlahAnak || 0} Anak
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Tanggungan Lain:</span>
+                      <span className="font-semibold text-slate-800">
+                        {localMember.tanggunganLain?.jumlah || 0} Orang (
+                        {localMember.tanggunganLain?.rincian || 'Tidak ada'})
+                      </span>
+                    </div>
+                    <div className="sm:col-span-2 pt-1.5 border-t border-slate-200/70">
+                      <span className="text-slate-500 block">Alamat Domisili Saat Ini:</span>
+                      <span className="font-semibold text-slate-900">
+                        {alamatDomisili} ({localMember.statusTempatTinggal || 'MILIK PRIBADI'})
+                      </span>
+                      <span className="text-[11px] text-slate-500 block mt-0.5">
+                        Kota: <b>{kotaDomisili}</b> • Provinsi / Wilayah: <b>{provinsiDomisili}</b>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* List of Children */}
+                  {anakList && anakList.length > 0 && (
+                    <div className="space-y-2 pt-2">
+                      <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Daftar Putra-Putri:
+                      </p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {anakList.map((anak, idx) => (
+                          <div
+                            key={anak.id || idx}
+                            className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-[11px]">
+                                {idx + 1}
+                              </span>
+                              <div>
+                                <p className="font-bold text-slate-900">
+                                  {anak.nama || `Anak ke-${idx + 1}`}
+                                </p>
+                                <p className="text-[11px] text-slate-500">
+                                  {anak.status} • Lahir: {anak.tanggalLahir || '-'}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="px-2.5 py-1 rounded bg-blue-50 text-blue-800 font-semibold text-[11px] border border-blue-200">
+                              {anak.biayaPendidikanTahunan
+                                ? `Biaya: ${anak.biayaPendidikanTahunan}`
+                                : 'Pelajar'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
         </div>
 
         {/* ============================================================== */}
@@ -1913,7 +2208,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
           onClose={() => setShowSecurityModal(false)}
           onOpenFullWizard={() => {
             setShowSecurityModal(false);
-            onEditProfile?.(localMember);
+            onEditProfile?.(localMember, 1);
           }}
         />
       )}
