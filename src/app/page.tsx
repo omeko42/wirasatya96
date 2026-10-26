@@ -35,7 +35,7 @@ import {
   isSuperadminObject,
 } from '@/lib/avatarUtils';
 
-const STORAGE_VERSION = 'ws96_akpol96_real_v22';
+const STORAGE_VERSION = 'ws96_akpol96_real_v23';
 const MAX_SESSION_DURATION_MS = 4 * 60 * 60 * 1000; // 4 jam batas sesi maksimal
 const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 jam tanpa aktivitas otomatis logout
 
@@ -447,6 +447,11 @@ export default function Home() {
                 kategoriUsaha: localOverride?.kategoriUsaha ?? baseMember.kategoriUsaha,
                 namaUsahaYayasan: localOverride?.namaUsahaYayasan ?? baseMember.namaUsahaYayasan,
                 peranUsahaYayasan: localOverride?.peranUsahaYayasan ?? baseMember.peranUsahaYayasan,
+                jenisUsaha: localOverride?.jenisUsaha ?? baseMember.jenisUsaha,
+                lokasiUsaha: localOverride?.lokasiUsaha ?? baseMember.lokasiUsaha,
+                statusUsaha: localOverride?.statusUsaha ?? baseMember.statusUsaha,
+                bukaLowonganKerja: localOverride?.bukaLowonganKerja ?? baseMember.bukaLowonganKerja,
+                daftarLowonganUsaha: localOverride?.daftarLowonganUsaha ?? baseMember.daftarLowonganUsaha,
                 kesehatanLainLain: localOverride?.kesehatanLainLain ?? baseMember.kesehatanLainLain,
               };
             }
@@ -1625,6 +1630,11 @@ export default function Home() {
       kategoriUsaha: newMember.kategoriUsaha,
       namaUsahaYayasan: newMember.namaUsahaYayasan,
       peranUsahaYayasan: newMember.peranUsahaYayasan,
+      jenisUsaha: newMember.jenisUsaha,
+      lokasiUsaha: newMember.lokasiUsaha,
+      statusUsaha: newMember.statusUsaha,
+      bukaLowonganKerja: newMember.bukaLowonganKerja,
+      daftarLowonganUsaha: newMember.daftarLowonganUsaha,
       kesehatanLainLain: newMember.kesehatanLainLain,
       fotoUrl: getAvatarUrl(newMember.fotoUrl),
       updatedAt: nowIso,
@@ -2468,6 +2478,8 @@ export default function Home() {
               <ExecutiveDashboard
                 members={members}
                 currentUser={currentUser}
+                onOpenDataDiriUsaha={() => handleStartEditMember(currentMemberProfile, 3)}
+                onSaveMember={(m) => handleSaveMember(m, true)}
               />
             )}
 

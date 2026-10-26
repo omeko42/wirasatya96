@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AnggotaWiraSatya, Anak, AdcPersonel, AuthUser, DAFTAR_PANGKAT_POLRI } from '@/types';
+import { AnggotaWiraSatya, Anak, AdcPersonel, AuthUser, LowonganUsahaItem, DAFTAR_PANGKAT_POLRI } from '@/types';
 import {
   getAvatarUrl,
   getCoverUrl,
@@ -183,26 +183,38 @@ const DAFTAR_KOMPI = ['KOMPI A', 'KOMPI B', 'KOMPI C', 'KOMPI D'] as const;
 const DAFTAR_PLETON = ['PLETON 1', 'PLETON 2', 'PLETON 3', 'PLETON 4'] as const;
 
 const DAFTAR_KATEGORI_USAHA = [
+  'USAHA PRIBADI / MANDIRI',
   'USAHA BERSAMA LETING',
-  'YAYASAN WIRA SATYA 96',
-  'KOPERASI / INVESTASI BERSAMA',
-  'USAHA MANDIRI & BERSAMA',
+  'USAHA PRIBADI & BERSAMA LETING',
+  'YAYASAN / KOPERASI WS96',
   'BELUM ADA',
 ] as const;
 
 const DAFTAR_PERAN_USAHA_YAYASAN = [
-  'PEMBINA / PENGAWAS',
-  'PENGURUS YAYASAN / DIREKSI',
-  'ANGGOTA PENYERTA MODAL',
-  'MITRA OPERASIONAL',
+  'PEMILIK / FOUNDER USAHA',
+  'DIREKTUR UTAMA / DIREKSI',
+  'KOMISARIS / PENGAWAS',
+  'INVESTOR / MITRA LETING',
+  'PENGELOLA OPERASIONAL',
   'BELUM DITENTUKAN',
 ] as const;
 
 const DAFTAR_RENCANA_AKTIVITAS = [
+  'USAHA SENDIRI',
   'USAHA BERSAMA / YAYASAN',
   'BEKERJA KEMBALI',
   'BERTANI/BERKEBUN',
   'MENGURUS KELUARGA',
+] as const;
+
+const PRESET_POSISI_LOWONGAN = [
+  'Direktur Operasional',
+  'Sekretaris Direksi',
+  'Manajer Operasional',
+  'Staf Keuangan & Akuntansi',
+  'Legal & Perizinan',
+  'IT & Digital Marketing',
+  'Management Trainee (Putra-Putri Leting)',
 ] as const;
 
 const KISARAN_BIAYA_SEWA_OPTIONS = [
@@ -452,13 +464,15 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     biayaSewaTahunan: '',
     detailSewaPurnaTugas: '',
     sudahPembekalan: 'SUDAH',
-    rencanaAktivitas: ['USAHA BERSAMA / YAYASAN'],
-    kategoriUsaha: 'USAHA BERSAMA LETING',
+    rencanaAktivitas: ['USAHA SENDIRI'],
+    kategoriUsaha: 'USAHA PRIBADI / MANDIRI',
     namaUsahaYayasan: '',
-    peranUsahaYayasan: 'ANGGOTA PENYERTA MODAL',
+    peranUsahaYayasan: 'PEMILIK / FOUNDER USAHA',
     lokasiUsaha: '',
     bidangKeahlianPensiun: '',
     statusUsaha: 'MASIH RENCANA',
+    bukaLowonganKerja: 'TIDAK',
+    daftarLowonganUsaha: [],
     kebutuhanPembekalan: ['PELATIHAN'],
     sumberPenghasilanPasca: ['DANA PENSIUN'],
     kecukupanDanaPensiun: 'CUKUP',
@@ -548,10 +562,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       const firstAdc = initialDaftarAdc[0];
       const normalizedRencanaAktivitas =
         existingMember.rencanaAktivitas && existingMember.rencanaAktivitas.length > 0
-          ? existingMember.rencanaAktivitas.map((act) =>
-              act === 'USAHA SENDIRI' ? 'USAHA BERSAMA / YAYASAN' : act
-            )
-          : ['USAHA BERSAMA / YAYASAN'];
+          ? existingMember.rencanaAktivitas
+          : ['USAHA SENDIRI'];
 
       setFormData({
         ...existingMember,
@@ -611,11 +623,15 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         biayaSewaTahunan: existingMember.biayaSewaTahunan || '',
         detailSewaPurnaTugas: existingMember.detailSewaPurnaTugas || '',
         rencanaAktivitas: normalizedRencanaAktivitas,
-        kategoriUsaha: existingMember.kategoriUsaha || 'USAHA BERSAMA LETING',
+        kategoriUsaha: existingMember.kategoriUsaha || 'USAHA PRIBADI / MANDIRI',
         namaUsahaYayasan: existingMember.namaUsahaYayasan || '',
-        peranUsahaYayasan: existingMember.peranUsahaYayasan || 'ANGGOTA PENYERTA MODAL',
+        peranUsahaYayasan: existingMember.peranUsahaYayasan || 'PEMILIK / FOUNDER USAHA',
         lokasiUsaha: existingMember.lokasiUsaha || '',
         bidangKeahlianPensiun: existingMember.bidangKeahlianPensiun || '',
+        bukaLowonganKerja:
+          existingMember.bukaLowonganKerja ||
+          ((existingMember.daftarLowonganUsaha?.length || 0) > 0 ? 'YA' : 'TIDAK'),
+        daftarLowonganUsaha: existingMember.daftarLowonganUsaha || [],
         kesehatanLainLain: existingMember.kesehatanLainLain || '',
         namaAdc: existingMember.namaAdc || firstAdc?.nama || '',
         pangkatAdc: existingMember.pangkatAdc || firstAdc?.pangkat || 'Briptu',
@@ -906,6 +922,48 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     });
   };
 
+  const handleAddLowongan = (presetPosisi?: string) => {
+    const newLowongan: LowonganUsahaItem = {
+      id: 'loker-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      posisi: presetPosisi || '',
+      tipePekerjaan: 'FULL_TIME',
+      kuota: '1 Orang',
+      prioritasPelamar: 'PUTRA_PUTRI_ALMARHUM_LETING',
+      kualifikasi: 'Putra/Putri keluarga besar Wira Satya 96',
+      statusLowongan: 'BUKA',
+    };
+    setFormData((prev) => ({
+      ...prev,
+      bukaLowonganKerja: 'YA',
+      daftarLowonganUsaha: [...(prev.daftarLowonganUsaha || []), newLowongan],
+    }));
+  };
+
+  const handleRemoveLowongan = (index: number) => {
+    setFormData((prev) => {
+      const updated = [...(prev.daftarLowonganUsaha || [])];
+      updated.splice(index, 1);
+      return {
+        ...prev,
+        bukaLowonganKerja: updated.length > 0 ? prev.bukaLowonganKerja : 'TIDAK',
+        daftarLowonganUsaha: updated,
+      };
+    });
+  };
+
+  const handleUpdateLowongan = (
+    index: number,
+    field: keyof LowonganUsahaItem,
+    value: string
+  ) => {
+    setFormData((prev) => {
+      const updated = [...(prev.daftarLowonganUsaha || [])];
+      if (!updated[index]) return prev;
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, daftarLowonganUsaha: updated };
+    });
+  };
+
   const handleToggleDisease = (disease: string) => {
     if (errorMsg) setErrorMsg(null);
     setFormData((prev) => {
@@ -1139,14 +1197,20 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '3B',
         tab: 3,
-        title: 'Usaha Bersama & Yayasan',
-        shortTitle: '3B. Usaha & Yayasan',
-        existingDetail: `${formData.kategoriUsaha || 'USAHA BERSAMA LETING'} • ${
+        title: 'Usaha (Pribadi / Bersama) & Open Lowongan Kerja',
+        shortTitle: '3B. Usaha & Lowongan',
+        existingDetail: `${formData.kategoriUsaha || 'USAHA PRIBADI / MANDIRI'} • ${
           formData.namaUsahaYayasan?.trim() || formData.jenisUsaha?.trim() || 'Belum diisi'
+        }${
+          formData.bukaLowonganKerja === 'YA' && (formData.daftarLowonganUsaha?.length || 0) > 0
+            ? ` • 💼 ${formData.daftarLowonganUsaha!.length} Lowongan (${formData.daftarLowonganUsaha!
+                .map((l) => l.posisi)
+                .filter(Boolean)
+                .join(', ')})`
+            : ''
         }`,
         isComplete: Boolean(
-          formData.kategoriUsaha &&
-            (formData.namaUsahaYayasan?.trim() || formData.jenisUsaha?.trim())
+          formData.namaUsahaYayasan?.trim() || formData.jenisUsaha?.trim()
         ),
       },
       {
@@ -1472,14 +1536,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       detailSewaPurnaTugas: formData.detailSewaPurnaTugas || '',
       biayaSewaTahunan: formData.biayaSewaTahunan || '',
       sudahPembekalan: formData.sudahPembekalan || 'SUDAH',
-      rencanaAktivitas: formData.rencanaAktivitas || ['USAHA BERSAMA / YAYASAN'],
-      kategoriUsaha: formData.kategoriUsaha || 'USAHA BERSAMA LETING',
+      rencanaAktivitas: formData.rencanaAktivitas || ['USAHA SENDIRI'],
+      kategoriUsaha: formData.kategoriUsaha || 'USAHA PRIBADI / MANDIRI',
       namaUsahaYayasan: formData.namaUsahaYayasan || '',
-      peranUsahaYayasan: formData.peranUsahaYayasan || 'ANGGOTA PENYERTA MODAL',
+      peranUsahaYayasan: formData.peranUsahaYayasan || 'PEMILIK / FOUNDER USAHA',
       jenisUsaha: formData.jenisUsaha || '',
       lokasiUsaha: formData.lokasiUsaha || '',
       bidangKeahlianPensiun: formData.bidangKeahlianPensiun || '',
       statusUsaha: formData.statusUsaha || 'MASIH RENCANA',
+      bukaLowonganKerja:
+        (formData.daftarLowonganUsaha || []).filter((l) => l.posisi?.trim()).length > 0
+          ? formData.bukaLowonganKerja || 'YA'
+          : 'TIDAK',
+      daftarLowonganUsaha: (formData.daftarLowonganUsaha || []).filter((l) => l.posisi?.trim()),
       kebutuhanPembekalan: formData.kebutuhanPembekalan || ['PELATIHAN'],
       sumberPenghasilanPasca: formData.sumberPenghasilanPasca || ['DANA PENSIUN'],
       kecukupanDanaPensiun: formData.kecukupanDanaPensiun || 'CUKUP',
@@ -1609,6 +1678,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         lokasiUsaha: fullSnapshot.lokasiUsaha,
         bidangKeahlianPensiun: fullSnapshot.bidangKeahlianPensiun,
         statusUsaha: fullSnapshot.statusUsaha,
+        bukaLowonganKerja: fullSnapshot.bukaLowonganKerja,
+        daftarLowonganUsaha: fullSnapshot.daftarLowonganUsaha,
         kebutuhanPembekalan: fullSnapshot.kebutuhanPembekalan,
         sumberPenghasilanPasca: fullSnapshot.sumberPenghasilanPasca,
         kecukupanDanaPensiun: fullSnapshot.kecukupanDanaPensiun,
@@ -3551,7 +3622,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 </div>
               )}
 
-              {/* SUB-BAGIAN 3B: USAHA BERSAMA & YAYASAN WIRA SATYA 96 */}
+              {/* SUB-BAGIAN 3B: USAHA PRIBADI / BERSAMA LETING & OPEN LOWONGAN KERJA */}
               {renderSubSectionCard(
                 '3B',
                 <div className="space-y-4">
@@ -3574,7 +3645,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                               className="rounded text-polri-navy focus:ring-polri-navy"
                             />
                             <span className={checked ? 'font-extrabold text-polri-navy' : ''}>
-                              {act}
+                              {act === 'USAHA SENDIRI'
+                                ? 'USAHA SENDIRI (PRIBADI / MANDIRI)'
+                                : act === 'USAHA BERSAMA / YAYASAN'
+                                ? 'USAHA BERSAMA LETING / YAYASAN'
+                                : act}
                             </span>
                           </label>
                         );
@@ -3585,10 +3660,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Bentuk Usaha / Yayasan
+                        Skema Kepemilikan Usaha
                       </label>
                       <select
-                        value={formData.kategoriUsaha || 'USAHA BERSAMA LETING'}
+                        value={formData.kategoriUsaha || 'USAHA PRIBADI / MANDIRI'}
                         onChange={(e) => handleInputChange('kategoriUsaha', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
@@ -3602,10 +3677,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Peran dalam Usaha / Yayasan
+                        Jabatan / Peran dalam Usaha
                       </label>
                       <select
-                        value={formData.peranUsahaYayasan || 'ANGGOTA PENYERTA MODAL'}
+                        value={formData.peranUsahaYayasan || 'PEMILIK / FOUNDER USAHA'}
                         onChange={(e) => handleInputChange('peranUsahaYayasan', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
@@ -3619,11 +3694,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Nama Unit Usaha / Yayasan
+                        Nama Perusahaan / Unit Usaha (Pribadi atau Bersama Leting)
                       </label>
                       <input
                         type="text"
-                        placeholder="Nama unit usaha bersama atau yayasan..."
+                        placeholder="Contoh: PT Garda Satya Nusantara / CV Berkah Mandiri..."
                         value={formData.namaUsahaYayasan || ''}
                         onChange={(e) => handleInputChange('namaUsahaYayasan', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3632,11 +3707,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Bidang Usaha / Sosial
+                        Bidang Usaha / Produk &amp; Jasa
                       </label>
                       <input
                         type="text"
-                        placeholder="Contoh: Agribisnis, Logistik, Jasa Keamanan..."
+                        placeholder="Contoh: Logistik & Kargo, Jasa Pengamanan, Kuliner, Properti..."
                         value={formData.jenisUsaha || ''}
                         onChange={(e) => handleInputChange('jenisUsaha', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3649,7 +3724,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       </label>
                       <input
                         type="text"
-                        placeholder="Contoh: Jabodetabek, Jawa Barat, Semarang..."
+                        placeholder="Contoh: Jakarta Selatan, Surabaya, Bandung..."
                         value={formData.lokasiUsaha || ''}
                         onChange={(e) => handleInputChange('lokasiUsaha', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3658,14 +3733,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Status Pelaksanaan
+                        Status Usaha Saat Ini
                       </label>
                       <select
                         value={formData.statusUsaha || 'MASIH RENCANA'}
                         onChange={(e) => handleInputChange('statusUsaha', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
-                        <option value="SUDAH JALAN">SUDAH JALAN</option>
+                        <option value="SUDAH JALAN">SUDAH JALAN (AKTIF BEROPERASI)</option>
                         <option value="DALAM PERSIAPAN">DALAM PERSIAPAN</option>
                         <option value="MASIH RENCANA">MASIH RENCANA</option>
                       </select>
@@ -3683,6 +3758,181 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
+                  </div>
+
+                  {/* =========================================================== */}
+                  {/* BURSA OPEN LOWONGAN KERJA DARI USAHA PRIBADI / LETING       */}
+                  {/* =========================================================== */}
+                  <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-3.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-emerald-200/80">
+                      <div>
+                        <span className="text-xs font-extrabold text-emerald-950 block">
+                          💼 Open Lowongan Kerja (Untuk Putra-Putri / Keluarga Leting WS96)
+                        </span>
+                        <span className="text-[11px] text-emerald-800">
+                          Buka posisi di usaha pribadi atau usaha bersama Anda (misal: Sekretaris, Direktur, Manajer, Staf, Magang) bagi putra-putri leting / almarhum yang membutuhkan pekerjaan.
+                        </span>
+                      </div>
+                      <select
+                        value={formData.bukaLowonganKerja || 'TIDAK'}
+                        onChange={(e) => {
+                          const val = e.target.value as 'YA' | 'TIDAK';
+                          handleInputChange('bukaLowonganKerja', val);
+                          if (val === 'YA' && (formData.daftarLowonganUsaha?.length || 0) === 0) {
+                            handleAddLowongan('Sekretaris Direksi');
+                          }
+                        }}
+                        className="px-3 py-2 rounded-lg border border-emerald-300 bg-white text-xs font-extrabold text-emerald-900 shrink-0 focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                      >
+                        <option value="TIDAK">BELUM BUKA LOWONGAN</option>
+                        <option value="YA">YA, BUKA OPEN LOWONGAN</option>
+                      </select>
+                    </div>
+
+                    {/* Quick Preset Buttons */}
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] font-bold text-emerald-900 block">
+                        Tambah Cepat Posisi Lowongan:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {PRESET_POSISI_LOWONGAN.map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => handleAddLowongan(preset)}
+                            className="px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] font-bold transition-colors cursor-pointer"
+                          >
+                            + {preset}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => handleAddLowongan('')}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-extrabold transition-colors cursor-pointer"
+                        >
+                          + Posisi Kustom
+                        </button>
+                      </div>
+                    </div>
+
+                    {formData.bukaLowonganKerja === 'YA' &&
+                      (formData.daftarLowonganUsaha?.length || 0) > 0 && (
+                        <div className="space-y-3 pt-1">
+                          {(formData.daftarLowonganUsaha || []).map((loker, idx) => (
+                            <div
+                              key={loker.id || idx}
+                              className="p-3.5 rounded-xl bg-white border border-emerald-200 shadow-2xs space-y-3"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-extrabold text-emerald-900">
+                                  Lowongan #{idx + 1} — {loker.posisi || 'Posisi Baru'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveLowongan(idx)}
+                                  className="text-[11px] font-bold text-red-700 hover:text-red-900 px-2 py-0.5 rounded bg-red-50 hover:bg-red-100 transition-colors cursor-pointer"
+                                >
+                                  Hapus Lowongan
+                                </button>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div className="sm:col-span-2">
+                                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                    Nama Posisi / Jabatan Lowongan *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Contoh: Sekretaris, Direktur Operasional, Manajer..."
+                                    value={loker.posisi || ''}
+                                    onChange={(e) =>
+                                      handleUpdateLowongan(idx, 'posisi', e.target.value)
+                                    }
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                    Tipe Penempatan
+                                  </label>
+                                  <select
+                                    value={loker.tipePekerjaan || 'FULL_TIME'}
+                                    onChange={(e) =>
+                                      handleUpdateLowongan(idx, 'tipePekerjaan', e.target.value)
+                                    }
+                                    className="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                                  >
+                                    <option value="FULL_TIME">Full-Time / Tetap</option>
+                                    <option value="KONTRAK">Kontrak Profesional</option>
+                                    <option value="MAGANG">Magang Putra-Putri Leting</option>
+                                    <option value="MITRA_PENGELOLA">Mitra Pengelola / Direksi</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                    Kuota Kebutuhan
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Contoh: 1 Orang, 2 Orang"
+                                    value={loker.kuota || ''}
+                                    onChange={(e) =>
+                                      handleUpdateLowongan(idx, 'kuota', e.target.value)
+                                    }
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                                  />
+                                </div>
+
+                                <div className="sm:col-span-2">
+                                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                    Prioritas Pelamar Keluarga WS96
+                                  </label>
+                                  <select
+                                    value={
+                                      loker.prioritasPelamar || 'PUTRA_PUTRI_ALMARHUM_LETING'
+                                    }
+                                    onChange={(e) =>
+                                      handleUpdateLowongan(
+                                        idx,
+                                        'prioritasPelamar',
+                                        e.target.value
+                                      )
+                                    }
+                                    className="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                                  >
+                                    <option value="PUTRA_PUTRI_ALMARHUM_LETING">
+                                      Prioritas Putra-Putri Almarhum &amp; Leting WS96
+                                    </option>
+                                    <option value="PUTRA_PUTRI_LETING">
+                                      Putra-Putri Leting WS96 (Fresh Graduate / Umum)
+                                    </option>
+                                    <option value="KELUARGA_BESAR_UMUM">
+                                      Keluarga Besar WS96 &amp; Profesional
+                                    </option>
+                                  </select>
+                                </div>
+
+                                <div className="sm:col-span-2">
+                                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                    Kualifikasi / Syarat Singkat
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Contoh: S1/D3, komunikatif, penempatan Jakarta..."
+                                    value={loker.kualifikasi || ''}
+                                    onChange={(e) =>
+                                      handleUpdateLowongan(idx, 'kualifikasi', e.target.value)
+                                    }
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                   </div>
                 </div>
               )}

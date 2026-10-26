@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AnggotaWiraSatya, AuthUser } from '@/types';
+import { AnggotaWiraSatya, AuthUser, LowonganUsahaItem } from '@/types';
 import { DAFTAR_38_POLDA } from '@/data/polriStructure';
 import { generateLeakageTrackedFileName } from '@/lib/mediaSecurity';
 import { isSuperadminAccount, detectStatusKedinasan } from '@/lib/avatarUtils';
@@ -19,15 +19,25 @@ import {
   Wallet,
   AlertCircle,
   Info,
-  Lock
+  Lock,
+  Plus,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 
 interface ExecutiveDashboardProps {
   members: AnggotaWiraSatya[];
   currentUser: AuthUser;
+  onOpenDataDiriUsaha?: () => void;
+  onSaveMember?: (member: AnggotaWiraSatya) => void;
 }
 
-export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ members, currentUser }) => {
+export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
+  members,
+  currentUser,
+  onOpenDataDiriUsaha,
+  onSaveMember,
+}) => {
   // Default subtab according to role
   const getInitialSubTab = () => {
     if (currentUser.role === 'SEKRETARIAT') return 'pemetaan';
@@ -39,6 +49,27 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ members,
   const [showAnevInfo, setShowAnevInfo] = useState<boolean>(false);
   const [selectedKompi, setSelectedKompi] = useState<string>('SEMUA');
   const [selectedPleton, setSelectedPleton] = useState<string>('SEMUA');
+  const [usahaFilter, setUsahaFilter] = useState<'SEMUA' | 'PRIBADI' | 'BERSAMA' | 'LOWONGAN'>('SEMUA');
+  const [showQuickUsahaModal, setShowQuickUsahaModal] = useState<boolean>(false);
+  const [quickTargetNrp, setQuickTargetNrp] = useState<string>('');
+  const [quickKategoriUsaha, setQuickKategoriUsaha] = useState<string>('USAHA PRIBADI / MANDIRI');
+  const [quickNamaUsaha, setQuickNamaUsaha] = useState<string>('');
+  const [quickBidangUsaha, setQuickBidangUsaha] = useState<string>('');
+  const [quickPeranUsaha, setQuickPeranUsaha] = useState<string>('PEMILIK / FOUNDER USAHA');
+  const [quickLokasiUsaha, setQuickLokasiUsaha] = useState<string>('');
+  const [quickStatusUsaha, setQuickStatusUsaha] = useState<'SUDAH JALAN' | 'DALAM PERSIAPAN' | 'MASIH RENCANA'>('SUDAH JALAN');
+  const [quickBukaLoker, setQuickBukaLoker] = useState<'YA' | 'TIDAK'>('YA');
+  const [quickLowonganList, setQuickLowonganList] = useState<LowonganUsahaItem[]>([
+    {
+      id: 'ql-1',
+      posisi: 'Sekretaris Direksi',
+      tipePekerjaan: 'FULL_TIME',
+      kuota: '1 Orang',
+      prioritasPelamar: 'PUTRA_PUTRI_ALMARHUM_LETING',
+      kualifikasi: 'Putra/Putri keluarga besar Wira Satya 96',
+      statusLowongan: 'BUKA',
+    },
+  ]);
 
   const canExportAndManage = Boolean(currentUser?.role && currentUser.role !== 'ANGGOTA');
 
@@ -62,20 +93,108 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ members,
   const hunianKeluargaCount = alumniMembers.filter(
     (m) => m.statusRumahPurnaTugas === 'RUMAH KELUARGA' || m.statusRumahPurnaTugas === 'DINAS'
   ).length;
+  // Katalog Usaha: hanya personel yang benar-benar mengisi nama/bidang usaha atau membuka lowongan kerja (bukan 261 default)
   const entrepreneurs = React.useMemo(
     () =>
-      alumniMembers.filter(
-        (m) =>
-          m.statusUsaha === 'SUDAH JALAN' ||
-          m.statusUsaha === 'DALAM PERSIAPAN' ||
-          Boolean(m.kategoriUsaha?.trim()) ||
-          (Array.isArray(m.rencanaAktivitas) &&
-            (m.rencanaAktivitas.includes('USAHA BERSAMA / YAYASAN') ||
-              m.rencanaAktivitas.includes('USAHA SENDIRI')))
-      ),
+      alumniMembers.filter((m) => {
+        const hasRealBusinessName = Boolean(
+          (m.jenisUsaha && m.jenisUsaha.trim().length > 0) ||
+            (m.namaUsahaYayasan &&
+              m.namaUsahaYayasan.trim().length > 0 &&
+              m.namaUsahaYayasan.trim() !== 'Yayasan / Usaha Bersama Wira Satya 96')
+        );
+        const hasOpenLoker =
+          m.bukaLowonganKerja === 'YA' &&
+          Array.isArray(m.daftarLowonganUsaha) &&
+          m.daftarLowonganUsaha.length > 0;
+        const hasExplicitRunningStatus =
+          (m.statusUsaha === 'SUDAH JALAN' || m.statusUsaha === 'DALAM PERSIAPAN') &&
+          hasRealBusinessName;
+        return hasRealBusinessName || hasOpenLoker || hasExplicitRunningStatus;
+      }),
     [alumniMembers]
   );
   const withBusiness = entrepreneurs;
+
+  const isUsahaBersamaMember = (m: AnggotaWiraSatya) => {
+    const kat = (m.kategoriUsaha || '').toUpperCase();
+    return kat.includes('BERSAMA') || kat.includes('YAYASAN') || kat.includes('KOPERASI');
+  };
+
+  const usahaPribadiList = React.useMemo(
+    () => entrepreneurs.filter((m) => !isUsahaBersamaMember(m)),
+    [entrepreneurs]
+  );
+
+  const usahaBersamaList = React.useMemo(
+    () => entrepreneurs.filter((m) => isUsahaBersamaMember(m)),
+    [entrepreneurs]
+  );
+
+  const membersWithOpenLowongan = React.useMemo(
+    () =>
+      entrepreneurs.filter(
+        (m) =>
+          m.bukaLowonganKerja === 'YA' &&
+          Array.isArray(m.daftarLowonganUsaha) &&
+          m.daftarLowonganUsaha.some((l) => l.posisi?.trim() && l.statusLowongan !== 'TUTUP')
+      ),
+    [entrepreneurs]
+  );
+
+  const totalOpenLowonganPositions = React.useMemo(
+    () =>
+      entrepreneurs.reduce((acc, m) => {
+        if (m.bukaLowonganKerja !== 'YA' || !Array.isArray(m.daftarLowonganUsaha)) return acc;
+        return (
+          acc +
+          m.daftarLowonganUsaha.filter((l) => l.posisi?.trim() && l.statusLowongan !== 'TUTUP')
+            .length
+        );
+      }, 0),
+    [entrepreneurs]
+  );
+
+  const filteredEntrepreneurs = React.useMemo(() => {
+    if (usahaFilter === 'PRIBADI') return usahaPribadiList;
+    if (usahaFilter === 'BERSAMA') return usahaBersamaList;
+    if (usahaFilter === 'LOWONGAN') return membersWithOpenLowongan;
+    return entrepreneurs;
+  }, [entrepreneurs, usahaPribadiList, usahaBersamaList, membersWithOpenLowongan, usahaFilter]);
+
+  const anakButuhKerjaList = React.useMemo(() => {
+    const list: {
+      namaAnak: string;
+      tempatTanggalLahir: string;
+      namaOrtu: string;
+      pangkatOrtu: string;
+      poldaOrtu: string;
+      noHpOrtu: string;
+      isAlmarhumOrtu: boolean;
+    }[] = [];
+    alumniMembers.forEach((m) => {
+      const isAlm =
+        detectStatusKedinasan(
+          m.statusKedinasan || m.statusDinas,
+          m.jabatanTerakhir || m.jabatan,
+          m.jenisAnggota
+        ) === 'ALMARHUM';
+      (m.daftarAnak || []).forEach((a) => {
+        if (a.nama?.trim() && a.status === 'BELUM BEKERJA') {
+          list.push({
+            namaAnak: a.nama.trim(),
+            tempatTanggalLahir: [a.tempatLahir, a.tanggalLahir].filter(Boolean).join(', ') || '-',
+            namaOrtu: m.namaLengkap,
+            pangkatOrtu: m.pangkat,
+            poldaOrtu: m.polda,
+            noHpOrtu: m.kontakIstri || m.noHp || '',
+            isAlmarhumOrtu: isAlm,
+          });
+        }
+      });
+    });
+    return list;
+  }, [alumniMembers]);
 
   const kompiCounts = React.useMemo(() => {
     const counts: Record<string, number> = {
@@ -394,7 +513,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ members,
           </div>
         </div>
 
-        {/* Usaha Bersama & Yayasan */}
+        {/* Katalog Usaha & Open Lowongan */}
         <div
           onClick={() => setActiveSubTab('usaha')}
           className="bg-white p-5 rounded-xl border border-emerald-200 bg-emerald-50/20 shadow-sm flex items-center gap-4 cursor-pointer hover:border-emerald-300 transition-colors"
@@ -403,9 +522,13 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ members,
             <Briefcase className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-emerald-600 font-bold block">Usaha Bersama &amp; Yayasan</span>
-            <span className="text-2xl font-black text-emerald-900">{entrepreneurs.length}</span>
-            <span className="text-[11px] text-emerald-600 block">Partisipan / Unit Usaha</span>
+            <span className="text-xs text-emerald-600 font-bold block">Katalog Usaha &amp; Loker</span>
+            <span className="text-2xl font-black text-emerald-900">{withBusiness.length}</span>
+            <span className="text-[11px] text-emerald-600 font-semibold block">
+              {totalOpenLowonganPositions > 0
+                ? `${totalOpenLowonganPositions} Open Lowongan`
+                : 'Usaha Pribadi & Leting'}
+            </span>
           </div>
         </div>
 
@@ -467,8 +590,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ members,
             }`}
           >
             <Briefcase className="w-4 h-4" />
-            <span className="sm:hidden">Usaha &amp; Yayasan ({entrepreneurs.length})</span>
-            <span className="hidden sm:inline">Usaha Bersama &amp; Yayasan ({entrepreneurs.length})</span>
+            <span className="sm:hidden">Usaha ({withBusiness.length})</span>
+            <span className="hidden sm:inline">
+              Katalog Usaha &amp; Lowongan ({withBusiness.length})
+            </span>
           </button>
 
           <button
@@ -681,59 +806,676 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ members,
           </div>
         )}
 
-        {/* Tab 3: USAHA BERSAMA & YAYASAN */}
+        {/* Tab 3: KATALOG USAHA (PRIBADI & BERSAMA LETING) + OPEN LOWONGAN KERJA */}
         {activeSubTab === 'usaha' && (
-          <div className="p-5 sm:p-6 space-y-4">
-            <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-emerald-900 text-xs">
-              <span className="font-bold">📌 Usaha Bersama &amp; Yayasan Wira Satya 96:</span> Direktori partisipasi usaha bersama leting, yayasan sosial, koperasi, dan unit bisnis anggota.
+          <div className="p-5 sm:p-6 space-y-5">
+            {/* Banner & Quick Action Buttons */}
+            <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="text-xs text-emerald-950 space-y-0.5">
+                <div className="font-extrabold text-sm text-emerald-900">
+                  📌 Katalog Usaha (Pribadi &amp; Bersama Leting) &amp; Bursa Lowongan Kerja Putra-Putri WS96
+                </div>
+                <p className="text-emerald-800">
+                  Direktori unit bisnis milik pribadi anggota maupun usaha bersama leting, dilengkapi pembukaan lowongan kerja (seperti posisi <b>Sekretaris</b>, <b>Direktur</b>, <b>Manajer</b>, atau <b>Staf</b>) bagi putra-putri leting / almarhum yang membutuhkan pekerjaan.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {onSaveMember && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const selfMember =
+                        alumniMembers.find((m) => m.nrp === currentUser.nrp) || alumniMembers[0];
+                      if (selfMember) {
+                        setQuickTargetNrp(selfMember.nrp);
+                        setQuickKategoriUsaha(
+                          selfMember.kategoriUsaha || 'USAHA PRIBADI / MANDIRI'
+                        );
+                        setQuickNamaUsaha(selfMember.namaUsahaYayasan || '');
+                        setQuickBidangUsaha(selfMember.jenisUsaha || '');
+                        setQuickPeranUsaha(
+                          selfMember.peranUsahaYayasan || 'PEMILIK / FOUNDER USAHA'
+                        );
+                        setQuickLokasiUsaha(selfMember.lokasiUsaha || selfMember.polda || '');
+                        setQuickStatusUsaha(selfMember.statusUsaha || 'SUDAH JALAN');
+                        setQuickBukaLoker(selfMember.bukaLowonganKerja || 'YA');
+                        setQuickLowonganList(
+                          Array.isArray(selfMember.daftarLowonganUsaha) &&
+                            selfMember.daftarLowonganUsaha.length > 0
+                            ? selfMember.daftarLowonganUsaha
+                            : [
+                                {
+                                  id: 'ql-' + Date.now(),
+                                  posisi: 'Sekretaris Direksi',
+                                  tipePekerjaan: 'FULL_TIME',
+                                  kuota: '1 Orang',
+                                  prioritasPelamar: 'PUTRA_PUTRI_ALMARHUM_LETING',
+                                  kualifikasi: 'Putra/Putri keluarga besar Wira Satya 96',
+                                  statusLowongan: 'BUKA',
+                                },
+                              ]
+                        );
+                      }
+                      setShowQuickUsahaModal(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ Daftarkan Usaha &amp; Buka Lowongan</span>
+                  </button>
+                )}
+                {onOpenDataDiriUsaha && (
+                  <button
+                    type="button"
+                    onClick={onOpenDataDiriUsaha}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Briefcase className="w-3.5 h-3.5" />
+                    <span>Isi via Data Diri (3B)</span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {entrepreneurs.map((m) => (
-                <div key={m.id} className="p-4 rounded-xl border border-emerald-200 bg-white shadow-sm flex flex-col justify-between space-y-3">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800">
-                        {m.statusUsaha || 'DALAM PERSIAPAN'}
-                      </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-900 border border-blue-200">
-                        {m.kompi || 'KOMPI A'} • {m.pleton || 'PLETON 1'}
-                      </span>
-                    </div>
-                    <h4 className="font-bold text-slate-900 text-sm">
-                      {m.namaUsahaYayasan || m.jenisUsaha || 'Yayasan / Usaha Bersama Wira Satya 96'}
+            {/* 4 Summary Cards + Filter Tabs */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <button
+                type="button"
+                onClick={() => setUsahaFilter('SEMUA')}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  usahaFilter === 'SEMUA'
+                    ? 'bg-emerald-800 text-white border-emerald-900 shadow-xs'
+                    : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200'
+                }`}
+              >
+                <span
+                  className={`text-[11px] font-bold block ${
+                    usahaFilter === 'SEMUA' ? 'text-emerald-200' : 'text-slate-500'
+                  }`}
+                >
+                  Semua Katalog Usaha
+                </span>
+                <span className="text-xl font-black mt-0.5 block">{entrepreneurs.length}</span>
+                <span
+                  className={`text-[10px] font-semibold block ${
+                    usahaFilter === 'SEMUA' ? 'text-emerald-100' : 'text-slate-400'
+                  }`}
+                >
+                  Unit Bisnis Terdaftar
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setUsahaFilter('PRIBADI')}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  usahaFilter === 'PRIBADI'
+                    ? 'bg-polri-navy text-white border-polri-navy shadow-xs'
+                    : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200'
+                }`}
+              >
+                <span
+                  className={`text-[11px] font-bold block ${
+                    usahaFilter === 'PRIBADI' ? 'text-amber-300' : 'text-slate-500'
+                  }`}
+                >
+                  🏢 Usaha Pribadi Anggota
+                </span>
+                <span className="text-xl font-black mt-0.5 block">{usahaPribadiList.length}</span>
+                <span
+                  className={`text-[10px] font-semibold block ${
+                    usahaFilter === 'PRIBADI' ? 'text-slate-200' : 'text-slate-400'
+                  }`}
+                >
+                  Usaha Mandiri / Keluarga
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setUsahaFilter('BERSAMA')}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  usahaFilter === 'BERSAMA'
+                    ? 'bg-teal-800 text-white border-teal-900 shadow-xs'
+                    : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200'
+                }`}
+              >
+                <span
+                  className={`text-[11px] font-bold block ${
+                    usahaFilter === 'BERSAMA' ? 'text-teal-200' : 'text-slate-500'
+                  }`}
+                >
+                  🤝 Usaha Bersama Leting
+                </span>
+                <span className="text-xl font-black mt-0.5 block">{usahaBersamaList.length}</span>
+                <span
+                  className={`text-[10px] font-semibold block ${
+                    usahaFilter === 'BERSAMA' ? 'text-teal-100' : 'text-slate-400'
+                  }`}
+                >
+                  Kolaborasi / Yayasan WS96
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setUsahaFilter('LOWONGAN')}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  usahaFilter === 'LOWONGAN'
+                    ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
+                    : 'bg-amber-50/70 hover:bg-amber-100/70 text-amber-950 border-amber-300'
+                }`}
+              >
+                <span
+                  className={`text-[11px] font-extrabold block ${
+                    usahaFilter === 'LOWONGAN' ? 'text-amber-100' : 'text-amber-800'
+                  }`}
+                >
+                  💼 Open Lowongan Kerja
+                </span>
+                <span className="text-xl font-black mt-0.5 block">
+                  {totalOpenLowonganPositions} Posisi
+                </span>
+                <span
+                  className={`text-[10px] font-semibold block ${
+                    usahaFilter === 'LOWONGAN' ? 'text-white' : 'text-amber-700'
+                  }`}
+                >
+                  Dari {membersWithOpenLowongan.length} Unit Usaha
+                </span>
+              </button>
+            </div>
+
+            {/* Quick Modal / Inline Form to Register Usaha & Open Lowongan */}
+            {showQuickUsahaModal && onSaveMember && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border-2 border-emerald-600/40 shadow-md space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900">
+                      🏢 Daftarkan Unit Usaha (Pribadi / Bersama Leting) &amp; Buka Open Lowongan
                     </h4>
-                    <div className="text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100 space-y-1">
-                      <p className="text-slate-700 text-[11px]">
-                        <b>Bentuk Usaha:</b> {m.kategoriUsaha || 'USAHA BERSAMA LETING'}
-                      </p>
-                      <p className="text-slate-700 text-[11px]">
-                        <b>Peran Partisipasi:</b> {m.peranUsahaYayasan || 'Anggota Partisipan'}
-                      </p>
-                      <p className="text-slate-700 text-[11px]">
-                        <b>Status:</b> {m.statusUsaha || 'DALAM PERSIAPAN'}
-                      </p>
-                      <p className="text-slate-600 text-[11px]">
-                        <b>Personel:</b> {m.namaLengkap} ({m.polda})
-                      </p>
-                    </div>
+                    <p className="text-[11px] text-slate-600">
+                      Data otomatis tersinkron ke profil personel dan langsung tampil di Katalog Usaha &amp; Bursa Lowongan Putra-Putri Leting.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickUsahaModal(false)}
+                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Personel Pemilik / Penggerak Usaha
+                    </label>
+                    <select
+                      value={quickTargetNrp}
+                      onChange={(e) => {
+                        const nrp = e.target.value;
+                        setQuickTargetNrp(nrp);
+                        const found = alumniMembers.find((m) => m.nrp === nrp);
+                        if (found) {
+                          setQuickKategoriUsaha(found.kategoriUsaha || 'USAHA PRIBADI / MANDIRI');
+                          setQuickNamaUsaha(found.namaUsahaYayasan || '');
+                          setQuickBidangUsaha(found.jenisUsaha || '');
+                          setQuickPeranUsaha(found.peranUsahaYayasan || 'PEMILIK / FOUNDER USAHA');
+                          setQuickLokasiUsaha(found.lokasiUsaha || found.polda || '');
+                          setQuickStatusUsaha(found.statusUsaha || 'SUDAH JALAN');
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold bg-white"
+                    >
+                      {alumniMembers.map((m) => (
+                        <option key={m.id} value={m.nrp}>
+                          {m.namaLengkap} ({m.pangkat} — {m.polda})
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400">Kontak Sinergi:</span>
-                    <a
-                      href={formatWaUrl(m.noHp)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors"
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Skema Kepemilikan Usaha
+                    </label>
+                    <select
+                      value={quickKategoriUsaha}
+                      onChange={(e) => setQuickKategoriUsaha(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold bg-white"
                     >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      Hubungi Rekan
-                    </a>
+                      <option value="USAHA PRIBADI / MANDIRI">USAHA PRIBADI / MANDIRI</option>
+                      <option value="USAHA BERSAMA LETING">USAHA BERSAMA LETING</option>
+                      <option value="USAHA PRIBADI & BERSAMA LETING">
+                        USAHA PRIBADI &amp; BERSAMA LETING
+                      </option>
+                      <option value="YAYASAN / KOPERASI WS96">YAYASAN / KOPERASI WS96</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Jabatan / Peran di Usaha
+                    </label>
+                    <select
+                      value={quickPeranUsaha}
+                      onChange={(e) => setQuickPeranUsaha(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold bg-white"
+                    >
+                      <option value="PEMILIK / FOUNDER USAHA">PEMILIK / FOUNDER USAHA</option>
+                      <option value="DIREKTUR UTAMA / DIREKSI">DIREKTUR UTAMA / DIREKSI</option>
+                      <option value="KOMISARIS / PENGAWAS">KOMISARIS / PENGAWAS</option>
+                      <option value="INVESTOR / MITRA LETING">INVESTOR / MITRA LETING</option>
+                      <option value="PENGELOLA OPERASIONAL">PENGELOLA OPERASIONAL</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Nama Perusahaan / Unit Usaha *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: PT Satya Garda Logistik / CV Mandiri Jaya..."
+                      value={quickNamaUsaha}
+                      onChange={(e) => setQuickNamaUsaha(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Bidang Usaha / Produk &amp; Jasa *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Logistik & Kargo, Jasa Keamanan, Properti, Kuliner..."
+                      value={quickBidangUsaha}
+                      onChange={(e) => setQuickBidangUsaha(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold bg-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Kota Operasional
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Jakarta, Surabaya..."
+                        value={quickLokasiUsaha}
+                        onChange={(e) => setQuickLokasiUsaha(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Status Usaha
+                      </label>
+                      <select
+                        value={quickStatusUsaha}
+                        onChange={(e) =>
+                          setQuickStatusUsaha(
+                            e.target.value as 'SUDAH JALAN' | 'DALAM PERSIAPAN' | 'MASIH RENCANA'
+                          )
+                        }
+                        className="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs font-bold bg-white"
+                      >
+                        <option value="SUDAH JALAN">SUDAH JALAN</option>
+                        <option value="DALAM PERSIAPAN">DALAM PERSIAPAN</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+
+                {/* Open Lowongan Builder inside Quick Modal */}
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-extrabold text-emerald-950 block">
+                        💼 Buka Open Lowongan Kerja (Untuk Putra-Putri / Keluarga Leting)
+                      </span>
+                      <span className="text-[11px] text-emerald-800">
+                        Klik tombol posisi di bawah untuk membuka lowongan seperti Sekretaris, Direktur, Manajer, atau Staf.
+                      </span>
+                    </div>
+                    <select
+                      value={quickBukaLoker}
+                      onChange={(e) => setQuickBukaLoker(e.target.value as 'YA' | 'TIDAK')}
+                      className="px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-xs font-extrabold text-emerald-900"
+                    >
+                      <option value="YA">YA, BUKA LOWONGAN</option>
+                      <option value="TIDAK">TANPA LOWONGAN</option>
+                    </select>
+                  </div>
+
+                  {quickBukaLoker === 'YA' && (
+                    <>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          'Direktur Operasional',
+                          'Sekretaris Direksi',
+                          'Manajer Keuangan',
+                          'Kepala Cabang',
+                          'Staf Administrasi',
+                          'Legal Officer',
+                          'Magang Putra-Putri Leting',
+                        ].map((pos) => (
+                          <button
+                            key={pos}
+                            type="button"
+                            onClick={() =>
+                              setQuickLowonganList((prev) => [
+                                ...prev,
+                                {
+                                  id: 'ql-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5),
+                                  posisi: pos,
+                                  tipePekerjaan: 'FULL_TIME',
+                                  kuota: '1 Orang',
+                                  prioritasPelamar: 'PUTRA_PUTRI_ALMARHUM_LETING',
+                                  kualifikasi: 'Putra/Putri keluarga besar Wira Satya 96',
+                                  statusLowongan: 'BUKA',
+                                },
+                              ])
+                            }
+                            className="px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] font-bold cursor-pointer"
+                          >
+                            + {pos}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="space-y-2">
+                        {quickLowonganList.map((item, idx) => (
+                          <div
+                            key={item.id || idx}
+                            className="p-2.5 rounded-lg bg-white border border-emerald-200 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center"
+                          >
+                            <div className="sm:col-span-4">
+                              <input
+                                type="text"
+                                placeholder="Nama Posisi (misal: Sekretaris, Direktur)..."
+                                value={item.posisi}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setQuickLowonganList((prev) =>
+                                    prev.map((x, i) => (i === idx ? { ...x, posisi: val } : x))
+                                  );
+                                }}
+                                className="w-full px-2.5 py-1.5 rounded border border-slate-300 text-xs font-bold"
+                              />
+                            </div>
+                            <div className="sm:col-span-2">
+                              <input
+                                type="text"
+                                placeholder="Kuota (1 Orang)"
+                                value={item.kuota || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setQuickLowonganList((prev) =>
+                                    prev.map((x, i) => (i === idx ? { ...x, kuota: val } : x))
+                                  );
+                                }}
+                                className="w-full px-2.5 py-1.5 rounded border border-slate-300 text-xs"
+                              />
+                            </div>
+                            <div className="sm:col-span-5">
+                              <input
+                                type="text"
+                                placeholder="Kualifikasi / Syarat singkat..."
+                                value={item.kualifikasi || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setQuickLowonganList((prev) =>
+                                    prev.map((x, i) => (i === idx ? { ...x, kualifikasi: val } : x))
+                                  );
+                                }}
+                                className="w-full px-2.5 py-1.5 rounded border border-slate-300 text-xs"
+                              />
+                            </div>
+                            <div className="sm:col-span-1 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setQuickLowonganList((prev) => prev.filter((_, i) => i !== idx))
+                                }
+                                className="px-2 py-1 rounded bg-red-50 hover:bg-red-100 text-red-700 text-[11px] font-bold cursor-pointer"
+                              >
+                                Hapus
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickUsahaModal(false)}
+                    className="px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-bold cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = alumniMembers.find((m) => m.nrp === quickTargetNrp);
+                      if (!target) return;
+                      if (!quickNamaUsaha.trim() && !quickBidangUsaha.trim()) return;
+                      const validLoker =
+                        quickBukaLoker === 'YA'
+                          ? quickLowonganList.filter((l) => l.posisi?.trim())
+                          : [];
+                      onSaveMember({
+                        ...target,
+                        kategoriUsaha: quickKategoriUsaha,
+                        namaUsahaYayasan: quickNamaUsaha.trim() || quickBidangUsaha.trim(),
+                        jenisUsaha: quickBidangUsaha.trim() || quickNamaUsaha.trim(),
+                        peranUsahaYayasan: quickPeranUsaha,
+                        lokasiUsaha: quickLokasiUsaha.trim() || target.polda,
+                        statusUsaha: quickStatusUsaha,
+                        bukaLowonganKerja: validLoker.length > 0 ? 'YA' : 'TIDAK',
+                        daftarLowonganUsaha: validLoker,
+                      });
+                      setShowQuickUsahaModal(false);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold shadow-xs cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Simpan ke Katalog Usaha</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Katalog Usaha Cards Grid */}
+            {filteredEntrepreneurs.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredEntrepreneurs.map((m) => {
+                  const isBersama = isUsahaBersamaMember(m);
+                  const openLokers =
+                    m.bukaLowonganKerja === 'YA' && Array.isArray(m.daftarLowonganUsaha)
+                      ? m.daftarLowonganUsaha.filter(
+                          (l) => l.posisi?.trim() && l.statusLowongan !== 'TUTUP'
+                        )
+                      : [];
+                  const displayTitle =
+                    m.namaUsahaYayasan?.trim() || m.jenisUsaha?.trim() || 'Unit Usaha Anggota';
+                  const displayBidang =
+                    m.jenisUsaha?.trim() && m.jenisUsaha?.trim() !== displayTitle
+                      ? m.jenisUsaha.trim()
+                      : '';
+
+                  return (
+                    <div
+                      key={m.id}
+                      className="p-4 rounded-xl border border-emerald-200 bg-white shadow-sm flex flex-col justify-between space-y-3"
+                    >
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                                isBersama
+                                  ? 'bg-teal-100 text-teal-900 border border-teal-300'
+                                  : 'bg-blue-100 text-blue-900 border border-blue-200'
+                              }`}
+                            >
+                              {isBersama ? '🤝 USAHA BERSAMA LETING' : '🏢 USAHA PRIBADI'}
+                            </span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800">
+                              {m.statusUsaha || 'SUDAH JALAN'}
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-semibold text-slate-500">
+                            {m.lokasiUsaha || m.polda}
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="font-extrabold text-slate-900 text-sm">{displayTitle}</h4>
+                          {displayBidang && (
+                            <p className="text-xs font-semibold text-emerald-800 mt-0.5">
+                              Bidang: {displayBidang}
+                            </p>
+                          )}
+                          <p className="text-xs text-slate-600 mt-1">
+                            {isBersama ? 'Koordinator / Mitra:' : 'Pemilik:'}{' '}
+                            <b>{m.namaLengkap}</b> ({m.peranUsahaYayasan || 'Pemilik Usaha'})
+                          </p>
+                        </div>
+
+                        {/* Open Lowongan Kerja Section on Card */}
+                        {openLokers.length > 0 && (
+                          <div className="p-2.5 rounded-lg bg-amber-50/90 border border-amber-200 space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-wide text-amber-950">
+                                💼 Open Lowongan Putra-Putri Leting ({openLokers.length})
+                              </span>
+                            </div>
+                            <div className="space-y-1.5">
+                              {openLokers.map((loker, lIdx) => (
+                                <div
+                                  key={loker.id || lIdx}
+                                  className="p-2 rounded bg-white border border-amber-200/80 text-[11px] space-y-0.5"
+                                >
+                                  <div className="flex items-center justify-between gap-1 font-extrabold text-slate-900">
+                                    <span>• Posisi: {loker.posisi}</span>
+                                    <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[10px] font-bold shrink-0">
+                                      {loker.kuota || '1 Orang'}
+                                    </span>
+                                  </div>
+                                  {loker.kualifikasi && (
+                                    <p className="text-[10px] text-slate-600">
+                                      Syarat: {loker.kualifikasi}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <span className="text-[11px] text-slate-400">
+                          {openLokers.length > 0 ? 'Lamar / Sinergi Usaha:' : 'Kontak Sinergi:'}
+                        </span>
+                        <a
+                          href={formatWaUrl(m.noHp)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>{openLokers.length > 0 ? 'Hubungi / Lamar Loker' : 'Hubungi Rekan'}</span>
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-8 rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 text-center space-y-3">
+                <Briefcase className="w-8 h-8 text-emerald-700 mx-auto opacity-80" />
+                <div className="space-y-1 max-w-lg mx-auto">
+                  <h4 className="text-sm font-extrabold text-slate-800">
+                    Belum Ada Unit Usaha pada Kategori Ini
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    Daftarkan usaha pribadi maupun usaha bersama leting Anda, serta buka lowongan kerja (seperti posisi Sekretaris, Direktur, Manajer, atau Staf) untuk membantu putra-putri leting yang membutuhkan pekerjaan.
+                  </p>
+                </div>
+                {onSaveMember && (
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickUsahaModal(true)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold shadow-xs cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ Daftarkan Usaha &amp; Buka Lowongan Pertama</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Cross-Reference: Daftar Putra-Putri Leting & Almarhum yang Butuh Kerja (BELUM BEKERJA) */}
+            {anakButuhKerjaList.length > 0 && (
+              <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-blue-950">
+                      🎓 Putra-Putri Leting / Almarhum Siap Kerja ({anakButuhKerjaList.length} Kandidat)
+                    </h4>
+                    <p className="text-[11px] text-blue-800">
+                      Data putra-putri rekan leting berstatus <b>BELUM BEKERJA</b> yang dapat direkrut ke posisi lowongan pada Usaha Pribadi atau Usaha Bersama Leting.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {anakButuhKerjaList.map((kand, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-white border border-blue-200 flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-extrabold text-slate-900 truncate">
+                            {kand.namaAnak}
+                          </span>
+                          {kand.isAlmarhumOrtu && (
+                            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 text-[9px] font-bold">
+                              🕊️ Putri/Putra Alm.
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-600 truncate">
+                          Ortu: <b>{kand.namaOrtu}</b> ({kand.poldaOrtu})
+                        </p>
+                        <p className="text-[10px] text-slate-400">{kand.tempatTanggalLahir}</p>
+                      </div>
+                      {kand.noHpOrtu && (
+                        <a
+                          href={formatWaUrl(kand.noHpOrtu)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-[11px] font-bold shrink-0"
+                        >
+                          Tawarkan Loker
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

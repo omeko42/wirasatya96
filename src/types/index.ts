@@ -115,6 +115,16 @@ export interface TanggunganLain {
   kondisiKesehatan?: string;
 }
 
+export interface LowonganUsahaItem {
+  id: string;
+  posisi: string;
+  tipePekerjaan?: 'FULL_TIME' | 'KONTRAK' | 'MAGANG' | 'MITRA_PENGELOLA';
+  kuota?: string;
+  prioritasPelamar?: 'PUTRA_PUTRI_ALMARHUM_LETING' | 'PUTRA_PUTRI_LETING' | 'KELUARGA_BESAR_UMUM';
+  kualifikasi?: string;
+  statusLowongan?: 'BUKA' | 'TUTUP';
+}
+
 export interface AnggotaWiraSatya {
   id: string;
   // Modul 1: Identitas & Kedinasan
@@ -213,6 +223,8 @@ export interface AnggotaWiraSatya {
   lokasiUsaha?: string;
   bidangKeahlianPensiun?: string;
   statusUsaha?: 'SUDAH JALAN' | 'DALAM PERSIAPAN' | 'MASIH RENCANA';
+  bukaLowonganKerja?: 'YA' | 'TIDAK';
+  daftarLowonganUsaha?: LowonganUsahaItem[];
   kebutuhanPembekalan?: ('MODAL' | 'PELATIHAN' | 'PENDAMPINGAN' | 'TIDAK PERLU')[];
   sumberPenghasilanPasca: ('DANA PENSIUN' | 'USAHA' | 'INVESTASI')[];
   kecukupanDanaPensiun: 'SANGAT CUKUP' | 'CUKUP' | 'KURANG';
