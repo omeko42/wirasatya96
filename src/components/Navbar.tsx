@@ -554,9 +554,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                             myMember?.satuanKerja || currentUser.satker || 'Mabes Polri'
                           )}
                         </p>
-                        <span className={`inline-block text-[9px] uppercase font-bold px-1.5 py-0.2 rounded border mt-1 ${roleBadgeColors[effectiveRole]}`}>
-                          {roleDisplayLabels[effectiveRole]}
-                        </span>
                       </div>
                     </div>
 

@@ -981,23 +981,6 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     {localMember.pangkat} &bull; {headlineText}
                   </p>
 
-                  {(effectiveRole === 'KETUA' ||
-                    effectiveRole === 'SEKRETARIAT' ||
-                    effectiveRole === 'BENDAHARA') && (
-                    <div className="pt-0.5">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded border text-[10px] font-extrabold uppercase tracking-wider ${
-                          effectiveRole === 'KETUA'
-                            ? 'bg-red-50 text-red-800 border-red-200'
-                            : 'bg-amber-50 text-amber-900 border-amber-300'
-                        }`}
-                      >
-                        <span className="sm:hidden">🎖️ {jabatanAngkatanLabel}</span>
-                        <span className="hidden sm:inline">🎖️ Jabatan Angkatan: {jabatanAngkatanLabel}</span>
-                      </span>
-                    </div>
-                  )}
-
                   <p className="text-xs text-slate-500 flex flex-wrap items-center gap-1.5 pt-1">
                     <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <span>
