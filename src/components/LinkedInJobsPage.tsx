@@ -331,6 +331,9 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
 
   const [selectedKategoriJabatan, setSelectedKategoriJabatan] = useState<string>('SEMUA');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<'ALL' | 'AKTIF' | 'PURNA_TUGAS' | 'PTDH' | 'ALMARHUM'>('ALL');
+  const [selectedKompi, setSelectedKompi] = useState<string>('SEMUA');
+  const [selectedPleton, setSelectedPleton] = useState<string>('SEMUA');
+  const [mobileOpenKompi, setMobileOpenKompi] = useState<boolean>(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isNewExternalJabatan, setIsNewExternalJabatan] = useState(false);
   const [newJabatan, setNewJabatan] = useState({
@@ -376,16 +379,53 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
     return counts;
   }, [jabatanList]);
 
+  const kompiCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      'KOMPI A': 0,
+      'KOMPI B': 0,
+      'KOMPI C': 0,
+      'KOMPI D': 0,
+    };
+    jabatanList.forEach((item) => {
+      const m = members.find((mem) => mem.nrp === item.perwiraNrp);
+      const k = (m?.kompi || 'KOMPI A').toUpperCase();
+      counts[k] = (counts[k] || 0) + 1;
+    });
+    return counts;
+  }, [jabatanList, members]);
+
+  const pletonCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      'PLETON 1': 0,
+      'PLETON 2': 0,
+      'PLETON 3': 0,
+      'PLETON 4': 0,
+    };
+    jabatanList.forEach((item) => {
+      const m = members.find((mem) => mem.nrp === item.perwiraNrp);
+      const k = (m?.kompi || 'KOMPI A').toUpperCase();
+      const p = (m?.pleton || 'PLETON 1').toUpperCase();
+      if (selectedKompi === 'SEMUA' || k === selectedKompi) {
+        counts[p] = (counts[p] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [jabatanList, members, selectedKompi]);
+
   const filteredJabatan = useMemo(() => {
     return jabatanList.filter((item) => {
       const q = searchQuery.toLowerCase();
       const matchedMember = members.find((m) => m.nrp === item.perwiraNrp);
+      const itemKompi = (matchedMember?.kompi || 'KOMPI A').toUpperCase();
+      const itemPleton = (matchedMember?.pleton || 'PLETON 1').toUpperCase();
       const matchesSearch = 
         item.jabatan.toLowerCase().includes(q) ||
         item.namaPerwira.toLowerCase().includes(q) ||
         item.perwiraNrp.toLowerCase().includes(q) ||
         item.satker.toLowerCase().includes(q) ||
         item.polda.toLowerCase().includes(q) ||
+        itemKompi.toLowerCase().includes(q) ||
+        itemPleton.toLowerCase().includes(q) ||
         (item.dasarTR && item.dasarTR.toLowerCase().includes(q)) ||
         (matchedMember?.namaIstri && matchedMember.namaIstri.toLowerCase().includes(q)) ||
         (matchedMember?.daftarAnak && matchedMember.daftarAnak.some((a) => a.nama.toLowerCase().includes(q)));
@@ -400,9 +440,19 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
       const matchesKategori = selectedKategoriJabatan === 'SEMUA' || itemCat === selectedKategoriJabatan;
       const itemStatus = item.statusKedinasan || 'AKTIF';
       const matchesStatus = selectedStatusFilter === 'ALL' || itemStatus === selectedStatusFilter;
-      return matchesSearch && matchesFungsi && matchesPolda && matchesKategori && matchesStatus;
+      const matchesKompi = selectedKompi === 'SEMUA' || itemKompi === selectedKompi;
+      const matchesPleton = selectedPleton === 'SEMUA' || itemPleton === selectedPleton;
+      return (
+        matchesSearch &&
+        matchesFungsi &&
+        matchesPolda &&
+        matchesKategori &&
+        matchesStatus &&
+        matchesKompi &&
+        matchesPleton
+      );
     });
-  }, [jabatanList, members, searchQuery, selectedFungsi, selectedPolda, selectedKategoriJabatan, selectedStatusFilter]);
+  }, [jabatanList, members, searchQuery, selectedFungsi, selectedPolda, selectedKategoriJabatan, selectedStatusFilter, selectedKompi, selectedPleton]);
 
   const sortedJabatan = useMemo(() => {
     const cmpStatus = (a: RiwayatJabatanLeting, b: RiwayatJabatanLeting) =>
@@ -799,6 +849,108 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
             </div>
           </div>
 
+          {/* Kelompok Kompi & Pleton Batalyon (Gaya Tour of Duty) */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5 sm:p-4">
+            <div
+              onClick={() => setMobileOpenKompi((prev) => !prev)}
+              className="flex items-center justify-between gap-1.5 cursor-pointer lg:cursor-default select-none"
+            >
+              <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5 truncate">
+                <Award className="w-4 h-4 text-blue-700 flex-shrink-0" />
+                <span className="truncate">Kelompok Kompi &amp; Pleton Batalyon</span>
+              </h4>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {(selectedKompi !== 'SEMUA' || selectedPleton !== 'SEMUA') && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedKompi('SEMUA');
+                      setSelectedPleton('SEMUA');
+                    }}
+                    className="text-[10px] font-bold text-red-700 hover:underline"
+                  >
+                    Reset
+                  </button>
+                )}
+                <span className="lg:hidden text-[10px] font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-full">
+                  4 Kompi
+                </span>
+                <span className="lg:hidden text-slate-400">
+                  {mobileOpenKompi ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </span>
+              </div>
+            </div>
+
+            <div className={`${mobileOpenKompi ? 'block' : 'hidden'} lg:block pt-2.5 mt-2.5 border-t border-slate-100 space-y-2.5`}>
+              <div className="space-y-1.5 text-xs">
+                {[
+                  { key: 'SEMUA', label: 'Seluruh Kompi Batalyon', count: jabatanList.length },
+                  { key: 'KOMPI A', label: 'Kompi A Wira Satya', count: kompiCounts['KOMPI A'] || 0 },
+                  { key: 'KOMPI B', label: 'Kompi B Wira Satya', count: kompiCounts['KOMPI B'] || 0 },
+                  { key: 'KOMPI C', label: 'Kompi C Wira Satya', count: kompiCounts['KOMPI C'] || 0 },
+                  { key: 'KOMPI D', label: 'Kompi D Wira Satya', count: kompiCounts['KOMPI D'] || 0 },
+                ].map((row) => {
+                  const isSelected = selectedKompi === row.key;
+                  return (
+                    <button
+                      key={row.key}
+                      type="button"
+                      onClick={() =>
+                        setSelectedKompi(isSelected && row.key !== 'SEMUA' ? 'SEMUA' : row.key)
+                      }
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-red-800 text-white font-bold shadow-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      <span className={`truncate pr-2 ${isSelected ? 'text-white font-bold' : 'text-slate-700 font-medium'}`}>
+                        {row.label}
+                      </span>
+                      <span
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                          isSelected ? 'bg-white/20 text-white' : 'bg-white text-slate-900 border border-slate-200'
+                        }`}
+                      >
+                        {row.count} Personel
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Sub-filter Pleton 1 s/d 4 */}
+              <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Filter Pleton ({selectedKompi === 'SEMUA' ? 'Semua Kompi' : selectedKompi}):
+                </span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(['PLETON 1', 'PLETON 2', 'PLETON 3', 'PLETON 4'] as const).map((pl) => {
+                    const active = selectedPleton === pl;
+                    return (
+                      <button
+                        key={pl}
+                        type="button"
+                        onClick={() => setSelectedPleton(active ? 'SEMUA' : pl)}
+                        className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-between transition-all cursor-pointer border ${
+                          active
+                            ? 'bg-blue-700 text-white border-blue-800 shadow-xs'
+                            : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        <span>{pl}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${active ? 'bg-white/20 text-white' : 'bg-white text-slate-700'}`}>
+                          {pletonCounts[pl] || 0}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Rekapitulasi Hitungan Kategori Jabatan Organisasi Polri (Collapsible Header di HP) */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5 sm:p-4">
             <div
@@ -1045,6 +1197,9 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                               <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[10px] border border-slate-200">
                                 {item.pangkat}
                               </span>
+                              <span className="px-2 py-0.5 rounded bg-red-50 text-red-900 font-bold text-[10px] border border-red-200">
+                                {matchedMember?.kompi || 'KOMPI A'} &bull; {matchedMember?.pleton || 'PLETON 1'}
+                              </span>
                               {jabatanAngkatanBadge && (
                                 <span
                                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${jabatanAngkatanBadge.cls}`}
@@ -1238,6 +1393,9 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                               <span className="px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-bold text-[10px]">
                                 {item.pangkat}
                               </span>
+                              <span className="px-2 py-0.5 rounded bg-red-50 text-red-900 font-bold text-[10px] border border-red-200">
+                                {matchedMember?.kompi || 'KOMPI A'} &bull; {matchedMember?.pleton || 'PLETON 1'}
+                              </span>
                             </div>
 
                             <div className="text-xs flex items-center gap-1.5 mt-0.5 flex-wrap">
@@ -1277,7 +1435,17 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                         <div className="p-3 rounded-lg bg-amber-50/70 border border-amber-200/80 space-y-1">
                           <div className="font-bold text-amber-950">👩 Data Istri / Ahli Waris:</div>
                           <p className="text-slate-800">
-                            <b>Nama Istri:</b> {matchedMember?.namaIstri || 'Ny. Keluarga Almarhum'}
+                            <b>Nama Istri:</b>{' '}
+                            {matchedMember?.namaIstri?.trim() ? (
+                              matchedMember.namaIstri
+                            ) : (
+                              <span
+                                onClick={() => matchedMember && onSelectMember && onSelectMember(matchedMember)}
+                                className="text-amber-700 font-semibold italic underline cursor-pointer hover:text-red-800"
+                              >
+                                Belum Diisi — Klik untuk mendata Istri &amp; Anak
+                              </span>
+                            )}
                           </p>
                           <p className="text-slate-700 text-[11px]">
                             <b>Kontak Keluarga:</b> {kontakKeluarga || '-'}

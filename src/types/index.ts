@@ -67,6 +67,8 @@ export interface AuthUser {
   ukuranBaju?: string;
   ukuranCelana?: string;
   ukuranSepatu?: string;
+  kompi?: string;
+  pleton?: string;
   status?: UserAccountStatus;
   password?: string;
   isAdcAccount?: boolean;
@@ -151,6 +153,8 @@ export interface AnggotaWiraSatya {
   ukuranBaju?: string;
   ukuranCelana?: string;
   ukuranSepatu?: string;
+  kompi?: string;
+  pleton?: string;
   alamatTempatTinggal: string;
   statusTempatTinggal: 'MILIK PRIBADI' | 'RUMAH KELUARGA' | 'DINAS' | 'SEWA/KONTRAK';
   biayaSewaTempatTinggal?: string;
@@ -175,7 +179,10 @@ export interface AnggotaWiraSatya {
   detailSewaPurnaTugas?: string;
   biayaSewaTahunan?: string;
   sudahPembekalan: 'SUDAH' | 'BELUM';
-  rencanaAktivitas: ('USAHA SENDIRI' | 'BEKERJA KEMBALI' | 'BERTANI/BERKEBUN' | 'MENGURUS KELUARGA')[];
+  rencanaAktivitas: ('USAHA BERSAMA / YAYASAN' | 'USAHA SENDIRI' | 'BEKERJA KEMBALI' | 'BERTANI/BERKEBUN' | 'MENGURUS KELUARGA' | string)[];
+  kategoriUsaha?: string;
+  namaUsahaYayasan?: string;
+  peranUsahaYayasan?: string;
   jenisUsaha?: string;
   statusUsaha?: 'SUDAH JALAN' | 'DALAM PERSIAPAN' | 'MASIH RENCANA';
   kebutuhanPembekalan?: ('MODAL' | 'PELATIHAN' | 'PENDAMPINGAN' | 'TIDAK PERLU')[];
@@ -199,6 +206,7 @@ export interface AnggotaWiraSatya {
   kebutuhanPersiapanKesehatan?: string[];
   harapanLayananKesehatan?: string;
   harapanDukunganLeting?: string;
+  kesehatanLainLain?: string;
 
   createdAt: string;
   updatedAt: string;

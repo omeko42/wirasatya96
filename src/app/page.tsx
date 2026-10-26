@@ -34,7 +34,7 @@ import {
   isSuperadminAccount,
 } from '@/lib/avatarUtils';
 
-const STORAGE_VERSION = 'ws96_akpol96_real_v20';
+const STORAGE_VERSION = 'ws96_akpol96_real_v21';
 const MAX_SESSION_DURATION_MS = 4 * 60 * 60 * 1000; // 4 jam batas sesi maksimal
 const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 jam tanpa aktivitas otomatis logout
 
@@ -432,6 +432,18 @@ export default function Home() {
                 kontakIstri: localOverride?.kontakIstri ?? baseMember.kontakIstri,
                 daftarAnak: localOverride?.daftarAnak ?? baseMember.daftarAnak,
                 jumlahAnak: localOverride?.jumlahAnak ?? baseMember.jumlahAnak,
+                kompi:
+                  (preferLocalMemberOv ? baseMember.kompi : uOverride.kompi) ||
+                  localOverride?.kompi ||
+                  baseMember.kompi,
+                pleton:
+                  (preferLocalMemberOv ? baseMember.pleton : uOverride.pleton) ||
+                  localOverride?.pleton ||
+                  baseMember.pleton,
+                kategoriUsaha: localOverride?.kategoriUsaha ?? baseMember.kategoriUsaha,
+                namaUsahaYayasan: localOverride?.namaUsahaYayasan ?? baseMember.namaUsahaYayasan,
+                peranUsahaYayasan: localOverride?.peranUsahaYayasan ?? baseMember.peranUsahaYayasan,
+                kesehatanLainLain: localOverride?.kesehatanLainLain ?? baseMember.kesehatanLainLain,
               };
             }
 
@@ -680,6 +692,15 @@ export default function Home() {
               parsedMOv[k].namaLengkap = cleanNama;
               if (bName === 'arief adiharsa' && parsedMOv[k]?.oldNrp === '74090168') {
                 parsedMOv[k].oldNrp = '74090260';
+              }
+              if (
+                typeof parsedMOv[k].namaIstri === 'string' &&
+                parsedMOv[k].namaIstri.trim().startsWith('Ny. ') &&
+                typeof parsedMOv[k].kontakIstri === 'string' &&
+                parsedMOv[k].kontakIstri.trim().endsWith('-1996')
+              ) {
+                parsedMOv[k].namaIstri = '';
+                parsedMOv[k].kontakIstri = '';
               }
             }
           });
@@ -1343,6 +1364,12 @@ export default function Home() {
         detailSewaTempatTinggal: member.detailSewaTempatTinggal,
         biayaSewaTahunan: member.biayaSewaTahunan,
         detailSewaPurnaTugas: member.detailSewaPurnaTugas,
+        kompi: member.kompi,
+        pleton: member.pleton,
+        kategoriUsaha: member.kategoriUsaha,
+        namaUsahaYayasan: member.namaUsahaYayasan,
+        peranUsahaYayasan: member.peranUsahaYayasan,
+        kesehatanLainLain: member.kesehatanLainLain,
         updatedAt: nowIso,
       };
       const raw = localStorage.getItem('ws96_member_overrides_v1');
@@ -1383,6 +1410,8 @@ export default function Home() {
         ukuranBaju: normalizedMember.ukuranBaju,
         ukuranCelana: normalizedMember.ukuranCelana,
         ukuranSepatu: normalizedMember.ukuranSepatu,
+        kompi: normalizedMember.kompi !== undefined ? normalizedMember.kompi : existingUOv.kompi,
+        pleton: normalizedMember.pleton !== undefined ? normalizedMember.pleton : existingUOv.pleton,
         email: normalizedMember.email || existingUOv.email || `${normalizedMember.nrp}@polri.go.id`,
         secondaryEmail:
           normalizedMember.secondaryEmail !== undefined
@@ -1574,6 +1603,12 @@ export default function Home() {
       detailSewaTempatTinggal: newMember.detailSewaTempatTinggal,
       biayaSewaTahunan: newMember.biayaSewaTahunan,
       detailSewaPurnaTugas: newMember.detailSewaPurnaTugas,
+      kompi: newMember.kompi,
+      pleton: newMember.pleton,
+      kategoriUsaha: newMember.kategoriUsaha,
+      namaUsahaYayasan: newMember.namaUsahaYayasan,
+      peranUsahaYayasan: newMember.peranUsahaYayasan,
+      kesehatanLainLain: newMember.kesehatanLainLain,
       fotoUrl: getAvatarUrl(newMember.fotoUrl),
       updatedAt: nowIso,
     };
@@ -1641,6 +1676,8 @@ export default function Home() {
         ukuranBaju: savedMemberRecord.ukuranBaju,
         ukuranCelana: savedMemberRecord.ukuranCelana,
         ukuranSepatu: savedMemberRecord.ukuranSepatu,
+        kompi: savedMemberRecord.kompi,
+        pleton: savedMemberRecord.pleton,
         email: savedMemberRecord.email || currentUser.email,
         secondaryEmail:
           savedMemberRecord.secondaryEmail !== undefined
@@ -1721,6 +1758,8 @@ export default function Home() {
           ukuranBaju: savedMemberRecord.ukuranBaju,
           ukuranCelana: savedMemberRecord.ukuranCelana,
           ukuranSepatu: savedMemberRecord.ukuranSepatu,
+          kompi: savedMemberRecord.kompi,
+          pleton: savedMemberRecord.pleton,
           email: savedMemberRecord.email,
           secondaryEmail: savedMemberRecord.secondaryEmail,
           noHp: savedMemberRecord.noHp,
@@ -2150,7 +2189,10 @@ export default function Home() {
         activeTab={activeTab}
         setActiveTab={(tab) => {
           setViewingMember(null);
-          if (tab !== 'form') {
+          if (tab === 'form') {
+            setEditingMember(getOrBuildUserProfile(currentUser, members));
+            setEditingInitialTab(1);
+          } else {
             setEditingMember(null);
           }
           setActiveTab(tab);
@@ -2284,9 +2326,7 @@ export default function Home() {
                 onNavigateToJabatan={() => setActiveTab('purnaTugas')}
                 onNavigateToBendahara={() => setActiveTab('bendahara')}
                 onNavigateToUsers={() => setActiveTab('users')}
-                onNavigateToHealth={() =>
-                  setActiveTab(currentUser.role !== 'ANGGOTA' ? 'dashboard' : 'notifikasi')
-                }
+                onNavigateToHealth={() => setActiveTab('dashboard')}
                 financeSummary={financeSummary}
                 transactions={transactions}
                 iuranList={iuranList}
@@ -2390,8 +2430,8 @@ export default function Home() {
               />
             )}
 
-            {/* TAB 8: EKSEKUTIF & SEKRETARIS */}
-            {activeTab === 'dashboard' && currentUser.role !== 'ANGGOTA' && (
+            {/* TAB 8: EKSEKUTIF & SEKRETARIS (ANEV) */}
+            {activeTab === 'dashboard' && (
               <ExecutiveDashboard
                 members={members}
                 currentUser={currentUser}

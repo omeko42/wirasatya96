@@ -594,16 +594,14 @@ export function readDb(): GlobalStore {
           if (!m.ukuranBaju && memberRef.ukuranBaju) m.ukuranBaju = memberRef.ukuranBaju;
           if (!m.ukuranCelana && memberRef.ukuranCelana) m.ukuranCelana = memberRef.ukuranCelana;
           if (!m.ukuranSepatu && memberRef.ukuranSepatu) m.ukuranSepatu = memberRef.ukuranSepatu;
-          if (m.statusKedinasan === 'ALMARHUM') {
-            if (!m.namaIstri && memberRef.namaIstri) m.namaIstri = memberRef.namaIstri;
-            if (!m.kontakIstri && memberRef.kontakIstri) m.kontakIstri = memberRef.kontakIstri;
-            if ((!m.daftarAnak || m.daftarAnak.length === 0) && memberRef.daftarAnak && memberRef.daftarAnak.length > 0) {
-              m.daftarAnak = memberRef.daftarAnak;
-              m.jumlahAnak = memberRef.daftarAnak.length;
-            }
-            if ((!m.alamatTempatTinggal || m.alamatTempatTinggal === m.polda) && memberRef.alamatTempatTinggal) {
-              m.alamatTempatTinggal = memberRef.alamatTempatTinggal;
-            }
+          if (!m.kompi && memberRef.kompi) m.kompi = memberRef.kompi;
+          if (!m.pleton && memberRef.pleton) m.pleton = memberRef.pleton;
+          // Purge any legacy placeholder Ny. names if present
+          if (m.namaIstri && m.namaIstri.startsWith('Ny. ') && m.kontakIstri?.endsWith('-1996')) {
+            m.namaIstri = '';
+            m.kontakIstri = '';
+            m.daftarAnak = [];
+            m.jumlahAnak = 0;
           }
         } else {
           m.jabatanTerakhir = cleanStatusWrapperFromJabatan(m.jabatanTerakhir);

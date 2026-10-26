@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Home, 
+  User,
   Users, 
   Briefcase, 
   MessageSquare, 
@@ -345,12 +346,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Right: Stacked Nav Items (Bareskrim Red Active Colors) */}
-            <nav className="flex items-center gap-0.5 sm:gap-2 lg:gap-3 flex-shrink-0">
+            <nav className="flex items-center gap-0.5 sm:gap-1.5 lg:gap-2.5 flex-shrink-0">
               
               {/* 1. Beranda */}
               <button
                 onClick={() => setActiveTab('direktori')}
-                className={`hidden md:flex flex-col items-center justify-center px-2 py-1 min-w-[50px] sm:min-w-[56px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
                   activeTab === 'direktori'
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -367,7 +368,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* 2. Jabatan / TOD */}
               <button
                 onClick={() => setActiveTab('purnaTugas')}
-                className={`hidden md:flex flex-col items-center justify-center px-2 py-1 min-w-[50px] sm:min-w-[56px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
                   activeTab === 'purnaTugas'
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -378,10 +379,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-[10px] mt-0.5 whitespace-nowrap">Jabatan</span>
               </button>
 
-              {/* 3. Pesan */}
+              {/* 3. Profil (Pengkinian Data Mandiri) */}
+              <button
+                onClick={() => setActiveTab('form')}
+                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
+                  activeTab === 'form'
+                    ? 'border-red-900 text-red-900 font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+                title="Pengkinian Data & Profil Mandiri"
+              >
+                <User className="w-5 h-5" />
+                <span className="text-[10px] mt-0.5 whitespace-nowrap">Profil</span>
+              </button>
+
+              {/* 4. Pesan */}
               <button
                 onClick={() => setActiveTab('pesan')}
-                className={`hidden md:flex flex-col items-center justify-center px-2 py-1 min-w-[50px] sm:min-w-[56px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
                   activeTab === 'pesan'
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -399,10 +414,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-[10px] mt-0.5 whitespace-nowrap">Pesan</span>
               </button>
 
-              {/* 4. Notifikasi */}
+              {/* 5. Notifikasi */}
               <button
                 onClick={() => setActiveTab('notifikasi')}
-                className={`hidden md:flex flex-col items-center justify-center px-2 py-1 min-w-[50px] sm:min-w-[56px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
                   activeTab === 'notifikasi'
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -420,10 +435,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-[10px] mt-0.5 whitespace-nowrap">Notifikasi</span>
               </button>
 
-              {/* 5. Dana Sosial & Investasi */}
+              {/* 6. Dana Sosial & Investasi */}
               <button
                 onClick={() => setActiveTab('bendahara')}
-                className={`hidden md:flex flex-col items-center justify-center px-2 py-1 min-w-[50px] sm:min-w-[56px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
                   activeTab === 'bendahara'
                     ? 'border-amber-700 text-amber-800 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -434,46 +449,40 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-[10px] mt-0.5 whitespace-nowrap">Dana Sosial</span>
               </button>
 
-              {/* Anev (Leadership / Pengurus) */}
-              {isLeadership && (
-                <button
-                  onClick={() => setActiveTab('dashboard')}
-                  className={`hidden md:flex flex-col items-center justify-center px-2 py-1 min-w-[50px] text-center transition-all border-b-2 ${
-                    activeTab === 'dashboard'
-                      ? 'border-red-900 text-red-900 font-bold'
-                      : 'border-transparent text-slate-500 hover:text-slate-900'
-                  }`}
-                  title="Analisa & Evaluasi (Anev Pengurus)"
-                >
-                  <BarChart3 className="w-5 h-5" />
-                  <span className="text-[10px] mt-0.5 whitespace-nowrap">Anev</span>
-                </button>
-              )}
+              {/* 7. Anev */}
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] text-center transition-all border-b-2 ${
+                  activeTab === 'dashboard'
+                    ? 'border-red-900 text-red-900 font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+                title="Analisa & Evaluasi (Anev)"
+              >
+                <BarChart3 className="w-5 h-5" />
+                <span className="text-[10px] mt-0.5 whitespace-nowrap">Anev</span>
+              </button>
 
-              {/* 6. User (Full-Page Tab for Superadmin, Ketua & Sekretaris - Desktop/Tablet) */}
-              {(effectiveRole === 'SUPERADMIN' ||
-                effectiveRole === 'SEKRETARIAT' ||
-                effectiveRole === 'KETUA') && (
-                <button
-                  onClick={() => setActiveTab('users')}
-                  className={`hidden md:flex flex-col items-center justify-center px-2 py-1 min-w-[48px] text-center transition-all border-b-2 ${
-                    activeTab === 'users'
-                      ? 'border-red-900 text-red-900 font-bold'
-                      : 'border-transparent text-slate-600 hover:text-red-900'
-                  }`}
-                  title="Manajemen User, Verifikasi & Log Audit"
-                >
-                  <div className="relative">
-                    <Users className="w-5 h-5" />
-                    {pendingVerificationCount > 0 && (
-                      <span className="w-4 h-4 rounded-full bg-red-700 text-white text-[9px] font-extrabold flex items-center justify-center absolute -top-1 -right-2 ring-2 ring-white animate-pulse">
-                        {pendingVerificationCount}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10px] mt-0.5 whitespace-nowrap">User</span>
-                </button>
-              )}
+              {/* 8. User */}
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] text-center transition-all border-b-2 ${
+                  activeTab === 'users'
+                    ? 'border-red-900 text-red-900 font-bold'
+                    : 'border-transparent text-slate-600 hover:text-red-900'
+                }`}
+                title="Direktori Akun & Manajemen User"
+              >
+                <div className="relative">
+                  <Users className="w-5 h-5" />
+                  {pendingVerificationCount > 0 && (
+                    <span className="w-4 h-4 rounded-full bg-red-700 text-white text-[9px] font-extrabold flex items-center justify-center absolute -top-1 -right-2 ring-2 ring-white animate-pulse">
+                      {pendingVerificationCount}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] mt-0.5 whitespace-nowrap">User</span>
+              </button>
 
               {/* Vertical Divider */}
               <div className="h-7 w-px bg-slate-200 hidden sm:block mx-1" />
@@ -552,6 +561,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                         Akun
                       </div>
                       
+                      {/* Profil / Pengkinian Data Mandiri */}
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          setActiveTab('form');
+                        }}
+                        className="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center justify-between text-slate-700"
+                      >
+                        <span className="flex items-center gap-2">
+                          <User className="w-3.5 h-3.5 text-red-800" />
+                          <span className="font-semibold text-slate-900">Pengkinian Data Profil</span>
+                        </span>
+                      </button>
+
                       {/* Pengaturan & Privasi (Opens Settings Page) */}
                       <button
                         onClick={() => {
@@ -566,30 +589,33 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </span>
                       </button>
 
-                      {/* User (Hanya Admin, Ketua & Sekretaris) */}
-                      {(effectiveRole === 'SUPERADMIN' ||
-                        effectiveRole === 'SEKRETARIAT' ||
-                        effectiveRole === 'KETUA') && (
-                        <button
-                          onClick={() => {
-                            setIsUserMenuOpen(false);
-                            setActiveTab('users');
-                          }}
-                          className="w-full px-4 py-2 text-left hover:bg-red-50/80 flex items-center justify-between text-slate-700 transition-colors"
-                        >
-                          <span className="flex items-center gap-2">
-                            <Users className="w-3.5 h-3.5 text-red-800" />
-                            <span className="font-semibold text-red-950">User</span>
+                      {/* User (Tersedia untuk semua akun, mode Kelola/Lihat sesuai Role) */}
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          setActiveTab('users');
+                        }}
+                        className="w-full px-4 py-2 text-left hover:bg-red-50/80 flex items-center justify-between text-slate-700 transition-colors"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Users className="w-3.5 h-3.5 text-red-800" />
+                          <span className="font-semibold text-red-950">User</span>
+                        </span>
+                        {pendingVerificationCount > 0 &&
+                        (effectiveRole === 'SUPERADMIN' ||
+                          effectiveRole === 'SEKRETARIAT' ||
+                          effectiveRole === 'KETUA') ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-700 text-white animate-pulse">
+                            {pendingVerificationCount} Antrean
                           </span>
-                          {pendingVerificationCount > 0 ? (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-700 text-white animate-pulse">
-                              {pendingVerificationCount} Antrean
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-semibold text-red-800">Kelola</span>
-                          )}
-                        </button>
-                      )}
+                        ) : effectiveRole === 'SUPERADMIN' ||
+                          effectiveRole === 'SEKRETARIAT' ||
+                          effectiveRole === 'KETUA' ? (
+                          <span className="text-[10px] font-semibold text-red-800">Kelola</span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-slate-500">Direktori</span>
+                        )}
+                      </button>
                     </div>
 
                     {/* Section: Kelola */}
@@ -607,18 +633,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <Wallet className="w-3.5 h-3.5 text-emerald-600" />
                         <span>Dana Sosial &amp; Investasi</span>
                       </button>
-                      {isLeadership && (
-                        <button
-                          onClick={() => {
-                            setIsUserMenuOpen(false);
-                            setActiveTab('dashboard');
-                          }}
-                          className="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-700"
-                        >
-                          <BarChart3 className="w-3.5 h-3.5 text-amber-700" />
-                          <span>Anev &amp; Statistik Pengurus</span>
-                        </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          setActiveTab('dashboard');
+                        }}
+                        className="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                      >
+                        <BarChart3 className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Anev &amp; Statistik</span>
+                      </button>
                       <button
                         onClick={() => {
                           setIsUserMenuOpen(false);
@@ -700,6 +724,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <button
                           onClick={() => {
                             setIsAppsMenuOpen(false);
+                            setActiveTab('form');
+                          }}
+                          className="p-2.5 rounded-xl border border-slate-100 hover:border-red-800/40 hover:bg-red-50/50 text-left transition-all"
+                        >
+                          <User className="w-4 h-4 text-blue-700 mb-1" />
+                          <div className="font-bold text-slate-800 text-[11px] truncate">Profil</div>
+                          <div className="text-[10px] text-slate-500 truncate">Pengkinian Data</div>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setIsAppsMenuOpen(false);
                             setActiveTab('bendahara');
                           }}
                           className="p-2.5 rounded-xl border border-slate-100 hover:border-red-800/40 hover:bg-red-50/50 text-left transition-all"
@@ -709,26 +745,36 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <div className="text-[10px] text-slate-500 truncate">Buku Kas &amp; Investasi</div>
                         </button>
 
-                        {isLeadership && (
-                          <button
-                            onClick={() => {
-                              setIsAppsMenuOpen(false);
-                              setActiveTab('dashboard');
-                            }}
-                            className="p-2.5 rounded-xl border border-slate-100 hover:border-red-800/40 hover:bg-red-50/50 text-left transition-all"
-                          >
-                            <BarChart3 className="w-4 h-4 text-red-800 mb-1" />
-                            <div className="font-bold text-slate-800 text-[11px] truncate">Anev</div>
-                            <div className="text-[10px] text-slate-500 truncate">Statistik Pengurus</div>
-                          </button>
-                        )}
+                        <button
+                          onClick={() => {
+                            setIsAppsMenuOpen(false);
+                            setActiveTab('dashboard');
+                          }}
+                          className="p-2.5 rounded-xl border border-slate-100 hover:border-red-800/40 hover:bg-red-50/50 text-left transition-all"
+                        >
+                          <BarChart3 className="w-4 h-4 text-red-800 mb-1" />
+                          <div className="font-bold text-slate-800 text-[11px] truncate">Anev</div>
+                          <div className="text-[10px] text-slate-500 truncate">Analisa &amp; Evaluasi</div>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setIsAppsMenuOpen(false);
+                            setActiveTab('users');
+                          }}
+                          className="p-2.5 rounded-xl border border-slate-100 hover:border-red-800/40 hover:bg-red-50/50 text-left transition-all"
+                        >
+                          <Users className="w-4 h-4 text-indigo-700 mb-1" />
+                          <div className="font-bold text-slate-800 text-[11px] truncate">User</div>
+                          <div className="text-[10px] text-slate-500 truncate">Direktori &amp; Otoritas</div>
+                        </button>
 
                         <button
                           onClick={() => {
                             setIsAppsMenuOpen(false);
                             setActiveTab('pengaturan');
                           }}
-                          className="p-2.5 rounded-xl border border-slate-100 hover:border-red-800/40 hover:bg-red-50/50 text-left transition-all"
+                          className="p-2.5 rounded-xl border border-slate-100 hover:border-red-800/40 hover:bg-red-50/50 text-left transition-all col-span-2"
                         >
                           <Lock className="w-4 h-4 text-purple-700 mb-1" />
                           <div className="font-bold text-slate-800 text-[11px] truncate">Pengaturan</div>
@@ -777,15 +823,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Bottom Mobile Tab Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-1 pt-1.5 pb-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
-        <div
-          className={`grid ${
-            currentUser.role === 'SUPERADMIN' ||
-            currentUser.role === 'SEKRETARIAT' ||
-            currentUser.role === 'KETUA'
-              ? 'grid-cols-6'
-              : 'grid-cols-5'
-          } gap-0.5 text-[9px]`}
-        >
+        <div className="grid grid-cols-8 gap-0.5 text-[8.5px] sm:text-[9px]">
           {/* 1. Beranda */}
           <button
             onClick={() => setActiveTab('direktori')}
@@ -794,12 +832,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <div className="relative">
-              <Home className="w-5 h-5 mb-0.5" />
+              <Home className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
               {activeTab === 'direktori' && (
                 <span className="w-1.5 h-1.5 rounded-full bg-red-800 absolute -top-0.5 -right-0.5" />
               )}
             </div>
-            <span>Beranda</span>
+            <span className="truncate max-w-full">Beranda</span>
           </button>
 
           {/* 2. Jabatan */}
@@ -809,19 +847,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               activeTab === 'purnaTugas' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <Briefcase className="w-5 h-5 mb-0.5" />
-            <span>Jabatan</span>
+            <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
+            <span className="truncate max-w-full">Jabatan</span>
           </button>
 
-          {/* 3. Dana Sosial */}
+          {/* 3. Profil */}
           <button
-            onClick={() => setActiveTab('bendahara')}
+            onClick={() => setActiveTab('form')}
             className={`flex flex-col items-center justify-center py-1 transition-colors ${
-              activeTab === 'bendahara' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
+              activeTab === 'form' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <Wallet className="w-5 h-5 mb-0.5" />
-            <span>Dana Sosial</span>
+            <User className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
+            <span className="truncate max-w-full">Profil</span>
           </button>
 
           {/* 4. Pesan */}
@@ -832,14 +870,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <div className="relative">
-              <MessageSquare className="w-5 h-5 mb-0.5" />
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
               {unreadMessagesCount > 0 && (
                 <span className="w-3.5 h-3.5 rounded-full bg-red-700 text-white text-[8px] font-bold flex items-center justify-center absolute -top-1 -right-2 ring-1 ring-white">
                   {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
                 </span>
               )}
             </div>
-            <span>Pesan</span>
+            <span className="truncate max-w-full">Pesan</span>
           </button>
 
           {/* 5. Notifikasi */}
@@ -850,37 +888,55 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <div className="relative">
-              <Bell className="w-5 h-5 mb-0.5" />
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
               {unreadNotificationsCount > 0 && (
                 <span className="w-3.5 h-3.5 rounded-full bg-red-700 text-white text-[8px] font-bold flex items-center justify-center absolute -top-1 -right-2 ring-1 ring-white">
                   {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
                 </span>
               )}
             </div>
-            <span>Notif</span>
+            <span className="truncate max-w-full">Notif</span>
           </button>
 
-          {/* 6. User (Mobile Bottom Bar for Superadmin, Ketua & Sekretaris) */}
-          {(currentUser.role === 'SUPERADMIN' ||
-            currentUser.role === 'SEKRETARIAT' ||
-            currentUser.role === 'KETUA') && (
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`flex flex-col items-center justify-center py-1 transition-colors ${
-                activeTab === 'users' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <div className="relative">
-                <Users className="w-5 h-5 mb-0.5" />
-                {pendingVerificationCount > 0 && (
-                  <span className="w-3.5 h-3.5 rounded-full bg-red-700 text-white text-[8px] font-extrabold flex items-center justify-center absolute -top-1 -right-2 ring-1 ring-white animate-pulse">
-                    {pendingVerificationCount}
-                  </span>
-                )}
-              </div>
-              <span>User</span>
-            </button>
-          )}
+          {/* 6. Dana Sosial */}
+          <button
+            onClick={() => setActiveTab('bendahara')}
+            className={`flex flex-col items-center justify-center py-1 transition-colors ${
+              activeTab === 'bendahara' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Wallet className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
+            <span className="truncate max-w-full">Kas</span>
+          </button>
+
+          {/* 7. Anev */}
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex flex-col items-center justify-center py-1 transition-colors ${
+              activeTab === 'dashboard' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
+            <span className="truncate max-w-full">Anev</span>
+          </button>
+
+          {/* 8. User */}
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`flex flex-col items-center justify-center py-1 transition-colors ${
+              activeTab === 'users' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <div className="relative">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
+              {pendingVerificationCount > 0 && (
+                <span className="w-3.5 h-3.5 rounded-full bg-red-700 text-white text-[8px] font-extrabold flex items-center justify-center absolute -top-1 -right-2 ring-1 ring-white animate-pulse">
+                  {pendingVerificationCount}
+                </span>
+              )}
+            </div>
+            <span className="truncate max-w-full">User</span>
+          </button>
         </div>
       </div>
     </>

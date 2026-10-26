@@ -229,7 +229,12 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
     currentUserRole ||
     (currentUserNrp === '98010710' || adminName.toLowerCase().includes('eko agung')
       ? 'SUPERADMIN'
-      : 'SEKRETARIAT');
+      : 'ANGGOTA');
+
+  const hasAdminUserAccess =
+    effectiveActorRole === 'SUPERADMIN' ||
+    effectiveActorRole === 'SEKRETARIAT' ||
+    effectiveActorRole === 'KETUA';
 
   const canImpersonate =
     effectiveActorRole === 'SUPERADMIN' ||
@@ -2636,13 +2641,30 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
               </h3>
               <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-bold">
                 <span className="sm:hidden">
-                  {currentUserRole === 'SUPERADMIN' ? 'Superadmin' : currentUserRole === 'KETUA' ? 'Ketua' : 'Sekretaris'}
+                  {effectiveActorRole === 'SUPERADMIN'
+                    ? 'Superadmin'
+                    : effectiveActorRole === 'KETUA'
+                    ? 'Ketua'
+                    : effectiveActorRole === 'SEKRETARIAT'
+                    ? 'Sekretaris'
+                    : effectiveActorRole === 'BENDAHARA'
+                    ? 'Bendahara'
+                    : 'Anggota'}
                 </span>
                 <span className="hidden sm:inline">
-                  Otoritas: {currentUserRole === 'SUPERADMIN' ? 'Superadmin' : currentUserRole === 'KETUA' ? 'Ketua Angkatan' : 'Sekretaris'}
+                  Otoritas:{' '}
+                  {effectiveActorRole === 'SUPERADMIN'
+                    ? 'Superadmin'
+                    : effectiveActorRole === 'KETUA'
+                    ? 'Ketua Angkatan'
+                    : effectiveActorRole === 'SEKRETARIAT'
+                    ? 'Sekretaris'
+                    : effectiveActorRole === 'BENDAHARA'
+                    ? 'Bendahara (Akses Lihat)'
+                    : 'Anggota (Akses Lihat)'}
                 </span>
               </span>
-              {pendingCount > 0 && (
+              {hasAdminUserAccess && pendingCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full bg-red-700 text-white text-[10px] font-extrabold animate-pulse">
                   <span className="sm:hidden">{pendingCount} Menunggu</span>
                   <span className="hidden sm:inline">{pendingCount} Menunggu Verifikasi</span>
@@ -2689,12 +2711,21 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 : 'bg-transparent text-slate-600 border-transparent hover:bg-white/60 hover:text-slate-900'
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
+            {hasAdminUserAccess ? (
+              <ShieldCheck className="w-4 h-4" />
+            ) : (
+              <Lock className="w-3.5 h-3.5 text-amber-700" />
+            )}
             <span className="sm:hidden">Verifikasi</span>
             <span className="hidden sm:inline">Verifikasi Pendaftaran</span>
-            {pendingCount > 0 && (
+            {hasAdminUserAccess && pendingCount > 0 && (
               <span className="px-1.5 py-0.5 rounded-full bg-red-700 text-white text-[10px] font-extrabold">
                 {pendingCount}
+              </span>
+            )}
+            {!hasAdminUserAccess && (
+              <span className="hidden md:inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">
+                Khusus Pengurus
               </span>
             )}
           </button>
@@ -2709,8 +2740,17 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 : 'bg-transparent text-slate-600 border-transparent hover:bg-white/60 hover:text-slate-900'
             }`}
           >
-            <History className="w-4 h-4" />
-            <span>Log Audit ({auditLogs.length})</span>
+            {hasAdminUserAccess ? (
+              <History className="w-4 h-4" />
+            ) : (
+              <Lock className="w-3.5 h-3.5 text-amber-700" />
+            )}
+            <span>Log Audit {hasAdminUserAccess ? `(${auditLogs.length})` : ''}</span>
+            {!hasAdminUserAccess && (
+              <span className="hidden md:inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">
+                Khusus Pengurus
+              </span>
+            )}
           </button>
         </div>
 
@@ -2774,21 +2814,32 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 <option value="ANGGOTA">Anggota</option>
               </select>
 
-              <button
-                type="button"
-                onClick={() => {
-                  resetAddUserForm();
-                  setShowAddUserModal(true);
-                }}
-                title="Tambah Pengguna Baru"
-                className="px-3 py-1.5 rounded-lg bg-red-900 hover:bg-red-800 text-white font-bold flex items-center gap-1.5 whitespace-nowrap shadow-sm transition-colors shrink-0"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span className="sm:hidden">Tambah</span>
-                <span className="hidden sm:inline">Tambah Pengguna</span>
-              </button>
+              {hasAdminUserAccess && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetAddUserForm();
+                    setShowAddUserModal(true);
+                  }}
+                  title="Tambah Pengguna Baru"
+                  className="px-3 py-1.5 rounded-lg bg-red-900 hover:bg-red-800 text-white font-bold flex items-center gap-1.5 whitespace-nowrap shadow-sm transition-colors shrink-0"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span className="sm:hidden">Tambah</span>
+                  <span className="hidden sm:inline">Tambah Pengguna</span>
+                </button>
+              )}
             </div>
           </div>
+
+          {!hasAdminUserAccess && (
+            <div className="mx-4 mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
+              <Lock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                🔒 <strong>Mode Akses Anggota (Terbatas):</strong> Anda dapat melihat direktori akun personel dan memperbarui profil Anda sendiri. Fitur verifikasi pendaftaran, perubahan role, hapus akun, dan log audit dibatasi khusus untuk Pengurus (Superadmin / Ketua / Sekretaris).
+              </div>
+            </div>
+          )}
 
           <SortModalPopup
             isOpen={isSortModalOpen}
@@ -2914,82 +2965,107 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                      <div className="flex flex-col">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">
-                          <span className="sm:hidden">ROLE</span>
-                          <span className="hidden sm:inline">JABATAN ANGKATAN / ROLE</span>
-                        </label>
-                        <select
-                          value={u.role}
-                          disabled={updatingUserNrp === u.nrp}
-                          onChange={(e) => handleRoleChange(u.nrp, e.target.value as UserRole)}
-                          className="px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-800 disabled:opacity-50"
-                        >
-                          {visibleRoleOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.value === 'SEKRETARIAT' ? 'SEKRETARIS' : opt.value}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                      {hasAdminUserAccess ? (
+                        <>
+                          <div className="flex flex-col">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">
+                              <span className="sm:hidden">ROLE</span>
+                              <span className="hidden sm:inline">JABATAN ANGKATAN / ROLE</span>
+                            </label>
+                            <select
+                              value={u.role}
+                              disabled={updatingUserNrp === u.nrp}
+                              onChange={(e) => handleRoleChange(u.nrp, e.target.value as UserRole)}
+                              className="px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-800 disabled:opacity-50"
+                            >
+                              {visibleRoleOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.value === 'SEKRETARIAT' ? 'SEKRETARIS' : opt.value}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
 
-                      {canImpersonate && u.nrp !== '98010710' && (
+                          {canImpersonate && u.nrp !== '98010710' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (onImpersonateUser) {
+                                  onImpersonateUser(u);
+                                }
+                              }}
+                              disabled={updatingUserNrp === u.nrp}
+                              className="mt-4 px-2.5 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                              title="Masuk sebagai akun ini (Impersonate Superadmin)"
+                            >
+                              <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Impersonate</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleResetUserPassword(u)}
+                            disabled={updatingUserNrp === u.nrp}
+                            className="mt-4 px-2.5 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-50"
+                            title={`Reset password akun ini ke default: WS96@${u.nrp}`}
+                          >
+                            <span className="sm:hidden">🔑 Reset</span>
+                            <span className="hidden sm:inline">🔑 Reset Password</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditUser(u)}
+                            disabled={updatingUserNrp === u.nrp}
+                            className="mt-4 px-2.5 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-50"
+                            title="Edit Data, Pangkat & Master Satker"
+                          >
+                            <Pencil className="w-3.5 h-3.5 text-red-800" />
+                            <span>Edit</span>
+                          </button>
+
+                          {u.nrp !== '98010710' && (
+                            <button
+                              type="button"
+                              onClick={() => handleRequestDeleteUser(u)}
+                              disabled={updatingUserNrp === u.nrp}
+                              className={`mt-4 p-2 rounded-lg border transition-colors disabled:opacity-50 ${
+                                deleteAuth.allowed
+                                  ? 'border-red-200 text-red-600 hover:bg-red-50'
+                                  : 'border-slate-200 text-slate-300 cursor-not-allowed bg-slate-50'
+                              }`}
+                              title={
+                                deleteAuth.allowed
+                                  ? 'Hapus Pengguna (Dengan Konfirmasi & Pencatatan Log Audit)'
+                                  : deleteAuth.reason || 'Role Anda tidak memiliki otoritas menghapus pengguna ini'
+                              }
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </>
+                      ) : u.nrp === currentUserNrp ? (
                         <button
                           type="button"
                           onClick={() => {
-                            if (onImpersonateUser) {
-                              onImpersonateUser(u);
+                            if (onEditMemberByNrp) {
+                              if (!asPage) onClose();
+                              onEditMemberByNrp(u.nrp);
+                            } else {
+                              handleStartEditUser(u);
                             }
                           }}
-                          disabled={updatingUserNrp === u.nrp}
-                          className="mt-4 px-2.5 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                          title="Masuk sebagai akun ini (Impersonate Superadmin)"
+                          className="px-3 py-2 rounded-lg bg-red-900 hover:bg-red-800 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+                          title="Perbarui Data & Profil Saya"
                         >
-                          <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
-                          <span>Impersonate</span>
+                          <Pencil className="w-3.5 h-3.5" />
+                          <span>Edit Profil Saya</span>
                         </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => handleResetUserPassword(u)}
-                        disabled={updatingUserNrp === u.nrp}
-                        className="mt-4 px-2.5 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-50"
-                        title={`Reset password akun ini ke default: WS96@${u.nrp}`}
-                      >
-                        <span className="sm:hidden">🔑 Reset</span>
-                        <span className="hidden sm:inline">🔑 Reset Password</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleStartEditUser(u)}
-                        disabled={updatingUserNrp === u.nrp}
-                        className="mt-4 px-2.5 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-50"
-                        title="Edit Data, Pangkat & Master Satker"
-                      >
-                        <Pencil className="w-3.5 h-3.5 text-red-800" />
-                        <span>Edit</span>
-                      </button>
-
-                      {u.nrp !== '98010710' && (
-                        <button
-                          type="button"
-                          onClick={() => handleRequestDeleteUser(u)}
-                          disabled={updatingUserNrp === u.nrp}
-                          className={`mt-4 p-2 rounded-lg border transition-colors disabled:opacity-50 ${
-                            deleteAuth.allowed
-                              ? 'border-red-200 text-red-600 hover:bg-red-50'
-                              : 'border-slate-200 text-slate-300 cursor-not-allowed bg-slate-50'
-                          }`}
-                          title={
-                            deleteAuth.allowed
-                              ? 'Hapus Pengguna (Dengan Konfirmasi & Pencatatan Log Audit)'
-                              : deleteAuth.reason || 'Role Anda tidak memiliki otoritas menghapus pengguna ini'
-                          }
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      ) : (
+                        <span className="px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 text-[11px] font-bold flex items-center gap-1">
+                          <span>🔒 Hanya Lihat</span>
+                        </span>
                       )}
                     </div>
                   </div>
@@ -3028,6 +3104,27 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
 
       {/* TAB 2: VERIFIKASI PENDAFTARAN */}
       {activeTab === 'VERIFICATION' && (
+        !hasAdminUserAccess ? (
+          <div className="p-8 sm:p-12 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto">
+              <Lock className="w-6 h-6" />
+            </div>
+            <h4 className="font-extrabold text-sm sm:text-base text-slate-900">
+              Fitur Verifikasi Pendaftaran Khusus Pengurus
+            </h4>
+            <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+              Otoritas verifikasi dan persetujuan pendaftaran akun alumni baru dibatasi khusus untuk{' '}
+              <strong>Superadmin, Ketua Angkatan, dan Sekretaris</strong>.
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveTab('USERS')}
+              className="mt-2 px-4 py-2 rounded-xl bg-red-900 hover:bg-red-800 text-white text-xs font-bold transition-colors"
+            >
+              Kembali ke Direktori Pengguna
+            </button>
+          </div>
+        ) : (
         <>
           <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="relative flex-1">
@@ -3227,10 +3324,32 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             )}
           </div>
         </>
+        )
       )}
 
       {/* TAB 3: LOG AUDIT & RIWAYAT AKTIVITAS MANAJEMEN USER */}
       {activeTab === 'AUDIT_LOG' && (
+        !hasAdminUserAccess ? (
+          <div className="p-8 sm:p-12 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto">
+              <Lock className="w-6 h-6" />
+            </div>
+            <h4 className="font-extrabold text-sm sm:text-base text-slate-900">
+              Log Audit &amp; Pemulihan Akun Khusus Pengurus
+            </h4>
+            <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+              Riwayat aktivitas manajemen akun, reset password, dan pemulihan akun dibatasi khusus untuk{' '}
+              <strong>Superadmin, Ketua Angkatan, dan Sekretaris</strong>.
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveTab('USERS')}
+              className="mt-2 px-4 py-2 rounded-xl bg-red-900 hover:bg-red-800 text-white text-xs font-bold transition-colors"
+            >
+              Kembali ke Direktori Pengguna
+            </button>
+          </div>
+        ) : (
         <>
           <div className="p-4 bg-slate-50 border-b border-slate-200 space-y-2.5">
             {/* Filter & Pencarian Log Audit + Tombol Info Matriks Otoritas (Ramah HP) */}
@@ -3440,10 +3559,11 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             })()}
           </div>
         </>
+        )
       )}
 
       {/* TAB 4: TAMBAH PENGGUNA BARU (CAS 2-COLUMN LAYOUT) */}
-      {activeTab === 'ADD_USER' && (
+      {activeTab === 'ADD_USER' && hasAdminUserAccess && (
         <div className="flex-1 overflow-y-auto p-5 sm:p-6">
           <div className="max-w-3xl mx-auto">
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 mb-5 flex items-start justify-between gap-3">
@@ -3684,8 +3804,9 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                       <label className="block font-semibold text-slate-700 mb-1">Role Akses (Angkatan)</label>
                       <select
                         value={editRole}
+                        disabled={!hasAdminUserAccess}
                         onChange={(e) => setEditRole(e.target.value as UserRole)}
-                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:outline-none"
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
                       >
                         {visibleRoleOptions.map((r) => (
                           <option key={r.value} value={r.value}>

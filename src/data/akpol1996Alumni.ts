@@ -370,127 +370,12 @@ export const PURGED_NON_1996_BASE_NAMES: Set<string> = new Set([
   'eko hadi santoso',
 ]);
 
-const ALMARHUM_FAMILY_DEFAULTS: Record<
-  number,
-  {
-    namaIstri: string;
-    kontakIstri: string;
-    alamatKeluarga: string;
-    daftarAnak: {
-      id: string;
-      nama: string;
-      tempatLahir: string;
-      tanggalLahir: string;
-      status: 'PELAJAR' | 'BEKERJA' | 'BELUM BEKERJA';
-      biayaPendidikanTahunan?: '< 5.000.000' | '5.000.000 S.D. 25.000.000' | '> 25.000.000';
-    }[];
-  }
-> = {
-  1: {
-    namaIstri: 'Ny. Cut Meutia Heriyanto',
-    kontakIstri: '0812-6901-1996',
-    alamatKeluarga: 'Banda Aceh, Provinsi Aceh',
-    daftarAnak: [
-      { id: 'ank-alm-1-1', nama: 'Teuku Rafi Heriyanto', tempatLahir: 'Banda Aceh', tanggalLahir: '2003-04-12', status: 'PELAJAR', biayaPendidikanTahunan: '5.000.000 S.D. 25.000.000' },
-      { id: 'ank-alm-1-2', nama: 'Cut Nabila Heriyanto', tempatLahir: 'Banda Aceh', tanggalLahir: '2007-09-18', status: 'PELAJAR', biayaPendidikanTahunan: '5.000.000 S.D. 25.000.000' },
-    ],
-  },
-  23: {
-    namaIstri: 'Ny. Dewi Sartika Widi Purnomo',
-    kontakIstri: '0812-3702-1996',
-    alamatKeluarga: 'Mataram, Nusa Tenggara Barat',
-    daftarAnak: [
-      { id: 'ank-alm-23-1', nama: 'Bagas Arianto Purnomo', tempatLahir: 'Mataram', tanggalLahir: '2002-06-21', status: 'BEKERJA' },
-      { id: 'ank-alm-23-2', nama: 'Kirana Putri Purnomo', tempatLahir: 'Mataram', tanggalLahir: '2006-11-05', status: 'PELAJAR', biayaPendidikanTahunan: '5.000.000 S.D. 25.000.000' },
-    ],
-  },
-  53: {
-    namaIstri: 'Ny. Rina Marlina Okvianto',
-    kontakIstri: '0811-2205-1996',
-    alamatKeluarga: 'Kota Bandung, Jawa Barat',
-    daftarAnak: [
-      { id: 'ank-alm-53-1', nama: 'MuhammadRizky Okvianto', tempatLahir: 'Bandung', tanggalLahir: '2001-10-14', status: 'BEKERJA' },
-      { id: 'ank-alm-53-2', nama: 'Alya Zahra Okvianto', tempatLahir: 'Bandung', tanggalLahir: '2005-03-27', status: 'PELAJAR', biayaPendidikanTahunan: '> 25.000.000' },
-    ],
-  },
-  111: {
-    namaIstri: 'Ny. Sri Wahyuni Suroso',
-    kontakIstri: '0813-4701-1996',
-    alamatKeluarga: 'Balikpapan, Kalimantan Timur',
-    daftarAnak: [
-      { id: 'ank-alm-111-1', nama: 'Dimas Pratama Suroso', tempatLahir: 'Balikpapan', tanggalLahir: '2002-02-19', status: 'BEKERJA' },
-      { id: 'ank-alm-111-2', nama: 'Anindya Putri Suroso', tempatLahir: 'Balikpapan', tanggalLahir: '2006-07-08', status: 'PELAJAR', biayaPendidikanTahunan: '5.000.000 S.D. 25.000.000' },
-    ],
-  },
-  117: {
-    namaIstri: 'Ny. Maya Indira Nurwandy',
-    kontakIstri: '0812-8811-1996',
-    alamatKeluarga: 'Jakarta Selatan, DKI Jakarta',
-    daftarAnak: [
-      { id: 'ank-alm-117-1', nama: 'Fajar Aditya Nurwandy', tempatLahir: 'Jakarta', tanggalLahir: '2003-08-10', status: 'PELAJAR', biayaPendidikanTahunan: '> 25.000.000' },
-      { id: 'ank-alm-117-2', nama: 'Nadira Safitri Nurwandy', tempatLahir: 'Jakarta', tanggalLahir: '2008-01-25', status: 'PELAJAR', biayaPendidikanTahunan: '5.000.000 S.D. 25.000.000' },
-    ],
-  },
-  120: {
-    namaIstri: 'Ny. Hasnah Lubis Siregar',
-    kontakIstri: '0812-6612-1996',
-    alamatKeluarga: 'Kota Padang, Sumatera Barat',
-    daftarAnak: [
-      { id: 'ank-alm-120-1', nama: 'Reza Pahlevi Siregar', tempatLahir: 'Padang', tanggalLahir: '2002-12-03', status: 'BEKERJA' },
-      { id: 'ank-alm-120-2', nama: 'Salsabila Putri Siregar', tempatLahir: 'Padang', tanggalLahir: '2006-05-16', status: 'PELAJAR', biayaPendidikanTahunan: '5.000.000 S.D. 25.000.000' },
-    ],
-  },
-  121: {
-    namaIstri: 'Ny. Grace Eunike Raranta',
-    kontakIstri: '0813-4012-1996',
-    alamatKeluarga: 'Kota Manado, Sulawesi Utara',
-    daftarAnak: [
-      { id: 'ank-alm-121-1', nama: 'Kevin Christian Raranta', tempatLahir: 'Manado', tanggalLahir: '2003-03-11', status: 'PELAJAR', biayaPendidikanTahunan: '5.000.000 S.D. 25.000.000' },
-      { id: 'ank-alm-121-2', nama: 'Michelle Gabriella Raranta', tempatLahir: 'Manado', tanggalLahir: '2007-10-29', status: 'PELAJAR', biayaPendidikanTahunan: '5.000.000 S.D. 25.000.000' },
-    ],
-  },
-  131: {
-    namaIstri: 'Ny. Endang Sulistyowati Budi Utomo',
-    kontakIstri: '0811-9013-1996',
-    alamatKeluarga: 'Kota Bekasi, Jawa Barat',
-    daftarAnak: [
-      { id: 'ank-alm-131-1', nama: 'Arif Rahman Budi Utomo', tempatLahir: 'Jakarta', tanggalLahir: '2001-07-15', status: 'BEKERJA' },
-      { id: 'ank-alm-131-2', nama: 'Larasati Putri Budi Utomo', tempatLahir: 'Jakarta', tanggalLahir: '2005-09-22', status: 'PELAJAR', biayaPendidikanTahunan: '5.000.000 S.D. 25.000.000' },
-    ],
-  },
-  217: {
-    namaIstri: 'Ny. Yuliana Basahil',
-    kontakIstri: '0812-7521-1996',
-    alamatKeluarga: 'Jakarta Timur, DKI Jakarta',
-    daftarAnak: [
-      { id: 'ank-alm-217-1', nama: 'Farhan Ahmad Basahil', tempatLahir: 'Jakarta', tanggalLahir: '2002-05-04', status: 'BEKERJA' },
-      { id: 'ank-alm-217-2', nama: 'Yasmin Aulia Basahil', tempatLahir: 'Jakarta', tanggalLahir: '2006-12-19', status: 'PELAJAR', biayaPendidikanTahunan: '> 25.000.000' },
-    ],
-  },
-  226: {
-    namaIstri: 'Ny. Ratna Sari Purnama',
-    kontakIstri: '0811-8226-1996',
-    alamatKeluarga: 'Tangerang Selatan, Banten',
-    daftarAnak: [
-      { id: 'ank-alm-226-1', nama: 'Raka Pratama Purnama', tempatLahir: 'Jakarta', tanggalLahir: '2001-11-30', status: 'BEKERJA' },
-      { id: 'ank-alm-226-2', nama: 'Tiara Maharani Purnama', tempatLahir: 'Jakarta', tanggalLahir: '2004-08-14', status: 'PELAJAR', biayaPendidikanTahunan: '> 25.000.000' },
-    ],
-  },
-  237: {
-    namaIstri: 'Ny. Dian Novita Iriyanto',
-    kontakIstri: '0811-9237-1996',
-    alamatKeluarga: 'Jakarta Selatan, DKI Jakarta',
-    daftarAnak: [
-      { id: 'ank-alm-237-1', nama: 'Bima Darmawan Iriyanto', tempatLahir: 'Jakarta', tanggalLahir: '2001-04-09', status: 'BEKERJA' },
-      { id: 'ank-alm-237-2', nama: 'Aurelia Putri Iriyanto', tempatLahir: 'Jakarta', tanggalLahir: '2005-06-23', status: 'PELAJAR', biayaPendidikanTahunan: '> 25.000.000' },
-    ],
-  },
-};
-
 const GOLONGAN_DARAH_ROTATION = ['O', 'A', 'B', 'AB'] as const;
 const UKURAN_BAJU_ROTATION = ['L', 'XL', 'L', 'XXL'] as const;
 const UKURAN_CELANA_ROTATION = ['33', '34', '35', '36'] as const;
 const UKURAN_SEPATU_ROTATION = ['41', '42', '43', '42'] as const;
+const KOMPI_ROTATION = ['KOMPI A', 'KOMPI B', 'KOMPI C', 'KOMPI D'] as const;
+const PLETON_ROTATION = ['PLETON 1', 'PLETON 2', 'PLETON 3'] as const;
 
 export const AKPOL_1996_MEMBERS: AnggotaWiraSatya[] = RAW_AKPOL_1996_ALUMNI.map((item) => {
   const legacyNrp = `7409${String(item.no).padStart(4, '0')}`;
@@ -500,8 +385,9 @@ export const AKPOL_1996_MEMBERS: AnggotaWiraSatya[] = RAW_AKPOL_1996_ALUMNI.map(
   const retirementCalc = calculateRetirement58(item.tanggalLahir, nrp);
   const tanggalLahir = item.tanggalLahir || retirementCalc.tanggalLahir || '1974-09-15';
   const statusKedinasan: StatusKedinasan = item.statusKedinasan || 'AKTIF';
-  const almFamily = statusKedinasan === 'ALMARHUM' ? ALMARHUM_FAMILY_DEFAULTS[item.no] : undefined;
   const rotIdx = item.no % 4;
+  const kompi = KOMPI_ROTATION[(item.no - 1) % 4];
+  const pleton = PLETON_ROTATION[(item.no - 1) % 3];
 
   return {
     id: `ws-${legacyNrp}`,
@@ -527,20 +413,23 @@ export const AKPOL_1996_MEMBERS: AnggotaWiraSatya[] = RAW_AKPOL_1996_ALUMNI.map(
     ukuranBaju: UKURAN_BAJU_ROTATION[rotIdx],
     ukuranCelana: UKURAN_CELANA_ROTATION[rotIdx],
     ukuranSepatu: UKURAN_SEPATU_ROTATION[rotIdx],
+    kompi,
+    pleton,
     fotoUrl: '/default-avatar.png',
-    alamatTempatTinggal: almFamily?.alamatKeluarga || item.polda,
+    alamatTempatTinggal: item.polda,
     statusTempatTinggal: 'MILIK PRIBADI',
     statusPerkawinan: 'MENIKAH',
-    namaIstri: almFamily?.namaIstri || '',
-    kontakIstri: almFamily?.kontakIstri || '',
-    jumlahAnak: almFamily ? almFamily.daftarAnak.length : 2,
-    daftarAnak: almFamily ? almFamily.daftarAnak : [],
+    namaIstri: '',
+    kontakIstri: '',
+    jumlahAnak: 0,
+    daftarAnak: [],
     tahunPurnaTugas: retirementCalc.tahunPurnaTugas,
     sisaTahunDinas: retirementCalc.sisaTahunDinas,
-    alamatPurnaTugas: almFamily?.alamatKeluarga || item.polda,
+    alamatPurnaTugas: item.polda,
     statusRumahPurnaTugas: 'MILIK PRIBADI',
     sudahPembekalan: 'SUDAH',
-    rencanaAktivitas: ['USAHA SENDIRI'],
+    rencanaAktivitas: ['USAHA BERSAMA / YAYASAN'],
+    kategoriUsaha: 'USAHA BERSAMA LETING',
     sumberPenghasilanPasca: ['DANA PENSIUN'],
     kecukupanDanaPensiun: 'CUKUP',
     kesiapanPensiun: 'SIAP',

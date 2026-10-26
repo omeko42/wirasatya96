@@ -336,6 +336,8 @@ export function getOrBuildUserProfile(
       ukuranBaju: existing.ukuranBaju || currentUser.ukuranBaju,
       ukuranCelana: existing.ukuranCelana || currentUser.ukuranCelana,
       ukuranSepatu: existing.ukuranSepatu || currentUser.ukuranSepatu,
+      kompi: existing.kompi || currentUser.kompi || 'KOMPI A',
+      pleton: existing.pleton || currentUser.pleton || 'PLETON 1',
       tanggalLahir: calc.tanggalLahir,
       usia: calc.usiaTahun,
       tahunPurnaTugas: calc.tahunPurnaTugas,

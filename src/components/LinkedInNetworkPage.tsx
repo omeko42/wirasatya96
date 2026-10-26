@@ -326,7 +326,13 @@ export const LinkedInNetworkPage: React.FC<LinkedInNetworkPageProps> = ({
                           {member.satuanKerja}
                         </p>
 
-                        <div className="mt-2 text-[10px] text-slate-400">
+                        <div className="mt-1.5 flex items-center justify-center">
+                          <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-900 border border-red-200 text-[9px] font-bold">
+                            {member.kompi || 'KOMPI A'} &bull; {member.pleton || 'PLETON 1'}
+                          </span>
+                        </div>
+
+                        <div className="mt-1.5 text-[10px] text-slate-400">
                           <span>Alumni Akpol 1996 &bull; Purna {member.tahunPurnaTugas}</span>
                         </div>
                       </div>
@@ -425,9 +431,14 @@ export const LinkedInNetworkPage: React.FC<LinkedInNetworkPageProps> = ({
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                              <span className="px-2 py-0.5 rounded bg-slate-800 text-amber-300 text-[9px] font-bold">
-                                🕊️ IN MEMORIAM • {member.pangkat}
-                              </span>
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <span className="px-2 py-0.5 rounded bg-slate-800 text-amber-300 text-[9px] font-bold">
+                                  🕊️ IN MEMORIAM • {member.pangkat}
+                                </span>
+                                <span className="px-2 py-0.5 rounded bg-red-50 text-red-900 border border-red-200 text-[9px] font-bold">
+                                  {member.kompi || 'KOMPI A'} &bull; {member.pleton || 'PLETON 1'}
+                                </span>
+                              </div>
                               <span className="text-[10px] font-mono text-slate-500">NRP {member.nrp}</span>
                             </div>
                             <h4
@@ -446,7 +457,17 @@ export const LinkedInNetworkPage: React.FC<LinkedInNetworkPageProps> = ({
                         {/* Ringkasan Keluarga (Istri & Anak) */}
                         <div className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200/80 text-[11px] space-y-1 text-left">
                           <p className="text-amber-950">
-                            <b>👩 Istri / Ahli Waris:</b> {member.namaIstri || 'Ny. Keluarga Almarhum'}
+                            <b>👩 Istri / Ahli Waris:</b>{' '}
+                            {member.namaIstri?.trim() ? (
+                              member.namaIstri
+                            ) : (
+                              <span
+                                onClick={() => onEditMember ? onEditMember(member) : onSelectMember(member)}
+                                className="text-amber-700 font-semibold italic underline cursor-pointer hover:text-red-800"
+                              >
+                                Belum Diisi — Klik untuk mendata Istri &amp; Anak
+                              </span>
+                            )}
                           </p>
                           <p className="text-slate-700">
                             <b>📞 Kontak Keluarga:</b> {kontakKeluarga || '-'}

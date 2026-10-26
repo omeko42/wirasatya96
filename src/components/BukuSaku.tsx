@@ -831,7 +831,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
           onUpdateMemberDirect(updated);
         }
         if (typeof window !== 'undefined' && updated.nrp === currentUser?.nrp) {
-          const nextUser: AuthUser = {
+          const nextUser: AuthUser & Record<string, unknown> = {
             ...currentUser,
             nama: updated.namaLengkap,
             pangkat: updated.pangkat,
@@ -842,6 +842,12 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
             polda: updated.polda,
             jabatanTerakhir: updated.jabatanTerakhir,
             statusKedinasan: updated.statusKedinasan || updated.statusDinas,
+            kompi: updated.kompi,
+            pleton: updated.pleton,
+            kategoriUsaha: updated.kategoriUsaha,
+            namaUsahaYayasan: updated.namaUsahaYayasan,
+            peranUsahaYayasan: updated.peranUsahaYayasan,
+            kesehatanLainLain: updated.kesehatanLainLain,
             email: updated.email || currentUser.email,
             secondaryEmail: updated.secondaryEmail,
             noHp: updated.noHp,

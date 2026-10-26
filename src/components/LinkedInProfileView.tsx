@@ -944,6 +944,9 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold border border-slate-200">
                       NRP {localMember.nrp}
                     </span>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-50 text-red-900 font-extrabold border border-red-200">
+                      🎖️ {localMember.kompi || 'KOMPI A'} &bull; {localMember.pleton || 'PLETON 1'}
+                    </span>
                     {(() => {
                       const st = detectStatusKedinasan(
                         localMember.statusKedinasan || localMember.statusDinas,
@@ -1386,6 +1389,9 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
             )}
 
             <div className="pt-2 flex flex-wrap gap-2 text-xs">
+              <span className="px-2.5 py-1 rounded-md bg-red-50 text-red-900 border border-red-200 font-extrabold">
+                🎖️ {localMember.kompi || 'KOMPI A'} &bull; {localMember.pleton || 'PLETON 1'}
+              </span>
               <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold">
                 🎓 {localMember.pendidikanTerakhir || 'Pendidikan Polri'}
               </span>
@@ -1674,6 +1680,12 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       <span className="text-slate-500 block">Catatan Medis &amp; Penanganan:</span>
                       <span className="font-semibold text-slate-800">{catatanMedisText}</span>
                     </div>
+                    <div className="sm:col-span-3 pt-1 border-t border-slate-200/70">
+                      <span className="text-slate-500 block">Keterangan Kesehatan Lain-lain:</span>
+                      <span className="font-semibold text-slate-800">
+                        {localMember.kesehatanLainLain || 'Tidak ada catatan khusus tambahan'}
+                      </span>
+                    </div>
                   </div>
                 </>
               );
@@ -1719,10 +1731,13 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                 (extPurna.estimasiTahunPensiun as number | string) ||
                 ret58.tahunPurnaTugas ||
                 localMember.tahunPurnaTugas;
+              const rawRencanaAktivitas = (localMember.rencanaAktivitas || []).map((a) =>
+                a === 'USAHA SENDIRI' ? 'USAHA BERSAMA / YAYASAN' : a
+              );
               const rencanaSetelahPensiun =
                 (extPurna.rencanaSetelahPensiun as string) ||
-                (localMember.rencanaAktivitas || []).join(', ') ||
-                'USAHA SENDIRI';
+                rawRencanaAktivitas.join(', ') ||
+                'USAHA BERSAMA / YAYASAN';
               const targetDomisiliParts = [
                 localMember.alamatPurnaTugas,
                 extPurna.kotaPurnaTugas as string,
@@ -1730,6 +1745,12 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
               ].filter(Boolean);
               const targetDomisiliText =
                 targetDomisiliParts.length > 0 ? targetDomisiliParts.join(', ') : '—';
+              const kategoriUsahaText =
+                localMember.kategoriUsaha || 'USAHA BERSAMA ANGKATAN / YAYASAN WIRA SATYA 96';
+              const namaUsahaYayasanText =
+                localMember.namaUsahaYayasan || 'Yayasan / Koperasi Wira Satya 96';
+              const peranUsahaYayasanText =
+                localMember.peranUsahaYayasan || 'Anggota / Mitra Usaha Bersama';
               const bidangUsahaText =
                 (extPurna.bidangUsaha as string) || localMember.jenisUsaha || '—';
               const jenisUsahaText = localMember.jenisUsaha || (extPurna.bidangUsaha as string) || '—';
@@ -1750,7 +1771,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                   <div className="flex items-center justify-between border-b pb-3 gap-2 flex-wrap">
                     <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                       <Home className="w-5 h-5 text-polri-goldDark" />
-                      Rencana Purna Tugas &amp; Kewirausahaan
+                      Rencana Purna Tugas &amp; Usaha Bersama / Yayasan
                     </h2>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
@@ -1763,7 +1784,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                           className="px-3 py-1 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-200 text-red-800 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
-                          <span>Edit Purna Tugas &amp; Usaha</span>
+                          <span>Edit Purna Tugas &amp; Usaha Bersama</span>
                         </button>
                       )}
                     </div>
@@ -1823,8 +1844,34 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                         )}
                       </div>
                     )}
+                    <div className="sm:col-span-2 p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <span className="text-amber-900 font-bold block text-[11px]">
+                          Kategori Usaha Bersama / Yayasan:
+                        </span>
+                        <span className="font-extrabold text-slate-900">
+                          {kategoriUsahaText}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-amber-900 font-bold block text-[11px]">
+                          Nama Unit Usaha Bersama / Yayasan:
+                        </span>
+                        <span className="font-bold text-slate-900">
+                          {namaUsahaYayasanText}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-amber-900 font-bold block text-[11px]">
+                          Peran / Partisipasi:
+                        </span>
+                        <span className="font-semibold text-slate-800">
+                          {peranUsahaYayasanText}
+                        </span>
+                      </div>
+                    </div>
                     <div>
-                      <span className="text-slate-500 block">Bidang &amp; Jenis Usaha:</span>
+                      <span className="text-slate-500 block">Bidang &amp; Jenis Usaha Bersama / Yayasan:</span>
                       <span className="font-bold text-slate-900">
                         {bidangUsahaText !== jenisUsahaText
                           ? `${bidangUsahaText} • ${jenisUsahaText}`
@@ -2034,6 +2081,15 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
               </span>
               <span className="font-bold text-slate-900">
                 {cleanJabatanOnly(localMember.jabatanTerakhir)} ({localMember.satuanKerja})
+              </span>
+            </div>
+
+            <div>
+              <span className="text-slate-500 block text-[11px]">
+                Kompi &amp; Pleton Pendidikan Akpol:
+              </span>
+              <span className="font-extrabold text-red-900">
+                {localMember.kompi || 'KOMPI A'} &bull; {localMember.pleton || 'PLETON 1'}
               </span>
             </div>
 
