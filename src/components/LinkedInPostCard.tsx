@@ -671,7 +671,8 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
 
           {showMoreMenu && (
             <div
-              className="absolute right-0 top-9 z-30 w-64 bg-white/98 backdrop-blur-md rounded-2xl shadow-[0_14px_38px_-6px_rgba(15,23,42,0.22)] border border-slate-200/90 p-2 text-xs text-slate-700 animate-fadeIn"
+              style={{ backgroundColor: '#ffffff' }}
+              className="absolute right-0 top-9 z-40 w-60 bg-white rounded-2xl shadow-2xl border border-slate-200 ring-1 ring-slate-900/5 p-2 text-xs text-slate-800 animate-fadeIn"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Quick-Action Pill Row (3 Tombol Cepat) */}
@@ -680,7 +681,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
                   <button
                     type="button"
                     onClick={handleStartEditPost}
-                    className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 transition-all cursor-pointer group"
+                    className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border border-slate-200/70 transition-all cursor-pointer group"
                   >
                     <Edit3 className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
                     <span className="text-[10px] font-bold">Edit</span>
@@ -689,7 +690,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
                   <button
                     type="button"
                     onClick={handleBookmark}
-                    className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-50 hover:bg-amber-50 hover:text-amber-800 text-slate-700 transition-all cursor-pointer group"
+                    className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-50 hover:bg-amber-50 hover:text-amber-800 text-slate-700 border border-slate-200/70 transition-all cursor-pointer group"
                   >
                     <Bookmark
                       className={`w-3.5 h-3.5 transition-transform group-hover:scale-110 ${
@@ -706,10 +707,10 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
                   <button
                     type="button"
                     onClick={handleTogglePinPost}
-                    className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl transition-all cursor-pointer group ${
+                    className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl border transition-all cursor-pointer group ${
                       isPostPinned
-                        ? 'bg-amber-100/80 text-amber-900'
-                        : 'bg-slate-50 hover:bg-amber-50 hover:text-amber-800 text-slate-700'
+                        ? 'bg-amber-50 text-amber-900 border-amber-300'
+                        : 'bg-slate-50 hover:bg-amber-50 hover:text-amber-800 text-slate-700 border-slate-200/70'
                     }`}
                   >
                     <Pin
@@ -725,7 +726,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
                   <button
                     type="button"
                     onClick={handleBookmark}
-                    className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-50 hover:bg-amber-50 hover:text-amber-800 text-slate-700 transition-all cursor-pointer group"
+                    className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-50 hover:bg-amber-50 hover:text-amber-800 text-slate-700 border border-slate-200/70 transition-all cursor-pointer group"
                   >
                     <Bookmark
                       className={`w-3.5 h-3.5 transition-transform group-hover:scale-110 ${
@@ -741,7 +742,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
                 <button
                   type="button"
                   onClick={handleCopyLink}
-                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 transition-all cursor-pointer group"
+                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 border border-slate-200/70 transition-all cursor-pointer group"
                 >
                   {isCopied ? (
                     <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -755,58 +756,13 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
               </div>
 
               {/* Action Items List */}
-              <div className="space-y-0.5">
-                {canManagePost && (
-                  <button
-                    type="button"
-                    onClick={handleStartEditPost}
-                    className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-slate-100/90 flex items-center gap-2.5 transition-all cursor-pointer group"
-                  >
-                    <span className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-slate-800 text-xs leading-tight">
-                        Edit Postingan
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate">
-                        Ubah teks, kategori, atau foto
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {isAdmin && onEditPost && (
-                  <button
-                    type="button"
-                    onClick={handleTogglePinPost}
-                    className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-slate-100/90 flex items-center gap-2.5 transition-all cursor-pointer group"
-                  >
-                    <span className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:bg-amber-100 transition-colors">
-                      <Pin className={`w-3.5 h-3.5 ${isPostPinned ? 'fill-amber-600' : ''}`} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-slate-800 text-xs leading-tight flex items-center gap-1.5">
-                        <span>{isPostPinned ? 'Lepas Sematan' : 'Sematkan di Atas'}</span>
-                        {isPostPinned && (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 font-extrabold">
-                            Aktif
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate">
-                        Tampilkan di urutan utama linimasa
-                      </div>
-                    </div>
-                  </button>
-                )}
-
+              <div className="space-y-1">
                 <button
                   type="button"
                   onClick={handleBookmark}
-                  className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-slate-100/90 flex items-center gap-2.5 transition-all cursor-pointer group"
+                  className="w-full px-2.5 py-2 rounded-xl text-left bg-white hover:bg-slate-50 flex items-center gap-2.5 transition-all cursor-pointer group"
                 >
-                  <span className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:bg-purple-100 transition-colors">
+                  <span className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 group-hover:bg-purple-100 transition-colors">
                     <Bookmark
                       className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-purple-600' : ''}`}
                     />
@@ -815,7 +771,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
                     <div className="font-bold text-slate-800 text-xs leading-tight">
                       {isBookmarked ? 'Hapus dari Simpanan' : 'Simpan Postingan'}
                     </div>
-                    <div className="text-[10px] text-slate-400 truncate">
+                    <div className="text-[10px] text-slate-500 truncate">
                       Simpan ke daftar markah pribadi
                     </div>
                   </div>
@@ -827,16 +783,16 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
                     setShowMoreMenu(false);
                     showToast('Laporan konten diterima oleh Pengurus.');
                   }}
-                  className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-slate-100/90 flex items-center gap-2.5 transition-all cursor-pointer group"
+                  className="w-full px-2.5 py-2 rounded-xl text-left bg-white hover:bg-slate-50 flex items-center gap-2.5 transition-all cursor-pointer group"
                 >
-                  <span className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-slate-200 transition-colors">
+                  <span className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 border border-slate-200/80 flex items-center justify-center shrink-0 group-hover:bg-slate-200 transition-colors">
                     <Flag className="w-3.5 h-3.5" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-slate-700 text-xs leading-tight">
+                    <div className="font-bold text-slate-800 text-xs leading-tight">
                       Laporkan Konten
                     </div>
-                    <div className="text-[10px] text-slate-400 truncate">
+                    <div className="text-[10px] text-slate-500 truncate">
                       Teruskan atensi ke Sekretariat
                     </div>
                   </div>
@@ -848,22 +804,22 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
                       <button
                         type="button"
                         onClick={() => setConfirmDeletePost(true)}
-                        className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-red-50 flex items-center gap-2.5 transition-all cursor-pointer group"
+                        className="w-full px-2.5 py-2 rounded-xl text-left bg-white hover:bg-red-50 flex items-center gap-2.5 transition-all cursor-pointer group"
                       >
-                        <span className="w-7 h-7 rounded-lg bg-red-50 text-red-600 flex items-center justify-center shrink-0 group-hover:bg-red-100 transition-colors">
+                        <span className="w-7 h-7 rounded-lg bg-red-50 text-red-600 border border-red-100 flex items-center justify-center shrink-0 group-hover:bg-red-100 transition-colors">
                           <Trash2 className="w-3.5 h-3.5" />
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="font-bold text-red-700 text-xs leading-tight">
                             Hapus Postingan
                           </div>
-                          <div className="text-[10px] text-red-400 truncate">
+                          <div className="text-[10px] text-red-500 truncate">
                             Hapus permanen dari linimasa
                           </div>
                         </div>
                       </button>
                     ) : (
-                      <div className="p-2.5 rounded-xl bg-red-50/90 border border-red-200 space-y-2 animate-fadeIn">
+                      <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 space-y-2 animate-fadeIn">
                         <div className="text-[11px] font-extrabold text-red-900 flex items-center justify-between">
                           <span>Hapus postingan ini?</span>
                         </div>
