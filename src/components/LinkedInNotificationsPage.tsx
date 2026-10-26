@@ -97,6 +97,13 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
     const items: NotificationItem[] = [];
     const readSet = new Set(readIds);
 
+    const stripTechNoise = (raw?: string): string =>
+      (raw || '')
+        .replace(/\[SIMULASI DUMMY\]\s*/gi, '')
+        .replace(/\[AKUN SIMULASI[^\]]*\]\s*/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
     // 0. Pending Verification Alert for Admin & Sekretaris
     if (
       (currentUser.role === 'SUPERADMIN' || currentUser.role === 'SEKRETARIAT') &&
@@ -107,7 +114,7 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
         id,
         type: 'SOCIAL',
         title: `Verifikasi Akun Baru (${pendingVerificationCount})`,
-        description: `${pendingVerificationCount} pendaftar menunggu persetujuan Admin / Sekretaris.`,
+        description: `${pendingVerificationCount} pendaftar baru menunggu persetujuan akun.`,
         timeAgo: 'Menunggu',
         isRead: readSet.has(id),
         avatarUrl: '/default-avatar.png',
@@ -128,7 +135,7 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
         id,
         type: 'SOCIAL',
         title: `Pesan Masuk dari ${msg.senderName}`,
-        description: `"${msg.text}"`,
+        description: `"${stripTechNoise(msg.text)}"`,
         timeAgo: msg.timestamp || 'Baru saja',
         isRead: Boolean(msg.isRead) || readSet.has(id),
         avatarUrl: getAvatarUrl(msg.senderAvatar),
@@ -154,13 +161,13 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
       const diagnosa =
         m.daftarPenyakit && m.daftarPenyakit.length > 0
           ? m.daftarPenyakit.join(', ')
-          : m.catatanMedis || 'Pemantauan kondisi medis rutin';
+          : m.kondisiSaatIni || m.catatanMedis || 'Pemantauan kondisi medis rutin';
       items.push({
         id,
         type: 'HEALTH',
-        title: `${isUrgent ? '🚨 Atensi Medis Khusus:' : '❤️ Pemantauan Kesehatan:'} ${m.namaLengkap}`,
-        description: `Status Kesehatan: ${m.kondisiKesehatan}. Diagnosa/Catatan: ${diagnosa} (${m.satuanKerja} - ${m.polda}).`,
-        timeAgo: 'Terpantau Satgas Kesehatan',
+        title: `${isUrgent ? '🚨 Info Peduli Kesehatan:' : '❤️ Pemantauan Kesehatan:'} ${m.pangkat ? m.pangkat + ' ' : ''}${m.namaLengkap}`,
+        description: `${stripTechNoise(diagnosa)}${m.kondisiSaatIni ? ` — ${stripTechNoise(m.kondisiSaatIni)}` : ''}.`,
+        timeAgo: 'Info Kesehatan Leting',
         isRead: readSet.has(id),
         avatarUrl: getAvatarUrl(m.fotoUrl),
         actionLabel: 'Lihat Profil & Rekam Medis',
@@ -172,11 +179,12 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
     transactions.slice(0, 8).forEach((trx) => {
       const id = `notif-trx-${trx.id}`;
       const isMasuk = trx.jenis === 'MASUK';
+      const cleanKet = stripTechNoise(trx.keterangan);
       items.push({
         id,
         type: 'TREASURY',
-        title: `${isMasuk ? '💰 Kas Masuk' : '📤 Pengeluaran Kas'}: ${formatRupiah(trx.nominal)}`,
-        description: `${trx.keterangan} — Ref: ${trx.nomorReferensi} (${trx.pihakTerkait || 'Bendahara WS96'}).`,
+        title: `${isMasuk ? '💰 Dana Sosial Masuk' : '🤝 Penyaluran Dana Sosial'}: ${formatRupiah(trx.nominal)}`,
+        description: `${cleanKet}.`,
         timeAgo: trx.tanggal,
         isRead: readSet.has(id),
         avatarUrl: '/default-avatar.png',
@@ -187,12 +195,13 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
 
     assets.slice(0, 3).forEach((ast) => {
       const id = `notif-ast-${ast.id}`;
+      const cleanNama = stripTechNoise(ast.namaAset);
       items.push({
         id,
         type: 'TREASURY',
-        title: `💎 Portofolio Aset Tercatat: ${ast.namaAset}`,
-        description: `Kategori ${ast.kategori} (${ast.jumlahUnit}) dengan estimasi valuasi ${formatRupiah(ast.estimasiNilaiIdr)} disimpan di ${ast.lokasiPenyimpanan}.`,
-        timeAgo: `Update: ${ast.updatedAt.split('T')[0]}`,
+        title: `💎 Aset Bersama WS96: ${cleanNama}`,
+        description: `${ast.keterangan ? stripTechNoise(ast.keterangan) : cleanNama} (Valuasi ${formatRupiah(ast.estimasiNilaiIdr)}).`,
+        timeAgo: ast.tanggalPerolehan || ast.updatedAt.split('T')[0],
         isRead: readSet.has(id),
         avatarUrl: '/default-avatar.png',
         actionLabel: 'Lihat Portofolio Aset',
@@ -203,12 +212,13 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
     // 4. Social Feed Posts & Comments (💬 Postingan)
     posts.slice(0, 8).forEach((post) => {
       const id = `notif-post-${post.id}`;
+      const cleanContent = stripTechNoise(post.content);
       items.push({
         id,
         type: 'SOCIAL',
-        title: `💬 Postingan: ${post.authorName}`,
+        title: `💬 Kabar Leting: ${post.authorName}`,
         description:
-          post.content.length > 140 ? `${post.content.slice(0, 140)}...` : post.content,
+          cleanContent.length > 140 ? `${cleanContent.slice(0, 140)}...` : cleanContent,
         timeAgo: post.createdAt,
         isRead: readSet.has(id),
         avatarUrl: getAvatarUrl(post.authorAvatar),

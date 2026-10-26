@@ -2073,9 +2073,29 @@ export default function Home() {
     return healthCount + verifCount + unreadMessagesCount;
   }, [members, currentUser.role, pendingVerificationCount, unreadMessagesCount]);
 
-  // Synchronized live notifications for the top running-text ticker
+  // Synchronized live notifications for the top running-text ticker (concise core news only, no technical clutter)
   const liveTickerNotifications = React.useMemo(() => {
     const items: { id: string; badge: string; text: string; onClick: () => void }[] = [];
+
+    const cleanNewsText = (raw?: string, maxLen = 78): string => {
+      if (!raw) return '';
+      const cleaned = raw
+        .replace(/\[SIMULASI DUMMY\]\s*/gi, '')
+        .replace(/\[AKUN SIMULASI[^\]]*\]\s*/gi, '')
+        .replace(/\(\d{4}-\d{2}-\d{2}\)/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (cleaned.length <= maxLen) return cleaned;
+      return `${cleaned.slice(0, maxLen).trim()}...`;
+    };
+
+    const formatReadableDisease = (raw: string): string => {
+      const base = raw.replace(/\s*\([^)]*\)/g, '').trim();
+      if (!base) return '';
+      return base
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+    };
 
     // 1. Pending Verification Alert for Admin & Sekretaris
     if (
@@ -2084,8 +2104,8 @@ export default function Home() {
     ) {
       items.push({
         id: `ticker-verif-${pendingVerificationCount}`,
-        badge: '[Verifikasi User]',
-        text: `${pendingVerificationCount} pendaftar baru menunggu persetujuan di menu User`,
+        badge: 'Verifikasi:',
+        text: `${pendingVerificationCount} akun rekan baru menunggu persetujuan`,
         onClick: () => {
           setViewingMember(null);
           setActiveTab('users');
@@ -2096,13 +2116,13 @@ export default function Home() {
     // 2. Incoming Direct Messages
     const incomingMsgs = messages
       .filter((m) => m.receiverNrp === currentUser.nrp)
-      .slice(-3)
+      .slice(-2)
       .reverse();
     incomingMsgs.forEach((msg) => {
       items.push({
         id: `ticker-msg-${msg.id}`,
-        badge: `[Pesan Masuk • ${msg.senderName}]`,
-        text: `"${msg.text}"`,
+        badge: `Pesan ${msg.senderName}:`,
+        text: `"${cleanNewsText(msg.text, 60)}"`,
         onClick: () => {
           setViewingMember(null);
           setActiveTab('pesan');
@@ -2110,7 +2130,7 @@ export default function Home() {
       });
     });
 
-    // 3. Health Attention Alerts
+    // 3. Health Attention Alerts (Core news only, no technical codes/parentheses)
     const healthMembers = members.filter(
       (m) =>
         !isSuperadminAccount(m.nrp, (m as { role?: string }).role) &&
@@ -2119,15 +2139,21 @@ export default function Home() {
           m.adaPenyakitKronis === 'ADA' ||
           (m.daftarPenyakit && m.daftarPenyakit.length > 0))
     );
-    healthMembers.forEach((m) => {
-      const diagnosa =
-        m.daftarPenyakit && m.daftarPenyakit.length > 0
-          ? m.daftarPenyakit.join(', ')
-          : m.kondisiKesehatan;
+    healthMembers.slice(0, 3).forEach((m) => {
+      const cleanList = (m.daftarPenyakit || [])
+        .map(formatReadableDisease)
+        .filter(Boolean)
+        .slice(0, 2);
+      const intiKondisi =
+        cleanList.length > 0
+          ? cleanList.join(' & ')
+          : m.kondisiSaatIni
+          ? cleanNewsText(m.kondisiSaatIni, 45)
+          : 'Pemulihan kesehatan';
       items.push({
         id: `ticker-health-${m.nrp}`,
-        badge: '[Atensi Kesehatan]',
-        text: `${m.namaLengkap} (${m.polda}) — ${diagnosa}`,
+        badge: 'Peduli Leting:',
+        text: `Mohon doa & dukungan kesembuhan untuk ${m.pangkat ? m.pangkat + ' ' : ''}${m.namaLengkap} (${intiKondisi})`,
         onClick: () => {
           setViewingMember(null);
           setActiveTab('notifikasi');
@@ -2135,17 +2161,14 @@ export default function Home() {
       });
     });
 
-    // 4. Recent Treasury Cashflow Transactions
-    transactions.slice(0, 4).forEach((trx) => {
-      const rp = new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-      }).format(trx.nominal || 0);
+    // 4. Recent Social Fund / Treasury News (Headline only, no nominal prefixes or ISO dates)
+    transactions.slice(0, 3).forEach((trx) => {
+      const headline = cleanNewsText(trx.keterangan, 75);
+      if (!headline) return;
       items.push({
         id: `ticker-trx-${trx.id}`,
-        badge: trx.jenis === 'MASUK' ? '[Kas Masuk]' : '[Kas Keluar]',
-        text: `${rp} — ${trx.keterangan} (${trx.tanggal})`,
+        badge: 'Dana Sosial:',
+        text: headline,
         onClick: () => {
           setViewingMember(null);
           setActiveTab('bendahara');
@@ -2153,25 +2176,42 @@ export default function Home() {
       });
     });
 
-    // 5. Recent Portfolio Assets
-    assets.slice(0, 2).forEach((ast) => {
-      items.push({
-        id: `ticker-ast-${ast.id}`,
-        badge: '[Portofolio Aset]',
-        text: `${ast.namaAset} (${ast.jumlahUnit} ${ast.satuan})`,
-        onClick: () => {
-          setViewingMember(null);
-          setActiveTab('bendahara');
-        },
-      });
+    // 5. Open Job Vacancies from Leting Businesses (Core news for leting families)
+    const membersWithLoker = members.filter(
+      (m) =>
+        !isSuperadminAccount(m.nrp, (m as { role?: string }).role) &&
+        m.bukaLowonganKerja === 'YA' &&
+        Array.isArray(m.daftarLowonganUsaha) &&
+        m.daftarLowonganUsaha.some((l) => l.statusLowongan !== 'TUTUP')
+    );
+    membersWithLoker.slice(0, 2).forEach((m) => {
+      const openPositions = (m.daftarLowonganUsaha || [])
+        .filter((l) => l.statusLowongan !== 'TUTUP')
+        .map((l) => l.posisi)
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(' & ');
+      const unitName = cleanNewsText(m.namaUsahaYayasan || m.jenisUsaha || 'Unit Usaha Leting', 45);
+      if (openPositions) {
+        items.push({
+          id: `ticker-loker-${m.nrp}`,
+          badge: 'Info Lowongan:',
+          text: `${unitName} membuka posisi ${openPositions} bagi putra-putri WS96`,
+          onClick: () => {
+            setViewingMember(null);
+            setActiveTab('dashboard');
+          },
+        });
+      }
     });
 
-    // 6. Recent Feed Posts
-    posts.slice(0, 3).forEach((post) => {
-      const snippet = post.content.length > 70 ? `${post.content.slice(0, 70)}...` : post.content;
+    // 6. Recent Feed Posts (Clean core summary)
+    posts.slice(0, 2).forEach((post) => {
+      const snippet = cleanNewsText(post.content, 68);
+      if (!snippet) return;
       items.push({
         id: `ticker-post-${post.id}`,
-        badge: `[Linimasa • ${post.authorName}]`,
+        badge: `Kabar ${post.authorName}:`,
         text: snippet,
         onClick: () => {
           setViewingMember(null);
@@ -2183,8 +2223,8 @@ export default function Home() {
     if (items.length === 0) {
       items.push({
         id: 'ticker-empty',
-        badge: '[Notifikasi]',
-        text: 'Belum ada notifikasi baru saat ini — Klik untuk membuka pusat Notifikasi',
+        badge: 'Info WS96:',
+        text: 'Belum ada siaran kabar terbaru saat ini',
         onClick: () => {
           setViewingMember(null);
           setActiveTab('notifikasi');
@@ -2200,7 +2240,6 @@ export default function Home() {
     messages,
     members,
     transactions,
-    assets,
     posts,
   ]);
 
@@ -2356,18 +2395,23 @@ export default function Home() {
 
           {/* Right: Synchronized Notification Running Text */}
           <div className="flex-1 overflow-hidden relative">
-            <div className="ws96-marquee items-center gap-8 whitespace-nowrap">
+            <div
+              className="ws96-marquee items-center gap-10 whitespace-nowrap"
+              style={{
+                animationDuration: `${Math.max(70, liveTickerNotifications.length * 14)}s`,
+              }}
+            >
               {[...liveTickerNotifications, ...liveTickerNotifications].map((item, idx) => (
                 <button
                   key={`${item.id}-${idx}`}
                   type="button"
                   onClick={item.onClick}
                   className="inline-flex items-center gap-1.5 text-slate-200 hover:text-amber-300 transition-colors cursor-pointer text-[11px]"
-                  title="Klik untuk membuka detail notifikasi"
+                  title="Klik untuk membuka berita terkait"
                 >
-                  <span className="font-bold text-amber-300">{item.badge}</span>
+                  <span className="font-bold text-amber-300/95">{item.badge}</span>
                   <span>{item.text}</span>
-                  <span className="text-red-400/50 mx-3 select-none">&bull;</span>
+                  <span className="text-slate-500 mx-3 select-none">&bull;</span>
                 </button>
               ))}
             </div>

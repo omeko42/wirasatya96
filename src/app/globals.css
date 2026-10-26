@@ -44,7 +44,8 @@ body {
 .ws96-marquee {
   display: inline-flex;
   width: max-content;
-  animation: ws96Marquee 32s linear infinite;
+  animation: ws96Marquee 80s linear infinite;
+  will-change: transform;
 }
 
 .ws96-marquee:hover {
