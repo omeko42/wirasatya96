@@ -87,10 +87,20 @@ export interface AuthUser {
 export interface Anak {
   id: string;
   nama: string;
+  jenisKelamin?: 'L' | 'P';
   tempatLahir: string;
   tanggalLahir: string;
   status: 'PELAJAR' | 'BEKERJA' | 'BELUM BEKERJA';
+  institusi?: string;
   biayaPendidikanTahunan?: '< 5.000.000' | '5.000.000 S.D. 25.000.000' | '> 25.000.000';
+}
+
+export interface RiwayatPenyakitItem {
+  id: string;
+  namaPenyakit: string;
+  sejakKapan?: string;
+  statusPenyakit?: 'TERKONTROL' | 'TERAPI_RUTIN' | 'PEMULIHAN' | 'ATENSI_KHUSUS' | 'RIWAYAT_SEMBUH';
+  terapiObat?: string;
 }
 
 export interface AdcPersonel {
@@ -236,6 +246,7 @@ export interface AnggotaWiraSatya {
   adaPenyakitKronis: 'ADA' | 'TIDAK ADA';
   kondisiKesehatan: 'SANGAT BAIK' | 'BAIK' | 'CUKUP' | 'PERLU PERHATIAN KHUSUS' | 'SAKIT';
   daftarPenyakit?: string[];
+  riwayatPenyakitDetail?: RiwayatPenyakitItem[];
   lamaMenderita?: string;
   kondisiSaatIni?: string;
   penangananPengobatan?: string;
@@ -243,6 +254,9 @@ export interface AnggotaWiraSatya {
   asuransiAktif: ('ASURANSI KESEHATAN' | 'ASURANSI JIWA' | 'BPJS' | 'TIDAK ADA')[];
   rutinMcu: 'YA' | 'TIDAK';
   mcuTerakhir?: '< 6 BULAN' | '6-12 BULAN' | '> 1 TAHUN';
+  waktuMcuTerakhir?: string;
+  sejakKapanUsaha?: string;
+  sejakKapanSewa?: string;
   kebutuhanPersiapanKesehatan?: string[];
   harapanLayananKesehatan?: string;
   harapanDukunganLeting?: string;

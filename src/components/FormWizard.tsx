@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AnggotaWiraSatya, Anak, AdcPersonel, AuthUser, LowonganUsahaItem, DAFTAR_PANGKAT_POLRI } from '@/types';
+import {
+  AnggotaWiraSatya,
+  Anak,
+  AdcPersonel,
+  AuthUser,
+  LowonganUsahaItem,
+  RiwayatPenyakitItem,
+  DAFTAR_PANGKAT_POLRI,
+} from '@/types';
 import {
   getAvatarUrl,
   getCoverUrl,
@@ -49,6 +57,10 @@ import {
   AlertCircle,
   Eye,
   Layers,
+  HeartPulse,
+  Stethoscope,
+  GraduationCap,
+  Briefcase,
 } from 'lucide-react';
 import { processSecureImageUpload } from '@/lib/mediaSecurity';
 
@@ -80,7 +92,6 @@ export type SubSectionId =
   | '2A'
   | '2B'
   | '2C'
-  | '2D'
   | '3A'
   | '3B'
   | '3C'
@@ -284,9 +295,9 @@ const TAB_CONFIG: {
   },
   {
     num: 2,
-    title: 'Domisili & Keluarga',
-    shortTitle: 'Keluarga',
-    subSections: ['2A', '2B', '2C', '2D'],
+    title: 'Domisili & Keluarga Inti',
+    shortTitle: 'Keluarga Inti',
+    subSections: ['2A', '2B', '2C'],
     icon: Users,
   },
   {
@@ -311,6 +322,298 @@ const TAB_CONFIG: {
     icon: Shirt,
   },
 ];
+
+const BULAN_INDO_LIST = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+] as const;
+
+const PRESET_PENYAKIT_CEPAT = [
+  'HIPERTENSI (TEKANAN DARAH TINGGI)',
+  'DIABETES MILITUS',
+  'PENYAKIT JANTUNG',
+  'KOLESTEROL TINGGI',
+  'ASAM URAT',
+  'NYERI PINGGANG DAN LUTUT',
+  'OSTEOARTITIS (PENGAPURAN SENDI)',
+  'GANGGUAN PROSTAT',
+  'STROKE',
+  'PENYAKIT GINJAL',
+  'PENYAKIT LIVER',
+  'GERD / ASAM LAMBUNG',
+] as const;
+
+export function parseDiseaseListToDetail(
+  existingDetail?: RiwayatPenyakitItem[],
+  daftarPenyakit?: string[],
+  defaultSejak?: string,
+  defaultTerapi?: string
+): RiwayatPenyakitItem[] {
+  if (Array.isArray(existingDetail) && existingDetail.length > 0) {
+    return existingDetail;
+  }
+  if (!Array.isArray(daftarPenyakit) || daftarPenyakit.length === 0) {
+    return [];
+  }
+  return daftarPenyakit
+    .map((raw, idx) => {
+      const clean = (raw || '').trim();
+      if (!clean) return null;
+      const matchSejak = clean.match(/^(.*?)\s*\(\s*[Ss]ejak\s+([^)]+)\)\s*$/);
+      const namaPenyakit = matchSejak ? matchSejak[1].trim() : clean;
+      const sejakKapan = matchSejak ? matchSejak[2].trim() : defaultSejak || '';
+      return {
+        id: `penyakit-init-${idx}-${Date.now()}`,
+        namaPenyakit,
+        sejakKapan,
+        statusPenyakit: 'TERKONTROL' as const,
+        terapiObat: idx === 0 && defaultTerapi ? defaultTerapi : '',
+      };
+    })
+    .filter(Boolean) as RiwayatPenyakitItem[];
+}
+
+export function formatDetailToDiseaseList(items?: RiwayatPenyakitItem[]): string[] {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((it) => {
+      const nama = (it.namaPenyakit || '').trim().toUpperCase();
+      if (!nama) return '';
+      const sejak = (it.sejakKapan || '').trim();
+      return sejak ? `${nama} (Sejak ${sejak})` : nama;
+    })
+    .filter(Boolean);
+}
+
+/**
+ * Compact label with optional icon, required star, and hover/tap tooltip so UI stays concise.
+ */
+const LabelWithTooltip: React.FC<{
+  label: string;
+  required?: boolean;
+  tooltip?: string;
+  icon?: React.ReactNode;
+  badge?: React.ReactNode;
+  className?: string;
+}> = ({ label, required, tooltip, icon, badge, className = '' }) => (
+  <div className={`flex items-center justify-between gap-1.5 mb-1 ${className}`}>
+    <label className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-slate-700 leading-tight">
+      {icon && <span className="text-polri-navy/80 shrink-0">{icon}</span>}
+      <span>{label}</span>
+      {required && <span className="text-red-500">*</span>}
+      {tooltip && (
+        <span className="relative group inline-flex items-center cursor-help ml-0.5" tabIndex={0}>
+          <Info className="w-3.5 h-3.5 text-slate-400 hover:text-polri-navy transition-colors" />
+          <span className="pointer-events-none opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-150 absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-56 sm:w-64 p-2 rounded-lg bg-slate-900 text-white text-[10px] font-medium leading-relaxed shadow-xl z-50 border border-slate-700">
+            {tooltip}
+          </span>
+        </span>
+      )}
+    </label>
+    {badge && <div className="shrink-0">{badge}</div>}
+  </div>
+);
+
+/**
+ * Flexible Date/Period Input: allows Tahun Saja (e.g. "2021"), Bulan & Tahun (e.g. "Mei 2022"), or Tanggal Lengkap ("2023-05-14").
+ */
+const FlexiblePeriodInput: React.FC<{
+  value: string;
+  onChange: (val: string) => void;
+  defaultMode?: 'YEAR' | 'MONTH_YEAR' | 'FULL_DATE';
+  minYear?: number;
+  maxYear?: number;
+  placeholder?: string;
+  compact?: boolean;
+}> = ({
+  value,
+  onChange,
+  defaultMode = 'MONTH_YEAR',
+  minYear = 1950,
+  maxYear = new Date().getFullYear() + 5,
+  placeholder = 'Pilih waktu...',
+  compact = false,
+}) => {
+  const detectMode = (v: string): 'YEAR' | 'MONTH_YEAR' | 'FULL_DATE' => {
+    const t = (v || '').trim();
+    if (!t) return defaultMode;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return 'FULL_DATE';
+    if (/^\d{4}$/.test(t) || /^Tahun\s+\d{4}$/i.test(t)) return 'YEAR';
+    return 'MONTH_YEAR';
+  };
+
+  const [mode, setMode] = useState<'YEAR' | 'MONTH_YEAR' | 'FULL_DATE'>(() => detectMode(value));
+
+  const parsedParts = React.useMemo(() => {
+    const t = (value || '').trim();
+    const curYearStr = String(new Date().getFullYear());
+    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) {
+      const [y, m, d] = t.split('-');
+      const mIdx = Math.max(0, Math.min(11, (parseInt(m, 10) || 1) - 1));
+      return { year: y, monthName: BULAN_INDO_LIST[mIdx], monthNum: m, day: d, isoDate: t };
+    }
+    if (/^\d{4}-\d{2}$/.test(t)) {
+      const [y, m] = t.split('-');
+      const mIdx = Math.max(0, Math.min(11, (parseInt(m, 10) || 1) - 1));
+      return {
+        year: y,
+        monthName: BULAN_INDO_LIST[mIdx],
+        monthNum: m,
+        day: '01',
+        isoDate: `${y}-${m}-01`,
+      };
+    }
+    const yearMatch = t.match(/\b(19\d{2}|20\d{2})\b/);
+    const year = yearMatch ? yearMatch[1] : '';
+    const lower = t.toLowerCase();
+    const foundMonthIdx = BULAN_INDO_LIST.findIndex((b) => lower.includes(b.toLowerCase()));
+    const monthName = foundMonthIdx >= 0 ? BULAN_INDO_LIST[foundMonthIdx] : 'Januari';
+    const monthNum = foundMonthIdx >= 0 ? String(foundMonthIdx + 1).padStart(2, '0') : '01';
+    return {
+      year,
+      monthName,
+      monthNum,
+      day: '01',
+      isoDate: year ? `${year}-${monthNum}-01` : `${curYearStr}-01-01`,
+    };
+  }, [value]);
+
+  const years = React.useMemo(() => {
+    const arr: string[] = [];
+    for (let y = maxYear; y >= minYear; y--) {
+      arr.push(String(y));
+    }
+    return arr;
+  }, [minYear, maxYear]);
+
+  const handleSwitchMode = (nextMode: 'YEAR' | 'MONTH_YEAR' | 'FULL_DATE') => {
+    setMode(nextMode);
+    if (!value?.trim()) return;
+    const yr = parsedParts.year || String(new Date().getFullYear());
+    if (nextMode === 'YEAR') {
+      onChange(yr);
+    } else if (nextMode === 'MONTH_YEAR') {
+      onChange(`${parsedParts.monthName} ${yr}`);
+    } else {
+      onChange(parsedParts.isoDate);
+    }
+  };
+
+  const padCls = compact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-2 text-xs sm:text-sm';
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1">
+        {mode === 'YEAR' && (
+          <select
+            value={parsedParts.year || ''}
+            onChange={(e) => onChange(e.target.value)}
+            className={`w-full rounded-lg border border-slate-300 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-polri-navy ${padCls}`}
+          >
+            <option value="">{placeholder} (Tahun)</option>
+            {years.map((y) => (
+              <option key={y} value={y}>
+                Tahun {y}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {mode === 'MONTH_YEAR' && (
+          <div className="grid grid-cols-2 gap-1.5 w-full">
+            <select
+              value={parsedParts.year ? parsedParts.monthName : ''}
+              onChange={(e) => {
+                const mName = e.target.value || 'Januari';
+                const yr = parsedParts.year || String(new Date().getFullYear());
+                onChange(`${mName} ${yr}`);
+              }}
+              className={`w-full rounded-lg border border-slate-300 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-polri-navy ${padCls}`}
+            >
+              <option value="" disabled>
+                Bulan
+              </option>
+              {BULAN_INDO_LIST.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+            <select
+              value={parsedParts.year || ''}
+              onChange={(e) => {
+                const yr = e.target.value;
+                if (!yr) {
+                  onChange('');
+                } else {
+                  onChange(`${parsedParts.monthName || 'Januari'} ${yr}`);
+                }
+              }}
+              className={`w-full rounded-lg border border-slate-300 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-polri-navy ${padCls}`}
+            >
+              <option value="">Tahun</option>
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {mode === 'FULL_DATE' && (
+          <input
+            type="date"
+            value={/^\d{4}-\d{2}-\d{2}$/.test(value || '') ? value : parsedParts.isoDate}
+            onChange={(e) => onChange(e.target.value)}
+            className={`w-full rounded-lg border border-slate-300 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-polri-navy ${padCls}`}
+          />
+        )}
+      </div>
+
+      {/* Mode Switcher Pills: Tahun Saja | Bulan & Tahun | Tanggal Lengkap */}
+      <div className="flex items-center justify-between gap-1">
+        <div className="inline-flex items-center rounded-md bg-slate-100 p-0.5 border border-slate-200">
+          {(
+            [
+              { id: 'YEAR', label: 'Tahun' },
+              { id: 'MONTH_YEAR', label: 'Bln & Thn' },
+              { id: 'FULL_DATE', label: 'Tgl Lengkap' },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => handleSwitchMode(opt.id)}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                mode === opt.id
+                  ? 'bg-polri-navy text-polri-gold shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {value && (
+          <span className="text-[10px] font-bold text-emerald-700 truncate max-w-[110px]">
+            {value}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export const FormWizard: React.FC<FormWizardProps> = ({
   onSave,
@@ -347,7 +650,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   const [avatarCleared, setAvatarCleared] = useState(false);
   const [isExternalJabatan, setIsExternalJabatan] = useState(false);
 
-  // Accordion state for sub-sections (1A-1E, 2A-2D, 3A-3C, 4A-4C, 5A) — Default tertutup semua agar ringkas & rapi
+  // Accordion state for sub-sections (1A-1E, 2A-2C, 3A-3C, 4A-4C, 5A) — Default tertutup semua agar ringkas & rapi
   const [expandedSections, setExpandedSections] = useState<Record<SubSectionId, boolean>>({
     '1A': false,
     '1B': false,
@@ -357,7 +660,6 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     '2A': false,
     '2B': false,
     '2C': false,
-    '2D': false,
     '3A': false,
     '3B': false,
     '3C': false,
@@ -482,9 +784,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     adaPenyakitKronis: 'TIDAK ADA',
     kondisiKesehatan: 'BAIK',
     daftarPenyakit: [],
+    riwayatPenyakitDetail: [],
     asuransiAktif: ['BPJS'],
     rutinMcu: 'YA',
     mcuTerakhir: '< 6 BULAN',
+    waktuMcuTerakhir: '',
+    sejakKapanUsaha: '',
+    sejakKapanSewa: '',
     kesehatanLainLain: '',
   });
 
@@ -512,7 +818,6 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       '2A': false,
       '2B': false,
       '2C': false,
-      '2D': false,
       '3A': false,
       '3B': false,
       '3C': false,
@@ -564,6 +869,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         existingMember.rencanaAktivitas && existingMember.rencanaAktivitas.length > 0
           ? existingMember.rencanaAktivitas
           : ['USAHA SENDIRI'];
+
+      const hydratedPenyakitDetail = parseDiseaseListToDetail(
+        existingMember.riwayatPenyakitDetail,
+        existingMember.daftarPenyakit,
+        existingMember.lamaMenderita,
+        existingMember.penangananPengobatan
+      );
 
       setFormData({
         ...existingMember,
@@ -620,6 +932,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         pekerjaanIstri: existingMember.pekerjaanIstri || '',
         biayaSewaTempatTinggal: existingMember.biayaSewaTempatTinggal || '',
         detailSewaTempatTinggal: existingMember.detailSewaTempatTinggal || '',
+        sejakKapanSewa: existingMember.sejakKapanSewa || '',
         biayaSewaTahunan: existingMember.biayaSewaTahunan || '',
         detailSewaPurnaTugas: existingMember.detailSewaPurnaTugas || '',
         rencanaAktivitas: normalizedRencanaAktivitas,
@@ -627,11 +940,15 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         namaUsahaYayasan: existingMember.namaUsahaYayasan || '',
         peranUsahaYayasan: existingMember.peranUsahaYayasan || 'PEMILIK / FOUNDER USAHA',
         lokasiUsaha: existingMember.lokasiUsaha || '',
+        sejakKapanUsaha: existingMember.sejakKapanUsaha || '',
         bidangKeahlianPensiun: existingMember.bidangKeahlianPensiun || '',
         bukaLowonganKerja:
           existingMember.bukaLowonganKerja ||
           ((existingMember.daftarLowonganUsaha?.length || 0) > 0 ? 'YA' : 'TIDAK'),
         daftarLowonganUsaha: existingMember.daftarLowonganUsaha || [],
+        riwayatPenyakitDetail: hydratedPenyakitDetail,
+        daftarPenyakit: formatDetailToDiseaseList(hydratedPenyakitDetail),
+        waktuMcuTerakhir: existingMember.waktuMcuTerakhir || '',
         kesehatanLainLain: existingMember.kesehatanLainLain || '',
         namaAdc: existingMember.namaAdc || firstAdc?.nama || '',
         pangkatAdc: existingMember.pangkatAdc || firstAdc?.pangkat || 'Briptu',
@@ -658,14 +975,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           (existingMember.nrp === '98010710' ? 'superadmin@example.com' : ''),
         bio: existingMember.bio || (isSelf ? activeUser.bio : '') || '',
       });
-
-      // Extract any custom diseases not in DAFTAR_PENYAKIT
-      if (existingMember.daftarPenyakit && existingMember.daftarPenyakit.length > 0) {
-        const custom = existingMember.daftarPenyakit.filter((p) => !DAFTAR_PENYAKIT.includes(p));
-        setPenyakitLainnya(custom.length > 0 ? custom.join(', ') : '');
-      } else {
-        setPenyakitLainnya('');
-      }
+      setPenyakitLainnya('');
     } else if (activeUser.role === 'ANGGOTA') {
       const resolvedKind = resolveDefaultJenisAnggota(undefined, activeUser);
       const calc58 = calculateRetirement58(undefined, activeUser.nrp);
@@ -888,9 +1198,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     const newChild: Anak = {
       id: Date.now().toString(),
       nama: '',
+      jenisKelamin: 'L',
       tempatLahir: '',
       tanggalLahir: '',
       status: 'PELAJAR',
+      institusi: '',
       biayaPendidikanTahunan: '5.000.000 S.D. 25.000.000',
     };
     setFormData((prev) => ({
@@ -964,17 +1276,58 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     });
   };
 
-  const handleToggleDisease = (disease: string) => {
+  // Repeatable Riwayat Penyakit / Diagnosa handlers (like Tambah Anak)
+  const handleAddPenyakit = (presetNama?: string) => {
     if (errorMsg) setErrorMsg(null);
+    const newItem: RiwayatPenyakitItem = {
+      id: 'penyakit-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      namaPenyakit: presetNama || '',
+      sejakKapan: String(new Date().getFullYear() - 1),
+      statusPenyakit: 'TERKONTROL',
+      terapiObat: '',
+    };
     setFormData((prev) => {
-      const current = prev.daftarPenyakit || [];
-      const updated = current.includes(disease)
-        ? current.filter((d) => d !== disease)
-        : [...current, disease];
+      const nextDetail = [...(prev.riwayatPenyakitDetail || []), newItem];
       return {
         ...prev,
-        daftarPenyakit: updated,
-        adaPenyakitKronis: updated.length > 0 ? 'ADA' : prev.adaPenyakitKronis,
+        adaPenyakitKronis: 'ADA',
+        riwayatPenyakitDetail: nextDetail,
+        daftarPenyakit: formatDetailToDiseaseList(nextDetail),
+      };
+    });
+    setExpandedSections((prev) => ({ ...prev, '4B': true }));
+  };
+
+  const handleRemovePenyakit = (index: number) => {
+    if (errorMsg) setErrorMsg(null);
+    setFormData((prev) => {
+      const nextDetail = [...(prev.riwayatPenyakitDetail || [])];
+      nextDetail.splice(index, 1);
+      const nextStrings = formatDetailToDiseaseList(nextDetail);
+      return {
+        ...prev,
+        riwayatPenyakitDetail: nextDetail,
+        daftarPenyakit: nextStrings,
+        adaPenyakitKronis: nextDetail.length > 0 ? 'ADA' : 'TIDAK ADA',
+      };
+    });
+  };
+
+  const handleUpdatePenyakit = (
+    index: number,
+    field: keyof RiwayatPenyakitItem,
+    value: string
+  ) => {
+    if (errorMsg) setErrorMsg(null);
+    setFormData((prev) => {
+      const nextDetail = [...(prev.riwayatPenyakitDetail || [])];
+      if (!nextDetail[index]) return prev;
+      nextDetail[index] = { ...nextDetail[index], [field]: value };
+      return {
+        ...prev,
+        riwayatPenyakitDetail: nextDetail,
+        daftarPenyakit: formatDetailToDiseaseList(nextDetail),
+        adaPenyakitKronis: nextDetail.length > 0 ? 'ADA' : prev.adaPenyakitKronis,
       };
     });
   };
@@ -1051,6 +1404,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     const anakNames = (formData.daftarAnak || [])
       .map((a) => a.nama?.trim())
       .filter(Boolean);
+    const penyakitCount = (formData.riwayatPenyakitDetail || []).filter((p) =>
+      p.namaPenyakit?.trim()
+    ).length;
 
     const list: {
       id: SubSectionId;
@@ -1156,25 +1512,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '2C',
         tab: 2,
-        title: 'Data Putra-Putri (Anak)',
-        shortTitle: '2C. Data Anak',
+        title: 'Putra-Putri (Anak 1 Garis Keturunan)',
+        shortTitle: '2C. Putra-Putri (Anak)',
         existingDetail: `${formData.daftarAnak?.length || 0} Anak${
           anakNames.length > 0 ? ` (${anakNames.join(', ')})` : ''
         }`,
-        isComplete: (formData.daftarAnak?.length || 0) > 0 && anakNames.length === (formData.daftarAnak?.length || 0),
-      },
-      {
-        id: '2D',
-        tab: 2,
-        title: 'Tanggungan Keluarga Lain',
-        shortTitle: '2D. Tanggungan Lain',
-        existingDetail:
-          (formData.tanggunganLain?.jumlah || 0) > 0
-            ? `${formData.tanggunganLain?.jumlah} Orang (${
-                formData.tanggunganLain?.rincian || 'Keluarga'
-              })`
-            : 'Tidak ada tanggungan tambahan',
-        isComplete: true,
+        isComplete:
+          (formData.daftarAnak?.length || 0) === 0 ||
+          anakNames.length === (formData.daftarAnak?.length || 0),
       },
       {
         id: '3A',
@@ -1244,11 +1589,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         shortTitle: '4B. Riwayat Penyakit',
         existingDetail: `Kondisi: ${formData.kondisiKesehatan || 'BAIK'} • Kronis: ${
           formData.adaPenyakitKronis || 'TIDAK ADA'
-        }${
-          (formData.daftarPenyakit?.length || 0) > 0
-            ? ` (${formData.daftarPenyakit?.length} diagnosa)`
-            : ''
-        }`,
+        }${penyakitCount > 0 ? ` (${penyakitCount} diagnosa)` : ''}`,
         isComplete: Boolean(formData.kondisiKesehatan && formData.adaPenyakitKronis),
       },
       {
@@ -1364,20 +1705,30 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     }
 
     if (tabNum === 4) {
-      const hasCheckedDisease = (formData.daftarPenyakit?.length || 0) > 0;
-      const hasCustomDisease = penyakitLainnya.trim().length > 0;
+      const validPenyakitItems = (formData.riwayatPenyakitDetail || []).filter((p) =>
+        p.namaPenyakit?.trim()
+      );
+      if (Array.isArray(formData.riwayatPenyakitDetail) && formData.riwayatPenyakitDetail.length > 0) {
+        const emptyIdx = formData.riwayatPenyakitDetail.findIndex((p) => !p.namaPenyakit?.trim());
+        if (emptyIdx >= 0) {
+          setExpandedSections((prev) => ({ ...prev, '4B': true }));
+          setErrorMsg(
+            `Mohon isi Nama Penyakit / Diagnosa ke-${emptyIdx + 1} pada Sub-bagian 4B, atau hapus baris yang kosong.`
+          );
+          return false;
+        }
+      }
       const hasMedicalNote = Boolean(
         formData.kondisiSaatIni?.trim() || formData.kesehatanLainLain?.trim()
       );
       if (
         formData.adaPenyakitKronis === 'ADA' &&
-        !hasCheckedDisease &&
-        !hasCustomDisease &&
+        validPenyakitItems.length === 0 &&
         !hasMedicalNote
       ) {
         setExpandedSections((prev) => ({ ...prev, '4B': true }));
         setErrorMsg(
-          'Anda memilih Riwayat Penyakit Kronis "ADA". Mohon centang minimal satu diagnosa medis atau isi Diagnosa Lainnya / Kondisi Terkini pada Sub-bagian 4B.'
+          'Anda memilih Status Penyakit Kronis "ADA". Klik "+ Tambah Penyakit" untuk menambahkan detail diagnosa medis & sejak kapan pada Sub-bagian 4B.'
         );
         return false;
       }
@@ -1396,18 +1747,24 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         ? `${formData.subSatker} - ${formData.satkerMabes || derivedPolda}`
         : formData.satkerMabes || derivedPolda);
 
-    const combinedDiseases = [...(formData.daftarPenyakit || [])];
-    if (penyakitLainnya.trim()) {
-      const customList = penyakitLainnya
-        .split(',')
-        .map((x) => x.trim().toUpperCase())
-        .filter(Boolean);
-      customList.forEach((d) => {
-        if (!combinedDiseases.includes(d)) {
-          combinedDiseases.push(d);
-        }
-      });
-    }
+    const validPenyakitDetail = (formData.riwayatPenyakitDetail || []).filter((p) =>
+      p.namaPenyakit?.trim()
+    );
+    const combinedDiseases =
+      validPenyakitDetail.length > 0
+        ? formatDetailToDiseaseList(validPenyakitDetail)
+        : [...(formData.daftarPenyakit || [])];
+    const derivedLamaMenderita =
+      validPenyakitDetail.find((p) => p.sejakKapan?.trim())?.sejakKapan ||
+      formData.lamaMenderita ||
+      '';
+    const derivedPenanganan =
+      validPenyakitDetail
+        .map((p) => p.terapiObat?.trim())
+        .filter(Boolean)
+        .join('; ') ||
+      formData.penangananPengobatan ||
+      '';
 
     const finalFotoUrl = avatarCleared
       ? DEFAULT_AVATAR_URL
@@ -1517,6 +1874,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       statusTempatTinggal: formData.statusTempatTinggal || 'MILIK PRIBADI',
       biayaSewaTempatTinggal: formData.biayaSewaTempatTinggal || '',
       detailSewaTempatTinggal: formData.detailSewaTempatTinggal || '',
+      sejakKapanSewa: formData.sejakKapanSewa || '',
 
       statusPerkawinan: formData.statusPerkawinan || 'MENIKAH',
       namaIstri: formData.namaIstri || '',
@@ -1527,7 +1885,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       kontakIstri: formData.kontakIstri || '',
       jumlahAnak: formData.daftarAnak?.length || 0,
       daftarAnak: formData.daftarAnak || [],
-      tanggunganLain: formData.tanggunganLain,
+      tanggunganLain: undefined,
 
       tahunPurnaTugas: finalCalc58.tahunPurnaTugas,
       sisaTahunDinas: finalCalc58.sisaTahunDinas,
@@ -1542,6 +1900,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       peranUsahaYayasan: formData.peranUsahaYayasan || 'PEMILIK / FOUNDER USAHA',
       jenisUsaha: formData.jenisUsaha || '',
       lokasiUsaha: formData.lokasiUsaha || '',
+      sejakKapanUsaha: formData.sejakKapanUsaha || '',
       bidangKeahlianPensiun: formData.bidangKeahlianPensiun || '',
       statusUsaha: formData.statusUsaha || 'MASIH RENCANA',
       bukaLowonganKerja:
@@ -1560,14 +1919,16 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         combinedDiseases.length > 0 ? 'ADA' : formData.adaPenyakitKronis || 'TIDAK ADA',
       kondisiKesehatan: formData.kondisiKesehatan || 'BAIK',
       daftarPenyakit: combinedDiseases,
-      lamaMenderita: formData.lamaMenderita || '',
+      riwayatPenyakitDetail: validPenyakitDetail,
+      lamaMenderita: derivedLamaMenderita,
       kondisiSaatIni: formData.kondisiSaatIni || '',
-      penangananPengobatan: formData.penangananPengobatan || '',
+      penangananPengobatan: derivedPenanganan,
       biayaPengobatanDitanggung:
         formData.biayaPengobatanDitanggung || 'DITANGGUNG BPJS/ASURANSI',
       asuransiAktif: formData.asuransiAktif || ['BPJS'],
       rutinMcu: formData.rutinMcu || 'YA',
       mcuTerakhir: formData.mcuTerakhir || '< 6 BULAN',
+      waktuMcuTerakhir: formData.waktuMcuTerakhir || '',
       harapanLayananKesehatan: formData.harapanLayananKesehatan || '',
       harapanDukunganLeting: formData.harapanDukunganLeting || '',
       kesehatanLainLain: formData.kesehatanLainLain || '',
@@ -1636,7 +1997,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         updatedAt: nowIso,
       };
     } else if (tabNum === 2) {
-      // Tab 2: Domisili & Keluarga
+      // Tab 2: Domisili & Keluarga Inti (1 Garis Keturunan)
       mergedMember = {
         ...baselineMember,
         alamatTempatTinggal: fullSnapshot.alamatTempatTinggal,
@@ -1645,6 +2006,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         statusTempatTinggal: fullSnapshot.statusTempatTinggal,
         biayaSewaTempatTinggal: fullSnapshot.biayaSewaTempatTinggal,
         detailSewaTempatTinggal: fullSnapshot.detailSewaTempatTinggal,
+        sejakKapanSewa: fullSnapshot.sejakKapanSewa,
         statusPerkawinan: fullSnapshot.statusPerkawinan,
         namaIstri: fullSnapshot.namaIstri,
         pekerjaanIstri: fullSnapshot.pekerjaanIstri,
@@ -1654,7 +2016,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         kontakIstri: fullSnapshot.kontakIstri,
         jumlahAnak: fullSnapshot.jumlahAnak,
         daftarAnak: fullSnapshot.daftarAnak,
-        tanggunganLain: fullSnapshot.tanggunganLain,
+        tanggunganLain: undefined,
         updatedAt: nowIso,
       };
     } else if (tabNum === 3) {
@@ -1676,6 +2038,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         peranUsahaYayasan: fullSnapshot.peranUsahaYayasan,
         jenisUsaha: fullSnapshot.jenisUsaha,
         lokasiUsaha: fullSnapshot.lokasiUsaha,
+        sejakKapanUsaha: fullSnapshot.sejakKapanUsaha,
         bidangKeahlianPensiun: fullSnapshot.bidangKeahlianPensiun,
         statusUsaha: fullSnapshot.statusUsaha,
         bukaLowonganKerja: fullSnapshot.bukaLowonganKerja,
@@ -1704,6 +2067,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         adaPenyakitKronis: fullSnapshot.adaPenyakitKronis,
         kondisiKesehatan: fullSnapshot.kondisiKesehatan,
         daftarPenyakit: fullSnapshot.daftarPenyakit,
+        riwayatPenyakitDetail: fullSnapshot.riwayatPenyakitDetail,
         lamaMenderita: fullSnapshot.lamaMenderita,
         kondisiSaatIni: fullSnapshot.kondisiSaatIni,
         penangananPengobatan: fullSnapshot.penangananPengobatan,
@@ -1711,6 +2075,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         asuransiAktif: fullSnapshot.asuransiAktif,
         rutinMcu: fullSnapshot.rutinMcu,
         mcuTerakhir: fullSnapshot.mcuTerakhir,
+        waktuMcuTerakhir: fullSnapshot.waktuMcuTerakhir,
         harapanLayananKesehatan: fullSnapshot.harapanLayananKesehatan,
         harapanDukunganLeting: fullSnapshot.harapanDukunganLeting,
         kesehatanLainLain: fullSnapshot.kesehatanLainLain,
@@ -2450,15 +2815,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        TMT Pangkat Terakhir
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: 01-01-2023 / KEP Kapolri..."
+                      <LabelWithTooltip
+                        label="TMT Pangkat"
+                        tooltip="Bisa pilih Tahun saja (misal: 2023), Bulan & Tahun (misal: Januari 2023), atau Tanggal Lengkap."
+                        icon={<Calendar className="w-3.5 h-3.5" />}
+                      />
+                      <FlexiblePeriodInput
                         value={formData.tmtPangkat || ''}
-                        onChange={(e) => handleInputChange('tmtPangkat', e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        onChange={(val) => handleInputChange('tmtPangkat', val)}
+                        defaultMode="MONTH_YEAR"
+                        minYear={1996}
+                        maxYear={new Date().getFullYear() + 1}
+                        placeholder="Pilih TMT..."
+                        compact
                       />
                     </div>
                   </div>
@@ -2979,14 +3348,18 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                           </div>
 
                           <div>
-                            <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                              Tgl Lahir ADC
-                            </label>
-                            <input
-                              type="date"
+                            <LabelWithTooltip
+                              label="Kelahiran ADC"
+                              tooltip="Bisa diisi Tahun saja, Bulan & Tahun, atau Tanggal Lengkap."
+                            />
+                            <FlexiblePeriodInput
                               value={adc.tanggalLahir || ''}
-                              onChange={(e) => handleUpdateAdc(idx, 'tanggalLahir', e.target.value)}
-                              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-polri-navy"
+                              onChange={(val) => handleUpdateAdc(idx, 'tanggalLahir', val)}
+                              defaultMode="YEAR"
+                              minYear={1970}
+                              maxYear={2008}
+                              placeholder="Pilih..."
+                              compact
                             />
                           </div>
 
@@ -3028,18 +3401,40 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           )}
 
           {/* =============================================================== */}
-          {/* KATEGORI 2: DOMISILI & DATA KELUARGA (SUB-BAGIAN 2A s/d 2D)     */}
+          {/* KATEGORI 2: DOMISILI & KELUARGA INTI (SUB-BAGIAN 2A s/d 2C)     */}
           {/* =============================================================== */}
           {step === 2 && (
             <div className="space-y-4">
+              {/* Compact Banner: Kriteria Calon Penerima Manfaat = Keluarga Inti 1 Garis Keturunan */}
+              <div className="px-3.5 py-2.5 rounded-xl bg-slate-900 text-white border border-polri-gold/40 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+                <div className="flex items-center gap-2 text-xs font-bold">
+                  <Users className="w-4 h-4 text-polri-gold shrink-0" />
+                  <span>
+                    Cakupan Keluarga Inti:{' '}
+                    <strong className="text-polri-gold">
+                      Ayah/Suami, Ibu/Istri &amp; Anak (1 Garis Keturunan)
+                    </strong>
+                  </span>
+                  <span
+                    className="relative group inline-flex items-center cursor-help"
+                    tabIndex={0}
+                  >
+                    <Info className="w-3.5 h-3.5 text-slate-300 hover:text-polri-gold" />
+                    <span className="pointer-events-none opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-150 absolute top-full left-0 mt-1.5 w-64 sm:w-72 p-2.5 rounded-lg bg-slate-950 text-slate-100 text-[10px] font-normal leading-relaxed shadow-xl z-50 border border-polri-gold/40">
+                      Sesuai ketentuan Paguyuban Wira Satya 96, kriteria calon penerima manfaat hanya mencakup <strong>Keluarga Inti 1 Garis Keturunan (Ayah, Ibu, dan Anak)</strong>. Tanggungan lain di luar garis keturunan langsung tidak termasuk kriteria penerima manfaat.
+                    </span>
+                  </span>
+                </div>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-polri-gold/20 text-polri-gold border border-polri-gold/40">
+                  Kriteria Penerima Manfaat
+                </span>
+              </div>
+
               {formData.statusKedinasan === 'ALMARHUM' && (
-                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border border-amber-400/50 shadow-sm space-y-1">
-                  <div className="text-xs sm:text-sm font-extrabold text-amber-300 flex items-center gap-1.5">
-                    <span>🕊️ Data Keluarga &amp; Ahli Waris Almarhum</span>
-                  </div>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
-                    Lengkapi data Istri / Ahli Waris, No. WA aktif, alamat domisili, dan daftar Putra-Putri Almarhum.
-                  </p>
+                <div className="p-3 rounded-xl bg-amber-950 text-white border border-amber-400/50 shadow-2xs flex items-center justify-between gap-2">
+                  <span className="text-xs font-extrabold text-amber-300">
+                    🕊️ Data Ahli Waris Inti Almarhum (Istri &amp; Putra-Putri)
+                  </span>
                 </div>
               )}
 
@@ -3047,97 +3442,95 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               {renderSubSectionCard(
                 '2A',
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Status Tempat Tinggal
-                      </label>
+                      <LabelWithTooltip
+                        label="Status Hunian"
+                        icon={<Home className="w-3.5 h-3.5" />}
+                        tooltip="Pilih SEWA/KONTRAK jika saat ini menyewa tempat tinggal agar rincian biaya & periode kontrak muncul."
+                      />
                       <select
                         value={formData.statusTempatTinggal || 'MILIK PRIBADI'}
                         onChange={(e) => handleInputChange('statusTempatTinggal', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
                         <option value="MILIK PRIBADI">MILIK PRIBADI</option>
                         <option value="RUMAH KELUARGA">RUMAH KELUARGA</option>
-                        <option value="DINAS">DINAS</option>
-                        <option value="SEWA/KONTRAK">SEWA/KONTRAK</option>
+                        <option value="DINAS">DINAS (ASRAMA / RUMDIN)</option>
+                        <option value="SEWA/KONTRAK">SEWA / KONTRAK</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        {formData.statusKedinasan === 'ALMARHUM'
-                          ? 'Alamat Lengkap Domisili Keluarga'
-                          : 'Alamat Lengkap Domisili'}
-                      </label>
+                      <LabelWithTooltip
+                        label={
+                          formData.statusKedinasan === 'ALMARHUM'
+                            ? 'Alamat Domisili Keluarga'
+                            : 'Alamat Domisili'
+                        }
+                      />
                       <input
                         type="text"
-                        placeholder="Nama jalan, komplek, RT/RW..."
+                        placeholder="Jalan, komplek, RT/RW..."
                         value={formData.alamatTempatTinggal || ''}
                         onChange={(e) => handleInputChange('alamatTempatTinggal', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Kota / Kabupaten Domisili
-                      </label>
+                      <LabelWithTooltip label="Kota / Kabupaten" />
                       <input
                         type="text"
-                        placeholder="Contoh: Jakarta Selatan, Tangerang Selatan..."
+                        placeholder="Contoh: Jakarta Selatan..."
                         value={formData.kotaDomisili || ''}
                         onChange={(e) => handleInputChange('kotaDomisili', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Provinsi Domisili
-                      </label>
+                      <LabelWithTooltip label="Provinsi" />
                       <input
                         type="text"
-                        placeholder="Contoh: DKI Jakarta, Jawa Barat, Banten..."
+                        placeholder="Contoh: DKI Jakarta..."
                         value={formData.provinsiDomisili || ''}
                         onChange={(e) => handleInputChange('provinsiDomisili', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
 
                     {formData.statusTempatTinggal === 'SEWA/KONTRAK' && (
-                      <div className="sm:col-span-2 p-3.5 rounded-xl bg-amber-50/80 border border-amber-300 space-y-3">
-                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-amber-200/80">
+                      <div className="sm:col-span-2 p-3 rounded-xl bg-amber-50/80 border border-amber-300 space-y-3">
+                        <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-amber-200/80">
                           <span className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
                             <Home className="w-3.5 h-3.5 text-amber-700" />
-                            <span>Rincian Biaya Sewa / Kontrak</span>
+                            <span>Rincian Sewa / Kontrak</span>
                           </span>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200/70 text-amber-950">
                             SEWA / KONTRAK
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div className="space-y-1.5">
-                            <label className="block text-[11px] font-bold text-amber-950">
-                              Nominal Biaya Sewa
-                            </label>
+                            <LabelWithTooltip label="Biaya Sewa / Thn" />
                             <input
                               type="text"
-                              placeholder="Contoh: Rp 36 Juta / Tahun"
+                              placeholder="Rp 36 Jt / Thn"
                               value={formData.biayaSewaTempatTinggal || ''}
                               onChange={(e) => handleInputChange('biayaSewaTempatTinggal', e.target.value)}
-                              className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                              className="w-full px-3 py-1.5 rounded-lg border border-amber-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                             />
-                            <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+                            <div className="grid grid-cols-3 gap-1">
                               {KISARAN_BIAYA_SEWA_OPTIONS.map((opt) => (
                                 <button
                                   key={opt}
                                   type="button"
                                   onClick={() => handleInputChange('biayaSewaTempatTinggal', opt)}
-                                  className={`px-2 py-1.5 rounded-lg text-[11px] font-extrabold border text-center whitespace-nowrap transition-colors cursor-pointer ${
+                                  className={`px-1.5 py-1 rounded text-[10px] font-extrabold border text-center whitespace-nowrap transition-colors cursor-pointer ${
                                     formData.biayaSewaTempatTinggal === opt
-                                      ? 'bg-amber-800 text-white border-amber-900 shadow-xs'
+                                      ? 'bg-amber-800 text-white border-amber-900'
                                       : 'bg-white text-amber-950 border-amber-300 hover:bg-amber-100'
                                   }`}
                                 >
@@ -3147,16 +3540,30 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             </div>
                           </div>
 
-                          <div className="space-y-1.5">
-                            <label className="block text-[11px] font-bold text-amber-950">
-                              Masa Kontrak &amp; Keterangan
-                            </label>
+                          <div>
+                            <LabelWithTooltip
+                              label="Mulai Sewa Sejak"
+                              tooltip="Bisa pilih Tahun saja, Bulan & Tahun, atau Tanggal Lengkap."
+                            />
+                            <FlexiblePeriodInput
+                              value={formData.sejakKapanSewa || ''}
+                              onChange={(val) => handleInputChange('sejakKapanSewa', val)}
+                              defaultMode="MONTH_YEAR"
+                              minYear={2010}
+                              maxYear={new Date().getFullYear() + 2}
+                              placeholder="Sejak..."
+                              compact
+                            />
+                          </div>
+
+                          <div>
+                            <LabelWithTooltip label="Keterangan Kontrak" />
                             <input
                               type="text"
-                              placeholder="Contoh: Kontrak 2 tahun"
+                              placeholder="Contoh: Kontrak 2 thn..."
                               value={formData.detailSewaTempatTinggal || ''}
                               onChange={(e) => handleInputChange('detailSewaTempatTinggal', e.target.value)}
-                              className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                              className="w-full px-3 py-1.5 rounded-lg border border-amber-300 text-xs bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                             />
                           </div>
                         </div>
@@ -3169,105 +3576,110 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               {/* SUB-BAGIAN 2B: DATA ISTRI / PASANGAN & KONTAK KELUARGA */}
               {renderSubSectionCard(
                 '2B',
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Status Perkawinan
-                    </label>
+                    <LabelWithTooltip label="Status Perkawinan" />
                     <select
                       value={formData.statusPerkawinan || 'MENIKAH'}
                       onChange={(e) => handleInputChange('statusPerkawinan', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                     >
                       <option value="MENIKAH">MENIKAH</option>
                       <option value="BELUM MENIKAH">BELUM MENIKAH</option>
-                      <option value="DUDA/JANDA">DUDA/JANDA</option>
+                      <option value="DUDA/JANDA">DUDA / JANDA</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {formData.statusKedinasan === 'ALMARHUM'
-                        ? 'Nama Istri / Ahli Waris'
-                        : 'Nama Istri / Pasangan'}
-                    </label>
+                    <LabelWithTooltip
+                      label={
+                        formData.statusKedinasan === 'ALMARHUM'
+                          ? 'Nama Istri / Ahli Waris'
+                          : 'Nama Istri / Pasangan'
+                      }
+                    />
                     <input
                       type="text"
-                      placeholder="Nama lengkap istri / pasangan..."
+                      placeholder="Nama lengkap istri..."
                       value={formData.namaIstri || ''}
                       onChange={(e) => handleInputChange('namaIstri', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Pekerjaan / Aktivitas Istri
-                    </label>
+                    <LabelWithTooltip label="No. WA Istri / Keluarga" />
                     <input
                       type="text"
-                      placeholder="Contoh: Ibu Rumah Tangga / Bhayangkari / ASN / Wiraswasta..."
+                      placeholder="0812xxxxxxxx"
+                      value={formData.kontakIstri || ''}
+                      onChange={(e) => handleInputChange('kontakIstri', e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <LabelWithTooltip label="Pekerjaan / Aktivitas Istri" />
+                    <input
+                      type="text"
+                      placeholder="Bhayangkari / ASN / Wiraswasta..."
                       value={formData.pekerjaanIstri || ''}
                       onChange={(e) => handleInputChange('pekerjaanIstri', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Tempat Lahir Istri
-                    </label>
+                    <LabelWithTooltip label="Tempat Lahir Istri" />
                     <input
                       type="text"
-                      placeholder="Kota lahir istri..."
+                      placeholder="Kota lahir..."
                       value={formData.tempatLahirIstri || ''}
                       onChange={(e) => handleInputChange('tempatLahirIstri', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Tanggal Lahir Istri
-                    </label>
-                    <input
-                      type="date"
+                    <LabelWithTooltip
+                      label="Kelahiran Istri"
+                      tooltip="Bisa pilih Tahun saja, Bulan & Tahun, atau Tanggal Lengkap."
+                      badge={
+                        formData.usiaIstri ? (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                            {formData.usiaIstri} Thn
+                          </span>
+                        ) : undefined
+                      }
+                    />
+                    <FlexiblePeriodInput
                       value={formData.tanggalLahirIstri || ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
+                      onChange={(val) => {
                         handleInputChange('tanggalLahirIstri', val);
                         if (val) {
                           const c = calculateRetirement58(val);
                           handleInputChange('usiaIstri', c.usiaTahun);
                         }
                       }}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      No. WhatsApp Istri / Keluarga
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="0812xxxxxxxx"
-                      value={formData.kontakIstri || ''}
-                      onChange={(e) => handleInputChange('kontakIstri', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      defaultMode="FULL_DATE"
+                      minYear={1955}
+                      maxYear={2005}
+                      placeholder="Pilih kelahiran..."
+                      compact
                     />
                   </div>
                 </div>
               )}
 
-              {/* SUB-BAGIAN 2C: DAFTAR PUTRA-PUTRI / ANAK */}
+              {/* SUB-BAGIAN 2C: DAFTAR PUTRA-PUTRI / ANAK (1 GARIS KETURUNAN) */}
               {renderSubSectionCard(
                 '2C',
-                <div className="space-y-3.5">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
-                    <div>
-                      <span className="text-xs font-extrabold text-slate-800 block">
-                        Daftar Putra-Putri ({formData.daftarAnak?.length || 0} Anak)
+                    <div className="flex items-center gap-1.5">
+                      <GraduationCap className="w-4 h-4 text-polri-navy" />
+                      <span className="text-xs font-extrabold text-slate-800">
+                        Putra-Putri Kandung / Sah ({formData.daftarAnak?.length || 0} Anak)
                       </span>
                     </div>
                     <button
@@ -3282,16 +3694,16 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   {(!formData.daftarAnak || formData.daftarAnak.length === 0) && (
                     <div className="p-3 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 text-center text-xs text-slate-500">
-                      Belum ada data anak. Klik <strong>&ldquo;Tambah Anak&rdquo;</strong> untuk menambahkan.
+                      Belum ada data anak. Klik <strong>&ldquo;+ Tambah Anak&rdquo;</strong> untuk menambahkan.
                     </div>
                   )}
 
                   {formData.daftarAnak?.map((anak, idx) => (
                     <div
                       key={anak.id || idx}
-                      className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3"
+                      className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2.5"
                     >
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/80">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/80">
                         <div className="flex items-center gap-2">
                           <span className="px-2 py-0.5 rounded bg-polri-navy text-polri-gold text-[10px] font-extrabold">
                             Anak #{idx + 1}
@@ -3306,68 +3718,88 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                           className="text-red-600 hover:text-red-800 text-xs font-bold flex items-center gap-1 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                          Hapus
+                          <span>Hapus</span>
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-600 mb-1">
-                            Nama Anak <span className="text-red-500">*</span>
-                          </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
+                        <div className="lg:col-span-2">
+                          <LabelWithTooltip label="Nama Lengkap Anak" required />
                           <input
                             type="text"
                             placeholder="Nama lengkap anak..."
                             value={anak.nama}
                             onChange={(e) => handleUpdateChild(idx, 'nama', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
                           />
                         </div>
+
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-600 mb-1">
-                            Tempat Lahir
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="Kota lahir..."
-                            value={anak.tempatLahir || ''}
-                            onChange={(e) => handleUpdateChild(idx, 'tempatLahir', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
-                          />
+                          <LabelWithTooltip label="L/P & Kota Lahir" />
+                          <div className="flex gap-1">
+                            <select
+                              value={anak.jenisKelamin || 'L'}
+                              onChange={(e) => handleUpdateChild(idx, 'jenisKelamin', e.target.value)}
+                              className="w-14 px-1.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy shrink-0"
+                            >
+                              <option value="L">L</option>
+                              <option value="P">P</option>
+                            </select>
+                            <input
+                              type="text"
+                              placeholder="Kota..."
+                              value={anak.tempatLahir || ''}
+                              onChange={(e) => handleUpdateChild(idx, 'tempatLahir', e.target.value)}
+                              className="w-full min-w-0 px-2 py-1.5 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                            />
+                          </div>
                         </div>
+
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-600 mb-1">
-                            Tanggal Lahir
-                          </label>
-                          <input
-                            type="date"
+                          <LabelWithTooltip
+                            label="Kelahiran"
+                            tooltip="Fleksibel: bisa pilih Tahun saja, Bulan & Tahun, atau Tanggal Lengkap."
+                          />
+                          <FlexiblePeriodInput
                             value={anak.tanggalLahir || ''}
-                            onChange={(e) => handleUpdateChild(idx, 'tanggalLahir', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                            onChange={(val) => handleUpdateChild(idx, 'tanggalLahir', val)}
+                            defaultMode="YEAR"
+                            minYear={1990}
+                            maxYear={new Date().getFullYear()}
+                            placeholder="Pilih..."
+                            compact
                           />
                         </div>
+
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-600 mb-1">
-                            Status Kegiatan
-                          </label>
+                          <LabelWithTooltip label="Status & Institusi" />
                           <select
                             value={anak.status}
                             onChange={(e) => handleUpdateChild(idx, 'status', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                            className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy mb-1"
                           >
-                            <option value="PELAJAR">PELAJAR / MAHASISWA</option>
+                            <option value="PELAJAR">PELAJAR / MHS</option>
                             <option value="BEKERJA">BEKERJA</option>
-                            <option value="BELUM BEKERJA">BELUM BEKERJA</option>
+                            <option value="BELUM BEKERJA">CARI KERJA</option>
                           </select>
+                          <input
+                            type="text"
+                            placeholder="Sekolah/Kampus/Kantor..."
+                            value={anak.institusi || ''}
+                            onChange={(e) => handleUpdateChild(idx, 'institusi', e.target.value)}
+                            className="w-full px-2 py-1 rounded-md border border-slate-200 text-[11px] bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                          />
                         </div>
+
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-600 mb-1">
-                            Biaya Pendidikan
-                          </label>
+                          <LabelWithTooltip
+                            label="Biaya Pendidikan"
+                            tooltip="Estimasi biaya pendidikan tahunan (jika masih sekolah/kuliah)."
+                          />
                           <select
                             value={anak.biayaPendidikanTahunan || '< 5.000.000'}
                             onChange={(e) => handleUpdateChild(idx, 'biayaPendidikanTahunan', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                            className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
                           >
                             <option value="< 5.000.000">&lt; 5 Jt / Thn</option>
                             <option value="5.000.000 S.D. 25.000.000">5 - 25 Jt / Thn</option>
@@ -3386,75 +3818,6 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <Plus className="w-3 h-3" />
                   <span>Tambah</span>
                 </button>
-              )}
-
-              {/* SUB-BAGIAN 2D: TANGGUNGAN KELUARGA LAIN (ORANG TUA / MERTUA / KERABAT) */}
-              {renderSubSectionCard(
-                '2D',
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Jumlah Tanggungan Lain
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={15}
-                      value={formData.tanggunganLain?.jumlah ?? 0}
-                      onChange={(e) =>
-                        handleInputChange('tanggunganLain', {
-                          jumlah: Math.max(0, Number(e.target.value) || 0),
-                          rincian: formData.tanggunganLain?.rincian || '',
-                          masaTanggunganTahun: formData.tanggunganLain?.masaTanggunganTahun || 0,
-                          kondisiKesehatan: formData.tanggunganLain?.kondisiKesehatan || 'SEHAT',
-                        })
-                      }
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Hubungan Keluarga / Rincian Tanggungan
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: Ibu Kandung, Mertua, Adik Kuliah..."
-                      value={formData.tanggunganLain?.rincian || ''}
-                      onChange={(e) =>
-                        handleInputChange('tanggunganLain', {
-                          jumlah: formData.tanggunganLain?.jumlah ?? 1,
-                          rincian: e.target.value,
-                          masaTanggunganTahun: formData.tanggunganLain?.masaTanggunganTahun || 5,
-                          kondisiKesehatan: formData.tanggunganLain?.kondisiKesehatan || 'SEHAT',
-                        })
-                      }
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Kondisi Kesehatan Tanggungan
-                    </label>
-                    <select
-                      value={formData.tanggunganLain?.kondisiKesehatan || 'SEHAT'}
-                      onChange={(e) =>
-                        handleInputChange('tanggunganLain', {
-                          jumlah: formData.tanggunganLain?.jumlah ?? 0,
-                          rincian: formData.tanggunganLain?.rincian || '',
-                          masaTanggunganTahun: formData.tanggunganLain?.masaTanggunganTahun || 0,
-                          kondisiKesehatan: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    >
-                      <option value="SEHAT">SEHAT</option>
-                      <option value="PERLU PERAWATAN RUTIN">PERLU PERAWATAN RUTIN</option>
-                      <option value="LANSIA">LANSIA / PENDAMPINGAN</option>
-                    </select>
-                  </div>
-                </div>
               )}
             </div>
           )}
@@ -3693,69 +4056,82 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Nama Perusahaan / Unit Usaha (Pribadi atau Bersama Leting)
-                      </label>
+                      <LabelWithTooltip
+                        label="Nama Perusahaan / Unit Usaha"
+                        icon={<Briefcase className="w-3.5 h-3.5" />}
+                        tooltip="Nama PT/CV/Unit usaha pribadi maupun usaha bersama leting."
+                      />
                       <input
                         type="text"
-                        placeholder="Contoh: PT Garda Satya Nusantara / CV Berkah Mandiri..."
+                        placeholder="Contoh: PT Garda Satya Nusantara..."
                         value={formData.namaUsahaYayasan || ''}
                         onChange={(e) => handleInputChange('namaUsahaYayasan', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Bidang Usaha / Produk &amp; Jasa
-                      </label>
+                      <LabelWithTooltip label="Bidang Usaha / Produk & Jasa" />
                       <input
                         type="text"
-                        placeholder="Contoh: Logistik & Kargo, Jasa Pengamanan, Kuliner, Properti..."
+                        placeholder="Contoh: Logistik, Pengamanan, Kuliner, Properti..."
                         value={formData.jenisUsaha || ''}
                         onChange={(e) => handleInputChange('jenisUsaha', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Lokasi / Kota Operasional Usaha
-                      </label>
+                      <LabelWithTooltip label="Lokasi / Kota Operasional" />
                       <input
                         type="text"
-                        placeholder="Contoh: Jakarta Selatan, Surabaya, Bandung..."
+                        placeholder="Contoh: Jakarta Selatan, Surabaya..."
                         value={formData.lokasiUsaha || ''}
                         onChange={(e) => handleInputChange('lokasiUsaha', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Status Usaha Saat Ini
-                      </label>
+                      <LabelWithTooltip label="Status Operasional" />
                       <select
                         value={formData.statusUsaha || 'MASIH RENCANA'}
                         onChange={(e) => handleInputChange('statusUsaha', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
-                        <option value="SUDAH JALAN">SUDAH JALAN (AKTIF BEROPERASI)</option>
+                        <option value="SUDAH JALAN">SUDAH JALAN (AKTIF)</option>
                         <option value="DALAM PERSIAPAN">DALAM PERSIAPAN</option>
                         <option value="MASIH RENCANA">MASIH RENCANA</option>
                       </select>
                     </div>
 
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Bidang Kompetensi / Keahlian Pasca Dinas
-                      </label>
+                    <div>
+                      <LabelWithTooltip
+                        label="Mulai / Berdiri Sejak"
+                        tooltip="Fleksibel: bisa pilih Tahun saja, Bulan & Tahun, atau Tanggal Lengkap."
+                      />
+                      <FlexiblePeriodInput
+                        value={formData.sejakKapanUsaha || ''}
+                        onChange={(val) => handleInputChange('sejakKapanUsaha', val)}
+                        defaultMode="YEAR"
+                        minYear={1996}
+                        maxYear={new Date().getFullYear() + 5}
+                        placeholder="Sejak..."
+                        compact
+                      />
+                    </div>
+
+                    <div>
+                      <LabelWithTooltip
+                        label="Kompetensi / Keahlian Pasca Dinas"
+                        tooltip="Keahlian profesional untuk sinergi bisnis atau penugasan komisaris/konsultan."
+                      />
                       <input
                         type="text"
-                        placeholder="Contoh: Konsultan Hukum, Manajemen Pengamanan, Komisaris, Dosen..."
+                        placeholder="Konsultan Hukum, Manajemen Pengamanan, Dosen..."
                         value={formData.bidangKeahlianPensiun || ''}
                         onChange={(e) => handleInputChange('bidangKeahlianPensiun', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
                   </div>
@@ -3763,16 +4139,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   {/* =========================================================== */}
                   {/* BURSA OPEN LOWONGAN KERJA DARI USAHA PRIBADI / LETING       */}
                   {/* =========================================================== */}
-                  <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-3.5">
+                  <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-emerald-200/80">
-                      <div>
-                        <span className="text-xs font-extrabold text-emerald-950 block">
-                          💼 Open Lowongan Kerja (Untuk Putra-Putri / Keluarga Leting WS96)
-                        </span>
-                        <span className="text-[11px] text-emerald-800">
-                          Buka posisi di usaha pribadi atau usaha bersama Anda (misal: Sekretaris, Direktur, Manajer, Staf, Magang) bagi putra-putri leting / almarhum yang membutuhkan pekerjaan.
-                        </span>
-                      </div>
+                      <LabelWithTooltip
+                        label="💼 Open Lowongan Kerja (Bursa Kerja Keluarga WS96)"
+                        tooltip="Buka posisi di usaha pribadi atau usaha bersama Anda (Sekretaris, Direktur, Manajer, Staf, Magang) bagi putra-putri leting / almarhum yang membutuhkan pekerjaan."
+                        className="mb-0"
+                      />
                       <select
                         value={formData.bukaLowonganKerja || 'TIDAK'}
                         onChange={(e) => {
@@ -3782,10 +4155,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             handleAddLowongan('Sekretaris Direksi');
                           }
                         }}
-                        className="px-3 py-2 rounded-lg border border-emerald-300 bg-white text-xs font-extrabold text-emerald-900 shrink-0 focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                        className="px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-xs font-extrabold text-emerald-900 shrink-0 focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                       >
                         <option value="TIDAK">BELUM BUKA LOWONGAN</option>
-                        <option value="YA">YA, BUKA OPEN LOWONGAN</option>
+                        <option value="YA">YA, BUKA LOWONGAN</option>
                       </select>
                     </div>
 
@@ -4192,16 +4565,17 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               {/* SUB-BAGIAN 4B: KONDISI MEDIS, RIWAYAT PENYAKIT & FASKES RUJUKAN */}
               {renderSubSectionCard(
                 '4B',
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Kondisi Kesehatan Umum
-                      </label>
+                      <LabelWithTooltip
+                        label="Kondisi Kesehatan Umum"
+                        icon={<HeartPulse className="w-3.5 h-3.5" />}
+                      />
                       <select
                         value={formData.kondisiKesehatan || 'BAIK'}
                         onChange={(e) => handleInputChange('kondisiKesehatan', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
                         <option value="SANGAT BAIK">SANGAT BAIK</option>
                         <option value="BAIK">BAIK</option>
@@ -4212,104 +4586,242 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Riwayat Penyakit Kronis
-                      </label>
+                      <LabelWithTooltip
+                        label="Status Penyakit Kronis"
+                        tooltip="Jika ADA, klik '+ Tambah Penyakit' di bawah untuk mengisi nama diagnosa & sejak kapan."
+                      />
                       <select
                         value={formData.adaPenyakitKronis || 'TIDAK ADA'}
-                        onChange={(e) => handleInputChange('adaPenyakitKronis', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        onChange={(e) => {
+                          const val = e.target.value as 'ADA' | 'TIDAK ADA';
+                          handleInputChange('adaPenyakitKronis', val);
+                          if (
+                            val === 'ADA' &&
+                            (formData.riwayatPenyakitDetail?.length || 0) === 0
+                          ) {
+                            handleAddPenyakit('');
+                          }
+                        }}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
                         <option value="TIDAK ADA">TIDAK ADA</option>
-                        <option value="ADA">ADA</option>
+                        <option value="ADA">ADA DIAGNOSA MEDIS</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Faskes / RS Rujukan Utama
-                      </label>
+                      <LabelWithTooltip
+                        label="RS / Faskes Rujukan"
+                        tooltip="Rumah sakit atau fasilitas kesehatan rujukan utama personel."
+                      />
                       <input
                         type="text"
-                        placeholder="Contoh: RS Polri Kramat Jati / RS Bhayangkara..."
+                        placeholder="RS Polri Kramat Jati / RS Bhayangkara..."
                         value={formData.faskesRujukan || ''}
                         onChange={(e) => handleInputChange('faskesRujukan', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
                   </div>
 
-                  {/* Checkbox Penyakit */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                      Riwayat Diagnosa Medis:
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-                      {DAFTAR_PENYAKIT.map((penyakit) => {
-                        const isChecked = formData.daftarPenyakit?.includes(penyakit);
-                        return (
-                          <label
-                            key={penyakit}
-                            className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer p-1"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={Boolean(isChecked)}
-                              onChange={() => handleToggleDisease(penyakit)}
-                              className="rounded text-polri-navy focus:ring-polri-navy"
-                            />
-                            <span className={isChecked ? 'font-bold text-polri-navy' : ''}>
-                              {penyakit}
+                  {/* Daftar Riwayat Penyakit / Diagnosa (Repeatable seperti Tambah Anak) */}
+                  <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/80">
+                      <div className="flex items-center gap-1.5">
+                        <Stethoscope className="w-4 h-4 text-polri-navy shrink-0" />
+                        <span className="text-xs font-extrabold text-slate-800">
+                          Daftar Riwayat Penyakit / Diagnosa ({formData.riwayatPenyakitDetail?.length || 0})
+                        </span>
+                        <span
+                          className="relative group inline-flex items-center cursor-help"
+                          tabIndex={0}
+                        >
+                          <Info className="w-3.5 h-3.5 text-slate-400 hover:text-polri-navy" />
+                          <span className="pointer-events-none opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-150 absolute bottom-full left-0 mb-1.5 w-60 p-2 rounded-lg bg-slate-900 text-white text-[10px] font-medium leading-relaxed shadow-xl z-50">
+                            Tambahkan satu per satu riwayat penyakit beserta waktu mulai terdiagnosa (bisa Tahun saja, Bulan &amp; Tahun, atau Tanggal Lengkap) serta terapi/obat rutin.
+                          </span>
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAddPenyakit('')}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-polri-navy text-polri-gold text-xs font-bold hover:bg-polri-navyLight transition-colors cursor-pointer shadow-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah Penyakit</span>
+                      </button>
+                    </div>
+
+                    {/* Quick-Add Preset Pills */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-500 mr-1">
+                        + Cepat:
+                      </span>
+                      {[
+                        { label: 'Hipertensi', val: 'HIPERTENSI (TEKANAN DARAH TINGGI)' },
+                        { label: 'Diabetes', val: 'DIABETES MILITUS' },
+                        { label: 'Jantung', val: 'PENYAKIT JANTUNG' },
+                        { label: 'Kolesterol', val: 'KOLESTEROL TINGGI' },
+                        { label: 'Asam Urat', val: 'ASAM URAT' },
+                        { label: 'Sendi / Lutut', val: 'NYERI PINGGANG DAN LUTUT' },
+                        { label: 'GERD / Lambung', val: 'GERD / ASAM LAMBUNG' },
+                      ].map((chip) => (
+                        <button
+                          key={chip.label}
+                          type="button"
+                          onClick={() => handleAddPenyakit(chip.val)}
+                          className="px-2 py-0.5 rounded-lg bg-white hover:bg-amber-50 text-slate-700 hover:text-polri-navy border border-slate-200 hover:border-amber-300 text-[10px] font-bold transition-colors cursor-pointer"
+                        >
+                          + {chip.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <datalist id="ws96-penyakit-presets">
+                      {PRESET_PENYAKIT_CEPAT.map((p) => (
+                        <option key={p} value={p} />
+                      ))}
+                    </datalist>
+
+                    {(!formData.riwayatPenyakitDetail ||
+                      formData.riwayatPenyakitDetail.length === 0) && (
+                      <div className="p-3 rounded-xl border border-dashed border-slate-300 bg-white/80 text-center text-xs text-slate-500">
+                        Tidak ada riwayat penyakit kronis. Klik{' '}
+                        <strong>&ldquo;+ Tambah Penyakit&rdquo;</strong> atau tombol cepat di atas jika ada diagnosa medis.
+                      </div>
+                    )}
+
+                    {formData.riwayatPenyakitDetail?.map((item, idx) => (
+                      <div
+                        key={item.id || idx}
+                        className="p-3 rounded-xl border border-slate-200 bg-white space-y-2.5 shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded bg-red-800 text-white text-[10px] font-extrabold">
+                              Diagnosa #{idx + 1}
                             </span>
-                          </label>
-                        );
-                      })}
-                    </div>
+                            <span className="text-xs font-extrabold text-slate-900 truncate max-w-[220px] sm:max-w-[340px]">
+                              {item.namaPenyakit?.trim() || 'Nama Diagnosa Belum Diisi'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePenyakit(idx)}
+                            className="text-red-600 hover:text-red-800 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Hapus</span>
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                          <div>
+                            <LabelWithTooltip
+                              label="Nama Penyakit / Diagnosa"
+                              required
+                              tooltip="Pilih dari saran atau ketik langsung nama penyakit/diagnosa medis."
+                            />
+                            <input
+                              type="text"
+                              list="ws96-penyakit-presets"
+                              placeholder="Ketik atau pilih diagnosa..."
+                              value={item.namaPenyakit || ''}
+                              onChange={(e) =>
+                                handleUpdatePenyakit(idx, 'namaPenyakit', e.target.value)
+                              }
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                            />
+                          </div>
+
+                          <div>
+                            <LabelWithTooltip
+                              label="Sejak Kapan"
+                              tooltip="Fleksibel: bisa pilih Tahun saja (misal 2021), Bulan & Tahun (Mei 2022), atau Tanggal Lengkap."
+                            />
+                            <FlexiblePeriodInput
+                              value={item.sejakKapan || ''}
+                              onChange={(val) =>
+                                handleUpdatePenyakit(idx, 'sejakKapan', val)
+                              }
+                              defaultMode="YEAR"
+                              minYear={1990}
+                              maxYear={new Date().getFullYear()}
+                              placeholder="Sejak..."
+                              compact
+                            />
+                          </div>
+
+                          <div>
+                            <LabelWithTooltip label="Status Saat Ini" />
+                            <select
+                              value={item.statusPenyakit || 'TERKONTROL'}
+                              onChange={(e) =>
+                                handleUpdatePenyakit(idx, 'statusPenyakit', e.target.value)
+                              }
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                            >
+                              <option value="TERKONTROL">Terkontrol / Stabil</option>
+                              <option value="TERAPI_RUTIN">Rawat Jalan / Obat Rutin</option>
+                              <option value="PEMULIHAN">Masa Pemulihan</option>
+                              <option value="ATENSI_KHUSUS">Perlu Atensi Khusus</option>
+                              <option value="RIWAYAT_SEMBUH">Riwayat Lama (Sembuh)</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <LabelWithTooltip
+                              label="Terapi / Obat Rutin"
+                              tooltip="Obat rutin yang dikonsumsi atau tindakan medis berkala."
+                            />
+                            <input
+                              type="text"
+                              placeholder="Obat rutin / kontrol dokter..."
+                              value={item.terapiObat || ''}
+                              onChange={(e) =>
+                                handleUpdatePenyakit(idx, 'terapiObat', e.target.value)
+                              }
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Opsi Diagnosa Lainnya & Kondisi Terkini */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/90 space-y-1.5">
-                      <label className="block text-xs font-bold text-amber-950">
-                        Diagnosa Lainnya (pisahkan koma):
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Diagnosa lain jika ada..."
-                        value={penyakitLainnya}
-                        onChange={(e) => {
-                          if (errorMsg) setErrorMsg(null);
-                          setPenyakitLainnya(e.target.value);
-                        }}
-                        className="w-full px-3.5 py-2 rounded-lg border border-amber-300 text-xs font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white text-slate-800"
-                      />
-                    </div>
-
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700">
-                        Kondisi &amp; Penanganan Terkini:
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Kondisi kesehatan atau terapi rutin saat ini..."
-                        value={formData.kondisiSaatIni || ''}
-                        onChange={(e) => handleInputChange('kondisiSaatIni', e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                      />
-                    </div>
+                  {/* Ringkasan Kondisi Terkini */}
+                  <div>
+                    <LabelWithTooltip
+                      label="Ringkasan Kondisi & Penanganan Terkini (Opsional)"
+                      tooltip="Catatan umum mengenai perkembangan kondisi fisik atau terapi saat ini."
+                    />
+                    <input
+                      type="text"
+                      placeholder="Contoh: Tekanan darah terkontrol dengan olahraga & obat rutin..."
+                      value={formData.kondisiSaatIni || ''}
+                      onChange={(e) => handleInputChange('kondisiSaatIni', e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    />
                   </div>
-                </div>
+                </div>,
+                <button
+                  type="button"
+                  onClick={() => handleAddPenyakit('')}
+                  className="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Tambah</span>
+                </button>
               )}
 
               {/* SUB-BAGIAN 4C: ASURANSI KESEHATAN, MCU BERKALA, ALERGI & CATATAN LAINNYA */}
               {renderSubSectionCard(
                 '4C',
-                <div className="space-y-4">
+                <div className="space-y-3.5">
                   <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                      Asuransi Kesehatan Aktif:
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <LabelWithTooltip label="Asuransi Kesehatan Aktif" />
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                       {DAFTAR_ASURANSI.map((ins) => {
                         const isChecked = formData.asuransiAktif?.includes(ins);
                         return (
@@ -4332,15 +4844,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Rutin MCU
-                      </label>
+                      <LabelWithTooltip label="Rutin Medical Check-Up" />
                       <select
                         value={formData.rutinMcu || 'YA'}
                         onChange={(e) => handleInputChange('rutinMcu', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
                         <option value="YA">YA (Rutin MCU)</option>
                         <option value="TIDAK">TIDAK</option>
@@ -4348,13 +4858,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        MCU Terakhir
-                      </label>
+                      <LabelWithTooltip label="Rentang MCU Terakhir" />
                       <select
                         value={formData.mcuTerakhir || '< 6 BULAN'}
                         onChange={(e) => handleInputChange('mcuTerakhir', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
                         <option value="< 6 BULAN">&lt; 6 Bulan Lalu</option>
                         <option value="6-12 BULAN">6 - 12 Bulan Lalu</option>
@@ -4363,58 +4871,69 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Penanggungan Biaya
-                      </label>
+                      <LabelWithTooltip
+                        label="Waktu MCU Terakhir"
+                        tooltip="Fleksibel: bisa pilih Tahun saja, Bulan & Tahun, atau Tanggal Lengkap pelaksanaan MCU."
+                      />
+                      <FlexiblePeriodInput
+                        value={formData.waktuMcuTerakhir || ''}
+                        onChange={(val) => handleInputChange('waktuMcuTerakhir', val)}
+                        defaultMode="MONTH_YEAR"
+                        minYear={2018}
+                        maxYear={new Date().getFullYear()}
+                        placeholder="Pilih..."
+                        compact
+                      />
+                    </div>
+
+                    <div>
+                      <LabelWithTooltip label="Penanggungan Biaya Medis" />
                       <select
                         value={formData.biayaPengobatanDitanggung || 'DITANGGUNG BPJS/ASURANSI'}
                         onChange={(e) => handleInputChange('biayaPengobatanDitanggung', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
                         <option value="DITANGGUNG BPJS/ASURANSI">BPJS / Asuransi</option>
-                        <option value="5.000.000 S.D. 10.000.000">Rp 5 - 10 Jt</option>
-                        <option value="DI ATAS 10.000.000">&gt; Rp 10 Jt</option>
+                        <option value="5.000.000 S.D. 10.000.000">Mandiri Rp 5 - 10 Jt</option>
+                        <option value="DI ATAS 10.000.000">Mandiri &gt; Rp 10 Jt</option>
                       </select>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2 border-t border-slate-100">
                     <div>
-                      <label className="block text-xs font-bold text-slate-800 mb-1">
-                        Riwayat Alergi Obat / Makanan
-                      </label>
+                      <LabelWithTooltip
+                        label="Alergi Obat / Makanan"
+                        tooltip="Penting untuk informasi medis darurat saat kegiatan leting."
+                      />
                       <input
                         type="text"
-                        placeholder="Contoh: Tidak ada / Alergi seafood / Antibiotik tertentu..."
+                        placeholder="Tidak ada / Alergi seafood / Antibiotik..."
                         value={formData.alergiObatMakanan || ''}
                         onChange={(e) => handleInputChange('alergiObatMakanan', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Harapan Dukungan Kesehatan Leting
-                      </label>
+                      <LabelWithTooltip label="Harapan Dukungan Kesehatan Leting" />
                       <input
                         type="text"
-                        placeholder="Saran atau harapan layanan kesehatan Paguyuban..."
+                        placeholder="Saran layanan kesehatan Paguyuban..."
                         value={formData.harapanDukunganLeting || ''}
                         onChange={(e) => handleInputChange('harapanDukunganLeting', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
 
                     <div className="sm:col-span-2">
-                      <label className="block text-xs font-bold text-slate-800 mb-1">
-                        Catatan Kesehatan Lainnya (Suplemen / Fisioterapi / Catatan Medis)
-                      </label>
+                      <LabelWithTooltip label="Catatan Kesehatan Tambahan (Suplemen / Fisioterapi)" />
                       <textarea
                         rows={2}
                         placeholder="Catatan tambahan terkait kesehatan atau kebugaran..."
                         value={formData.kesehatanLainLain || ''}
                         onChange={(e) => handleInputChange('kesehatanLainLain', e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
                   </div>

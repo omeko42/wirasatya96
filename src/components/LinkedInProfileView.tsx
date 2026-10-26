@@ -1670,22 +1670,57 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
               );
             })()}
 
-            {/* Diagnosa Penyakit */}
-            {localMember.daftarPenyakit && localMember.daftarPenyakit.length > 0 && (
-              <div className="space-y-1.5 pt-1">
+            {/* Diagnosa Penyakit (Structured RiwayatPenyakitItem atau Daftar Penyakit) */}
+            {((localMember.riwayatPenyakitDetail && localMember.riwayatPenyakitDetail.length > 0) ||
+              (localMember.daftarPenyakit && localMember.daftarPenyakit.length > 0)) && (
+              <div className="space-y-2 pt-1">
                 <span className="text-xs font-bold text-slate-700 block">
-                  Diagnosa Medis:
+                  Riwayat Diagnosa Medis:
                 </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {localMember.daftarPenyakit.map((p, i) => (
-                    <span
-                      key={i}
-                      className="px-2.5 py-1 rounded-lg bg-red-50 text-red-800 border border-red-200 font-bold text-[11px]"
-                    >
-                      {p}
-                    </span>
-                  ))}
-                </div>
+                {localMember.riwayatPenyakitDetail && localMember.riwayatPenyakitDetail.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {localMember.riwayatPenyakitDetail.map((item, i) => (
+                      <div
+                        key={item.id || i}
+                        className="p-2.5 rounded-xl bg-red-50/70 border border-red-200/90 text-xs space-y-1"
+                      >
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="font-extrabold text-red-900">
+                            {item.namaPenyakit}
+                          </span>
+                          {item.sejakKapan && (
+                            <span className="px-2 py-0.5 rounded-full bg-white text-red-800 border border-red-200 text-[10px] font-bold shrink-0">
+                              Sejak {item.sejakKapan}
+                            </span>
+                          )}
+                        </div>
+                        {(item.statusPenyakit || item.terapiObat) && (
+                          <div className="text-[11px] text-slate-700 flex flex-wrap items-center gap-1.5">
+                            {item.statusPenyakit && (
+                              <span className="font-semibold text-red-800">
+                                Status: {item.statusPenyakit.replace(/_/g, ' ')}
+                              </span>
+                            )}
+                            {item.terapiObat && (
+                              <span className="text-slate-600">• Terapi: {item.terapiObat}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {localMember.daftarPenyakit?.map((p, i) => (
+                      <span
+                        key={i}
+                        className="px-2.5 py-1 rounded-lg bg-red-50 text-red-800 border border-red-200 font-bold text-[11px]"
+                      >
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1945,16 +1980,15 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       <span className="font-semibold text-slate-900">{noHpPasangan}</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block">Jumlah Anak:</span>
+                      <span className="text-slate-500 block">Jumlah Anak (1 Garis Keturunan):</span>
                       <span className="font-bold text-blue-700">
                         {anakList.length || localMember.jumlahAnak || 0} Anak
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block">Tanggungan Lain:</span>
-                      <span className="font-semibold text-slate-800">
-                        {localMember.tanggunganLain?.jumlah || 0} Orang (
-                        {localMember.tanggunganLain?.rincian || 'Tidak ada'})
+                      <span className="text-slate-500 block">Kriteria Penerima Manfaat:</span>
+                      <span className="font-bold text-emerald-800">
+                        Keluarga Inti (Ayah, Ibu &amp; Anak Sah)
                       </span>
                     </div>
                     <div className="sm:col-span-2 pt-1.5 border-t border-slate-200/70">

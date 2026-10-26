@@ -153,15 +153,25 @@ export function deriveBirthDateFromNrp(nrp?: string | null): string {
 
 export function formatTanggalIndonesia(dateStr?: string | null): string {
   if (!dateStr || typeof dateStr !== 'string') return '-';
-  const match = dateStr.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!match) return dateStr;
-  const year = parseInt(match[1], 10);
-  const monthIdx = parseInt(match[2], 10) - 1;
-  const day = parseInt(match[3], 10);
-  if (monthIdx < 0 || monthIdx > 11 || Number.isNaN(day) || Number.isNaN(year)) {
-    return dateStr;
+  const trimmed = dateStr.trim();
+  const fullMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (fullMatch) {
+    const year = parseInt(fullMatch[1], 10);
+    const monthIdx = parseInt(fullMatch[2], 10) - 1;
+    const day = parseInt(fullMatch[3], 10);
+    if (monthIdx >= 0 && monthIdx <= 11 && !Number.isNaN(day) && !Number.isNaN(year)) {
+      return `${day} ${NAMA_BULAN_ID[monthIdx]} ${year}`;
+    }
   }
-  return `${day} ${NAMA_BULAN_ID[monthIdx]} ${year}`;
+  const ymMatch = trimmed.match(/^(\d{4})-(\d{2})$/);
+  if (ymMatch) {
+    const year = parseInt(ymMatch[1], 10);
+    const monthIdx = parseInt(ymMatch[2], 10) - 1;
+    if (monthIdx >= 0 && monthIdx <= 11 && !Number.isNaN(year)) {
+      return `${NAMA_BULAN_ID[monthIdx]} ${year}`;
+    }
+  }
+  return trimmed;
 }
 
 export interface Retirement58Calculation {
@@ -184,16 +194,33 @@ export interface Retirement58Calculation {
 
 /**
  * Calculates exact age and retirement countdown at BUP Polri (58 Years Old) from tanggalLahir (or NRP fallback).
+ * Supports full date (YYYY-MM-DD), month-year (YYYY-MM or "Mei 1974"), or year-only (YYYY).
  */
 export function calculateRetirement58(
   tanggalLahirInput?: string | null,
   nrpFallback?: string | null,
   referenceDate: Date = new Date()
 ): Retirement58Calculation {
-  const rawDate =
-    tanggalLahirInput && /^\d{4}-\d{2}-\d{2}/.test(tanggalLahirInput.trim())
-      ? tanggalLahirInput.trim().slice(0, 10)
-      : deriveBirthDateFromNrp(nrpFallback);
+  let rawDate = deriveBirthDateFromNrp(nrpFallback);
+  if (tanggalLahirInput && tanggalLahirInput.trim()) {
+    const t = tanggalLahirInput.trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(t)) {
+      rawDate = t.slice(0, 10);
+    } else if (/^\d{4}-\d{2}$/.test(t)) {
+      rawDate = `${t}-01`;
+    } else if (/^\d{4}$/.test(t)) {
+      rawDate = `${t}-01-01`;
+    } else {
+      const yearMatch = t.match(/\b(19\d{2}|20\d{2})\b/);
+      if (yearMatch) {
+        const yr = yearMatch[1];
+        const lower = t.toLowerCase();
+        const mIdx = NAMA_BULAN_ID.findIndex((b) => lower.includes(b.toLowerCase()));
+        const mm = mIdx >= 0 ? String(mIdx + 1).padStart(2, '0') : '01';
+        rawDate = `${yr}-${mm}-01`;
+      }
+    }
+  }
 
   const parts = rawDate.split('-');
   const birthYear = parseInt(parts[0], 10) || 1974;
