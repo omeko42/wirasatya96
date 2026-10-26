@@ -165,9 +165,9 @@ const DAFTAR_RENCANA_AKTIVITAS = [
 ] as const;
 
 const KISARAN_BIAYA_SEWA_OPTIONS = [
-  '< Rp 25 Juta / Tahun',
-  'Rp 25 Juta - Rp 50 Juta / Tahun',
-  '> Rp 50 Juta / Tahun',
+  '< 25 Jt/Thn',
+  '25 - 50 Jt/Thn',
+  '> 50 Jt/Thn',
 ] as const;
 
 const DAFTAR_ASURANSI: ('BPJS' | 'ASURANSI KESEHATAN' | 'ASURANSI JIWA' | 'TIDAK ADA')[] = [
@@ -224,29 +224,29 @@ const TAB_CONFIG: {
 }[] = [
   {
     num: 1,
-    title: 'Kedinasan, Kompi & Kontak',
-    shortTitle: 'Kedinasan, Kompi & Kontak',
+    title: 'Kedinasan & Identitas',
+    shortTitle: 'Kedinasan',
     subSections: ['1A', '1B', '1C', '1D', '1E'],
     icon: Shield,
   },
   {
     num: 2,
-    title: 'Domisili & Data Keluarga',
-    shortTitle: 'Domisili & Keluarga',
+    title: 'Domisili & Keluarga',
+    shortTitle: 'Keluarga',
     subSections: ['2A', '2B', '2C'],
     icon: Users,
   },
   {
     num: 3,
-    title: 'Purna Tugas & Usaha Bersama / Yayasan',
-    shortTitle: 'Purna Tugas & Usaha/Yayasan',
+    title: 'Purna Tugas & Usaha',
+    shortTitle: 'Purna Tugas',
     subSections: ['3A', '3B', '3C'],
     icon: Home,
   },
   {
     num: 4,
-    title: 'Kesehatan, Asuransi & Lain-lain',
-    shortTitle: 'Kesehatan & Lain-lain',
+    title: 'Kesehatan & Asuransi',
+    shortTitle: 'Kesehatan',
     subSections: ['4A', '4B', '4C'],
     icon: Activity,
   },
@@ -833,23 +833,21 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '1A',
         tab: 1,
-        title: 'Foto Profil, Sampul & Bio Singkat',
-        shortTitle: '1A. Foto, Sampul & Bio',
-        existingDetail: `${hasCustomFoto ? 'Foto Profil Terpasang' : 'Foto Standar'} • ${
-          hasBio ? `Bio: "${formData.bio!.trim().slice(0, 42)}..."` : 'Bio Belum Diisi'
+        title: 'Foto, Sampul & Bio',
+        shortTitle: '1A. Foto & Bio',
+        existingDetail: `${hasCustomFoto ? 'Foto Terpasang' : 'Foto Standar'} • ${
+          hasBio ? `Bio: "${formData.bio!.trim().slice(0, 36)}..."` : 'Bio kosong'
         }`,
         isComplete: hasCustomFoto || hasBio,
       },
       {
         id: '1B',
         tab: 1,
-        title: 'Status Kedinasan, Pangkat, Jabatan & Satker Polri',
-        shortTitle: '1B. Jabatan & Satker Polri',
+        title: 'Jabatan & Satker Polri',
+        shortTitle: '1B. Jabatan & Satker',
         existingDetail: `${formData.pangkat || 'Kombes Pol'} • ${
-          formData.jabatanTerakhir?.trim() || 'Jabatan Belum Diisi'
-        } — ${formData.satuanKerja || 'Bareskrim Polri'} (${formData.polda || 'MABES POLRI'}) • ${
-          formData.statusKedinasan || 'AKTIF'
-        }`,
+          formData.jabatanTerakhir?.trim() || 'Belum diisi'
+        } — ${formData.satuanKerja || 'Bareskrim Polri'}`,
         isComplete: Boolean(
           formData.pangkat && formData.jabatanTerakhir?.trim() && formData.satuanKerja?.trim()
         ),
@@ -857,13 +855,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '1C',
         tab: 1,
-        title: 'Kelompok Kompi, Pleton & Identitas Pribadi',
-        shortTitle: '1C. Kompi, Pleton & Identitas',
+        title: 'Kompi, Pleton & Identitas',
+        shortTitle: '1C. Kompi & Identitas',
         existingDetail: `${formData.kompi || 'KOMPI A'} • ${formData.pleton || 'PLETON 1'} • ${
-          formData.tempatLahir || 'Jakarta'
-        }, ${retirementCalc.formattedTanggalLahir} (${retirementCalc.usiaTahun} Thn) • ${
-          formData.pendidikanTerakhir?.trim() || 'Pendidikan Belum Diisi'
-        }`,
+          retirementCalc.formattedTanggalLahir
+        } (${retirementCalc.usiaTahun} Thn)`,
         isComplete: Boolean(
           formData.namaLengkap?.trim() &&
             formData.nrp?.trim() &&
@@ -875,9 +871,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '1D',
         tab: 1,
-        title: 'Ukuran Aparel (Baju, Celana, Sepatu) & Golongan Darah',
-        shortTitle: '1D. Ukuran Aparel & Gol. Darah',
-        existingDetail: `Gol. Darah: ${formData.golonganDarah || 'O'} • Baju: ${
+        title: 'Aparel & Golongan Darah',
+        shortTitle: '1D. Aparel & Darah',
+        existingDetail: `Darah: ${formData.golonganDarah || 'O'} • Baju: ${
           formData.ukuranBaju || '-'
         } • Celana: ${formData.ukuranCelana || '-'} • Sepatu: ${formData.ukuranSepatu || '-'}`,
         isComplete: Boolean(
@@ -890,23 +886,23 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '1E',
         tab: 1,
-        title: 'Kontak Kedinasan & Daftar Ajudan (ADC)',
-        shortTitle: '1E. Kontak & Daftar ADC',
-        existingDetail: `No. HP: ${formData.noHp?.trim() || 'Belum Diisi'} • Email: ${
-          formData.email?.trim() || '-'
-        } • ${formData.daftarAdc?.length || 0} ADC Terdata`,
+        title: 'Kontak & Ajudan (ADC)',
+        shortTitle: '1E. Kontak & ADC',
+        existingDetail: `HP: ${formData.noHp?.trim() || '-'} • ${
+          formData.daftarAdc?.length || 0
+        } ADC`,
         isComplete: Boolean(formData.noHp?.trim() && formData.email?.trim()),
       },
       {
         id: '2A',
         tab: 2,
-        title: 'Alamat Domisili Saat Ini & Rincian Biaya Sewa/Kontrak',
-        shortTitle: '2A. Domisili & Rincian Sewa',
+        title: 'Domisili & Biaya Sewa',
+        shortTitle: '2A. Domisili & Sewa',
         existingDetail: `${formData.statusTempatTinggal || 'MILIK PRIBADI'} • ${
-          formData.alamatTempatTinggal?.trim() || 'Alamat Belum Diisi - Perlu Diperbaharui'
+          formData.alamatTempatTinggal?.trim() || 'Belum diisi'
         }${
           formData.statusTempatTinggal === 'SEWA/KONTRAK'
-            ? ` • Sewa: ${formData.biayaSewaTempatTinggal?.trim() || 'Nominal Belum Dirinci'}`
+            ? ` • ${formData.biayaSewaTempatTinggal?.trim() || 'Biaya belum diisi'}`
             : ''
         }`,
         isComplete: Boolean(
@@ -920,14 +916,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         tab: 2,
         title:
           formData.statusKedinasan === 'ALMARHUM'
-            ? 'Data Istri / Ahli Waris Almarhum & Kontak Keluarga'
-            : 'Data Istri / Pasangan & Kontak Keluarga',
-        shortTitle: '2B. Data Istri / Pasangan',
+            ? 'Data Istri / Ahli Waris'
+            : 'Data Istri / Pasangan',
+        shortTitle: '2B. Data Istri',
         existingDetail: `${formData.statusPerkawinan || 'MENIKAH'} • ${
-          formData.namaIstri?.trim()
-            ? formData.namaIstri
-            : 'Belum Diisi - Perlu Diperbaharui'
-        } • No. HP: ${formData.kontakIstri?.trim() || 'Belum Diisi'}`,
+          formData.namaIstri?.trim() ? formData.namaIstri : 'Belum diisi'
+        } • HP: ${formData.kontakIstri?.trim() || '-'}`,
         isComplete: Boolean(
           formData.statusPerkawinan === 'BELUM MENIKAH' || formData.namaIstri?.trim()
         ),
@@ -935,26 +929,23 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '2C',
         tab: 2,
-        title:
-          formData.statusKedinasan === 'ALMARHUM'
-            ? 'Daftar Putra-Putri Almarhum (Data Anak)'
-            : 'Daftar Putra-Putri / Anak (Data Pendidikan & Tanggungan)',
-        shortTitle: '2C. Daftar Putra-Putri / Anak',
-        existingDetail: `${formData.daftarAnak?.length || 0} Anak Terdata • ${
-          anakNames.length > 0 ? anakNames.join(', ') : 'Belum Ada Data Anak Tersimpan'
+        title: 'Data Putra-Putri (Anak)',
+        shortTitle: '2C. Data Anak',
+        existingDetail: `${formData.daftarAnak?.length || 0} Anak${
+          anakNames.length > 0 ? ` (${anakNames.join(', ')})` : ''
         }`,
         isComplete: (formData.daftarAnak?.length || 0) > 0 && anakNames.length === (formData.daftarAnak?.length || 0),
       },
       {
         id: '3A',
         tab: 3,
-        title: `Proyeksi Purna Tugas (BUP ${RETIREMENT_AGE_POLRI} Tahun) & Rencana Hunian Pensiun`,
-        shortTitle: `3A. Purna Tugas (${RETIREMENT_AGE_POLRI} Thn) & Hunian`,
-        existingDetail: `Pensiun ${retirementCalc.tahunPurnaTugas} (${RETIREMENT_AGE_POLRI} Thn) • ${
-          retirementCalc.sisaMasaDinasShort
-        } • Hunian: ${formData.statusRumahPurnaTugas || 'MILIK PRIBADI'}${
+        title: `Purna Tugas (${RETIREMENT_AGE_POLRI} Thn) & Hunian`,
+        shortTitle: `3A. Purna Tugas & Hunian`,
+        existingDetail: `Pensiun ${retirementCalc.tahunPurnaTugas} • Hunian: ${
+          formData.statusRumahPurnaTugas || 'MILIK PRIBADI'
+        }${
           formData.statusRumahPurnaTugas === 'SEWA/KONTRAK'
-            ? ` (${formData.biayaSewaTahunan?.trim() || 'Biaya Sewa Belum Dirinci'})`
+            ? ` (${formData.biayaSewaTahunan?.trim() || 'Belum diisi'})`
             : ''
         }`,
         isComplete: Boolean(
@@ -966,12 +957,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '3B',
         tab: 3,
-        title: 'Usaha Bersama & Yayasan Wira Satya 96',
-        shortTitle: '3B. Usaha Bersama & Yayasan',
+        title: 'Usaha Bersama & Yayasan',
+        shortTitle: '3B. Usaha & Yayasan',
         existingDetail: `${formData.kategoriUsaha || 'USAHA BERSAMA LETING'} • ${
-          formData.namaUsahaYayasan?.trim() || formData.jenisUsaha?.trim() || 'Nama Unit Belum Diisi'
-        } • Peran: ${formData.peranUsahaYayasan || 'ANGGOTA PENYERTA MODAL'} • ${
-          formData.statusUsaha || 'MASIH RENCANA'
+          formData.namaUsahaYayasan?.trim() || formData.jenisUsaha?.trim() || 'Belum diisi'
         }`,
         isComplete: Boolean(
           formData.kategoriUsaha &&
@@ -981,11 +970,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '3C',
         tab: 3,
-        title: 'Kesiapan Finansial & Dukungan Purna Tugas',
-        shortTitle: '3C. Kesiapan & Dukungan Pensiun',
-        existingDetail: `Sumber: ${(formData.sumberPenghasilanPasca || ['DANA PENSIUN']).join(
-          ', '
-        )} • Dana: ${formData.kecukupanDanaPensiun || 'CUKUP'} • Kesiapan: ${
+        title: 'Kesiapan Finansial Pensiun',
+        shortTitle: '3C. Kesiapan Finansial',
+        existingDetail: `Dana: ${formData.kecukupanDanaPensiun || 'CUKUP'} • Sikap: ${
           formData.perasaanPensiun || 'OPTIMIS'
         }`,
         isComplete: Boolean(formData.kecukupanDanaPensiun && formData.perasaanPensiun),
@@ -993,41 +980,31 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '4A',
         tab: 4,
-        title: 'Kondisi Kesehatan Umum, Golongan Darah & Riwayat Penyakit',
-        shortTitle: '4A. Kondisi Kesehatan & Penyakit',
-        existingDetail: `Kondisi: ${formData.kondisiKesehatan || 'BAIK'} • Gol. Darah: ${
+        title: 'Kondisi Kesehatan & Penyakit',
+        shortTitle: '4A. Kondisi & Penyakit',
+        existingDetail: `${formData.kondisiKesehatan || 'BAIK'} • Darah ${
           formData.golonganDarah || 'O'
-        } • Penyakit Kronis: ${formData.adaPenyakitKronis || 'TIDAK ADA'}${
-          formData.daftarPenyakit && formData.daftarPenyakit.length > 0
-            ? ` (${formData.daftarPenyakit.length} diagnosa)`
-            : ''
-        }`,
+        } • Kronis: ${formData.adaPenyakitKronis || 'TIDAK ADA'}`,
         isComplete: Boolean(formData.kondisiKesehatan && formData.golonganDarah),
       },
       {
         id: '4B',
         tab: 4,
-        title: 'Asuransi Kesehatan & Pemeriksaan Medis Berkala (MCU)',
-        shortTitle: '4B. Asuransi Kesehatan & MCU',
-        existingDetail: `Asuransi: ${(formData.asuransiAktif || ['BPJS']).join(', ')} • Rutin MCU: ${
+        title: 'Asuransi & MCU Berkala',
+        shortTitle: '4B. Asuransi & MCU',
+        existingDetail: `${(formData.asuransiAktif || ['BPJS']).join(', ')} • MCU: ${
           formData.rutinMcu || 'YA'
-        } (${formData.mcuTerakhir || '< 6 BULAN'})`,
+        }`,
         isComplete: Boolean((formData.asuransiAktif?.length || 0) > 0 && formData.rutinMcu),
       },
       {
         id: '4C',
         tab: 4,
-        title: 'Kolom Lain-lain Kesehatan & Harapan Dukungan Medis',
-        shortTitle: '4C. Lain-lain Kesehatan & Harapan',
-        existingDetail: `Lain-lain: ${
-          formData.kesehatanLainLain?.trim()
-            ? formData.kesehatanLainLain.trim().slice(0, 38)
-            : 'Belum Diisi'
-        } • Harapan: ${
-          formData.harapanDukunganLeting?.trim() || formData.kondisiSaatIni?.trim()
-            ? 'Tersimpan'
-            : 'Belum Diisi'
-        }`,
+        title: 'Catatan Kesehatan Lainnya',
+        shortTitle: '4C. Catatan Lainnya',
+        existingDetail: formData.kesehatanLainLain?.trim()
+          ? formData.kesehatanLainLain.trim().slice(0, 40)
+          : 'Belum ada catatan khusus',
         isComplete: Boolean(
           formData.kesehatanLainLain?.trim() ||
             formData.kondisiSaatIni?.trim() ||
@@ -1611,23 +1588,23 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           isExpanded ? 'border-polri-navy/40 ring-1 ring-polri-navy/15' : 'border-slate-200 hover:border-slate-300'
         }`}
       >
-        {/* Clickable Accordion Header Displaying Existing Data & Completeness Badge */}
+        {/* Clickable Accordion Header */}
         <div
           onClick={() => toggleSubSection(id)}
-          className={`w-full p-4 sm:px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none transition-colors ${
+          className={`w-full p-3.5 sm:px-4 flex items-center justify-between gap-2.5 cursor-pointer select-none transition-colors ${
             isExpanded ? 'bg-slate-900 text-white' : 'bg-slate-50/90 hover:bg-slate-100/80 text-slate-900'
           }`}
         >
-          <div className="space-y-1 min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="space-y-0.5 min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
               <span
-                className={`px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider ${
+                className={`px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider ${
                   isExpanded
                     ? 'bg-amber-400 text-slate-950'
                     : 'bg-polri-navy text-polri-gold'
                 }`}
               >
-                Lembar {meta.id}
+                {meta.id}
               </span>
               <h4
                 className={`text-xs sm:text-sm font-extrabold truncate ${
@@ -1644,7 +1621,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                   }`}
                 >
-                  &#10003; Data Existing Lengkap
+                  &#10003; Lengkap
                 </span>
               ) : (
                 <span
@@ -1654,38 +1631,35 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       : 'bg-amber-100 text-amber-900 border border-amber-300'
                   }`}
                 >
-                  &#9888; Perlu Diperbaharui / Belum Lengkap
+                  Perlu Diisi
                 </span>
               )}
             </div>
 
             <p
-              className={`text-[11px] leading-snug line-clamp-2 ${
-                isExpanded ? 'text-slate-300' : 'text-slate-600'
+              className={`text-[11px] leading-snug truncate ${
+                isExpanded ? 'text-slate-300' : 'text-slate-500'
               }`}
             >
-              <strong className={isExpanded ? 'text-amber-300' : 'text-slate-800'}>
-                Data Existing:
-              </strong>{' '}
               {meta.existingDetail}
             </p>
           </div>
 
           <div
-            className="flex items-center gap-2 self-end sm:self-center shrink-0"
+            className="flex items-center gap-1.5 shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             {headerExtra}
             <button
               type="button"
               onClick={() => toggleSubSection(id)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
                 isExpanded
                   ? 'bg-white/10 hover:bg-white/20 text-white border-white/20'
                   : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
               }`}
             >
-              <span>{isExpanded ? 'Tutup' : 'Buka & Edit'}</span>
+              <span>{isExpanded ? 'Tutup' : 'Edit'}</span>
               {isExpanded ? (
                 <ChevronUp className="w-3.5 h-3.5" />
               ) : (
@@ -1701,18 +1675,18 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             {children}
 
             {/* Per-Sub-Section Save Action Bar */}
-            <div className="pt-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[11px] text-slate-500">
-                Lembar <strong>{meta.id} ({meta.title})</strong> &bull; Perubahan akan disimpan pada Kategori {step}.
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+              <span className="text-[11px] text-slate-400">
+                Bagian <strong>{meta.id}</strong> &bull; Tersinkron otomatis ke Profil
               </span>
               <button
                 type="button"
                 disabled={!hasEditPermission}
                 onClick={() => handleSaveTab(step, true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-800 hover:bg-red-900 disabled:opacity-50 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-red-800 hover:bg-red-900 disabled:opacity-50 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5 text-amber-300" />
-                <span>Simpan Lembar Data Ini</span>
+                <span>Simpan Data</span>
               </button>
             </div>
           </div>
@@ -1722,103 +1696,79 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-5 pb-24 md:pb-12">
-      {/* Top Bar: Connected Mode Switcher (Lihat Profil <-> Data Diri) + Access Rights Badge */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+    <div className="max-w-7xl mx-auto space-y-4 pb-24 md:pb-12">
+      {/* Compact Single-Row Top Bar: Mode Switcher + Role Badge + Save Action */}
+      <div className="bg-white p-3.5 sm:px-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Unified Mode Switcher Pill */}
-          <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200 self-start">
+          <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200">
             <button
               type="button"
               onClick={onCancel}
-              className="px-3.5 py-1.5 rounded-lg text-slate-700 hover:text-red-900 hover:bg-white/80 text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg text-slate-700 hover:text-red-900 hover:bg-white/80 text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer"
               title="Beralih ke tampilan Lihat Profil"
             >
               <span>👤 Lihat Profil</span>
             </button>
             <button
               type="button"
-              className="px-3.5 py-1.5 rounded-lg bg-red-800 text-white text-xs font-extrabold shadow-xs flex items-center gap-1.5 cursor-default"
+              className="px-3 py-1.5 rounded-lg bg-red-800 text-white text-xs font-extrabold shadow-xs flex items-center gap-1.5 cursor-default"
             >
-              <span>📝 Data Diri (Pengkinian)</span>
+              <span>📝 Data Diri</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700 transition-colors cursor-pointer"
-            >
-              &larr; Kembali ke Lihat Profil
-            </button>
-            <button
-              type="button"
-              disabled={!hasEditPermission}
-              onClick={() => handleSaveTab(step, false)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Simpan &amp; Lihat Profil</span>
-            </button>
-          </div>
+          {canEditAnyMember ? (
+            <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-slate-900 text-amber-300 border border-slate-700 inline-flex items-center gap-1">
+              <Shield className="w-3 h-3 text-amber-400" />
+              {activeUser.role}
+            </span>
+          ) : isEditingRepresentedPimpinan ? (
+            <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-300 inline-flex items-center gap-1">
+              <Shield className="w-3 h-3 text-amber-700" />
+              Mode ADC
+            </span>
+          ) : (
+            <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200 inline-flex items-center gap-1">
+              <Lock className="w-3 h-3" />
+              Profil Pribadi
+            </span>
+          )}
         </div>
 
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-base sm:text-lg font-extrabold text-polri-navy">
-              {baselineMember ? 'Menu Data Diri — Pengkinian Lembar Data Personel' : 'Registrasi Lembar Data Personel Baru'}
-            </h2>
-            {canEditAnyMember ? (
-              <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-slate-900 text-amber-300 border border-slate-700 inline-flex items-center gap-1">
-                <Shield className="w-3 h-3 text-amber-400" />
-                Otoritas {activeUser.role} — Akses Edit Seluruh Personel
-              </span>
-            ) : isEditingRepresentedPimpinan ? (
-              <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300 inline-flex items-center gap-1">
-                <Shield className="w-3 h-3 text-amber-700" />
-                Mode ADC / Ajudan — Mewakili Pimpinan
-              </span>
-            ) : (
-              <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 inline-flex items-center gap-1">
-                <Lock className="w-3 h-3" />
-                Akses Mandiri — Hanya Profil Pribadi
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-500">
-            Pilih kategori di panel kiri, lalu klik masing-masing lembar isian di sebelah kanan untuk melihat data existing atau memperbaharuinya. Seluruh perubahan langsung terhubung dengan menu Lihat Profil.
-          </p>
-        </div>
+        <button
+          type="button"
+          disabled={!hasEditPermission}
+          onClick={() => handleSaveTab(step, false)}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer shrink-0"
+        >
+          <Eye className="w-3.5 h-3.5" />
+          <span>Simpan &amp; Lihat Profil</span>
+        </button>
       </div>
 
       {!hasEditPermission && (
-        <div className="p-4 rounded-2xl bg-red-50 border-2 border-red-200 text-red-900 flex items-center gap-3 text-xs sm:text-sm font-bold">
-          <Lock className="w-5 h-5 text-red-600 shrink-0" />
+        <div className="p-3.5 rounded-2xl bg-red-50 border-2 border-red-200 text-red-900 flex items-center gap-2.5 text-xs font-bold">
+          <Lock className="w-4 h-4 text-red-600 shrink-0" />
           <span>
-            Anda login sebagai {activeUser.role} ({activeUser.nama}). Sesuai kebijakan keamanan Wira Satya 96, Anda hanya dapat mengubah data profil milik Anda sendiri.
+            Akses baca: Anda hanya dapat mengubah data profil milik Anda sendiri.
           </span>
         </div>
       )}
 
       {/* Saved Toast / Banner */}
       {savedBanner && (
-        <div className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-300 text-emerald-950 shadow-sm flex items-start justify-between gap-3">
-          <div className="flex items-start gap-2.5">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-            <div className="space-y-0.5">
-              <div className="text-xs sm:text-sm font-extrabold text-emerald-900">
-                Perubahan Kategori {savedBanner.tabName} berhasil disimpan &amp; disinkronkan ke Profil, Beranda, Jabatan, Anev, dan User!
-              </div>
-              <div className="text-[11px] text-emerald-700">
-                Disimpan pada pukul {savedBanner.timestamp} WIB &bull; Kategori {savedBanner.tabNum} ({savedBanner.tabName}) telah diperbarui.
-              </div>
-            </div>
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-950 shadow-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-extrabold text-emerald-900">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              Data {savedBanner.tabName} tersimpan ({savedBanner.timestamp} WIB).
+            </span>
           </div>
           <button
             type="button"
             onClick={() => setSavedBanner(null)}
-            className="text-xs font-bold text-emerald-700 hover:text-emerald-950 px-2 py-1 rounded-lg hover:bg-emerald-100 transition-colors flex-shrink-0"
+            className="text-xs font-bold text-emerald-700 hover:text-emerald-950 px-2 py-0.5 rounded-lg hover:bg-emerald-100 transition-colors shrink-0"
           >
             Tutup
           </button>
@@ -1827,15 +1777,15 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
       {/* Validation Error Banner */}
       {errorMsg && (
-        <div className="p-4 rounded-2xl bg-red-50 border-2 border-red-200 text-red-900 shadow-sm flex items-start justify-between gap-3">
-          <div className="flex items-start gap-2.5">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="text-xs sm:text-sm font-bold leading-relaxed">{errorMsg}</div>
+        <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-900 shadow-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-bold">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{errorMsg}</span>
           </div>
           <button
             type="button"
             onClick={() => setErrorMsg(null)}
-            className="text-xs font-bold text-red-700 hover:text-red-900 px-2 py-1 rounded-lg hover:bg-red-100 transition-colors flex-shrink-0"
+            className="text-xs font-bold text-red-700 hover:text-red-900 px-2 py-0.5 rounded-lg hover:bg-red-100 transition-colors shrink-0"
           >
             Tutup
           </button>
@@ -1845,13 +1795,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {/* ===================================================================== */}
       {/* 2-COLUMN TOUR OF DUTY LAYOUT: LEFT SIDEBAR (4) + RIGHT ACCORDION (8)  */}
       {/* ===================================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* LEFT COLUMN (lg:col-span-4): TOUR OF DUTY STYLE SIDEBAR */}
-        <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* LEFT COLUMN (lg:col-span-4): COMPACT SIDEBAR */}
+        <div className="lg:col-span-4 space-y-3.5 lg:sticky lg:top-4">
           {/* 1. KARTU RINGKASAN PERSONEL */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-3.5">
-            <div className="flex items-center gap-3.5">
-              <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-polri-gold bg-slate-100 shrink-0 shadow-xs">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-3.5 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-polri-gold bg-slate-100 shrink-0 shadow-xs">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={getAvatarUrl(formData.fotoUrl)}
@@ -1860,13 +1810,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 />
               </div>
               <div className="min-w-0 flex-1 space-y-0.5">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-800 block">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-800 block truncate">
                   {formData.pangkat || 'Kombes Pol'} &bull; NRP {formData.nrp || '—'}
                 </span>
                 <h3 className="text-sm font-black text-slate-900 truncate">
-                  {formData.namaLengkap?.trim() || 'Nama Personel Belum Diisi'}
+                  {formData.namaLengkap?.trim() || 'Personel Baru'}
                 </h3>
-                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <div className="flex flex-wrap items-center gap-1 pt-0.5">
                   <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-extrabold">
                     🎖️ {formData.kompi || 'KOMPI A'} &bull; {formData.pleton || 'PLETON 1'}
                   </span>
@@ -1888,36 +1838,28 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             </div>
 
             {/* Progress Kelengkapan Data */}
-            <div className="pt-2 border-t border-slate-100 space-y-1.5">
+            <div className="pt-2 border-t border-slate-100 space-y-1">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold text-slate-600">Kelengkapan Lembar Data</span>
-                <span className="font-extrabold text-polri-navy">{completionPercentage}% Lengkap</span>
+                <span className="font-bold text-slate-500">Kelengkapan Data</span>
+                <span className="font-extrabold text-polri-navy">{completionPercentage}%</span>
               </div>
-              <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-red-800 via-amber-500 to-emerald-600 transition-all duration-300"
                   style={{ width: `${completionPercentage}%` }}
                 />
               </div>
-              <button
-                type="button"
-                onClick={onCancel}
-                className="w-full mt-2 py-2 px-3 rounded-xl border border-red-800/40 text-red-900 hover:bg-red-50 font-extrabold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span>Lihat Profil Lengkap ({formData.namaLengkap?.split(',')[0] || 'Personel'})</span>
-              </button>
             </div>
           </div>
 
-          {/* 2. KARTU KATEGORI LEMBAR DATA (GAYA SIDEBAR TOUR OF DUTY) */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-2.5">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+          {/* 2. KARTU KATEGORI DATA DIRI + SHORTCUT LEMBAR */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-3.5 space-y-2">
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-red-800" />
-                Kategori Lembar Data
+                Kategori Data Diri
               </span>
-              <span className="text-[10px] font-bold text-slate-400">4 Modul</span>
+              <span className="text-[10px] font-bold text-slate-400">4 Kategori</span>
             </div>
 
             <div className="space-y-1.5">
@@ -1929,104 +1871,85 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 const doneCount = subItems.filter((m) => m.isComplete).length;
 
                 return (
-                  <button
-                    key={t.num}
-                    type="button"
-                    onClick={() => {
-                      setStep(t.num);
-                      setErrorMsg(null);
-                    }}
-                    className={`w-full flex items-center justify-between gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-red-800 text-white border-red-900 shadow-sm'
-                        : isSaved
-                        ? 'bg-emerald-50/70 text-emerald-950 border-emerald-200 hover:bg-emerald-100/60'
-                        : 'bg-slate-50/80 text-slate-700 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                  <div key={t.num} className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStep(t.num);
+                        setErrorMsg(null);
+                      }}
+                      className={`w-full flex items-center justify-between gap-2 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-red-800 text-white border-red-900 shadow-xs'
+                          : isSaved
+                          ? 'bg-emerald-50/70 text-emerald-950 border-emerald-200 hover:bg-emerald-100/60'
+                          : 'bg-slate-50/80 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                            isActive
+                              ? 'bg-white/15 text-amber-300'
+                              : 'bg-white text-slate-700 border border-slate-200'
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-extrabold truncate">
+                            {t.num}. {t.title}
+                          </div>
+                          <div
+                            className={`text-[10px] font-medium ${
+                              isActive ? 'text-amber-200' : 'text-slate-500'
+                            }`}
+                          >
+                            {doneCount}/{subItems.length} lengkap
+                            {isSaved ? ' • Tersimpan' : ''}
+                          </div>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold shrink-0 ${
                           isActive
-                            ? 'bg-white/15 text-amber-300'
+                            ? 'bg-black/25 text-white border border-white/20'
                             : 'bg-white text-slate-700 border border-slate-200'
                         }`}
                       >
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-extrabold truncate">
-                          {t.num}. {t.title}
-                        </div>
-                        <div
-                          className={`text-[10px] font-medium ${
-                            isActive ? 'text-amber-200' : 'text-slate-500'
-                          }`}
-                        >
-                          {doneCount}/{subItems.length} sub-bagian lengkap
-                          {isSaved ? ' • Tersimpan' : ''}
-                        </div>
-                      </div>
-                    </div>
-
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold shrink-0 ${
-                        isActive
-                          ? 'bg-black/25 text-white border border-white/20'
-                          : 'bg-white text-slate-700 border border-slate-200'
-                      }`}
-                    >
-                      {t.subSections.length} Lembar
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 3. KARTU DAFTAR LEMBAR ISIAN (SUB-BAGIAN) PADA KATEGORI AKTIF */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-2.5">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                Daftar Lembar Isian (Kategori {step})
-              </span>
-              <span className="text-[10px] font-bold text-slate-400">Klik untuk buka</span>
-            </div>
-
-            <div className="space-y-1.5">
-              {currentStepSubSections.map((sub) => {
-                const isOpen = Boolean(expandedSections[sub.id]);
-                return (
-                  <button
-                    key={sub.id}
-                    type="button"
-                    onClick={() => openAndFocusSubSection(step, sub.id)}
-                    className={`w-full p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-start justify-between gap-2 ${
-                      isOpen
-                        ? 'bg-slate-900 text-white border-slate-900'
-                        : 'bg-slate-50/70 hover:bg-slate-100 text-slate-800 border-slate-200'
-                    }`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[11px] font-extrabold truncate">{sub.shortTitle}</div>
-                      <div
-                        className={`text-[10px] truncate mt-0.5 ${
-                          isOpen ? 'text-slate-300' : 'text-slate-500'
-                        }`}
-                      >
-                        {sub.existingDetail}
-                      </div>
-                    </div>
-                    {sub.isComplete ? (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-[9px] font-extrabold shrink-0">
-                        Lengkap
+                        {doneCount}/{t.subSections.length}
                       </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[9px] font-extrabold shrink-0">
-                        Perlu Diisi
-                      </span>
+                    </button>
+
+                    {/* Compact quick-jump pills only for active category */}
+                    {isActive && (
+                      <div className="flex flex-wrap gap-1 px-1 pt-0.5 pb-1">
+                        {subItems.map((sub) => {
+                          const isOpen = Boolean(expandedSections[sub.id]);
+                          return (
+                            <button
+                              key={sub.id}
+                              type="button"
+                              onClick={() => openAndFocusSubSection(step, sub.id)}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer flex items-center gap-1 ${
+                                isOpen
+                                  ? 'bg-slate-900 text-white border-slate-900'
+                                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                              }`}
+                            >
+                              <span>{sub.shortTitle}</span>
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  sub.isComplete ? 'bg-emerald-400' : 'bg-amber-400'
+                                }`}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -2034,29 +1957,29 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         </div>
 
         {/* RIGHT COLUMN (lg:col-span-8): COLLAPSIBLE SUB-SECTION CARDS */}
-        <form onSubmit={handleFormSubmit} noValidate className="lg:col-span-8 space-y-4">
+        <form onSubmit={handleFormSubmit} noValidate className="lg:col-span-8 space-y-3.5">
           {/* Active Category Header Bar */}
-          <div className="bg-white p-4 sm:px-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+          <div className="bg-white p-3.5 sm:px-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-800 block">
-                Kategori {step} dari 4 &bull; Klik Header Lembar untuk Membuka / Menutup Isian
+                Kategori {step} dari 4
               </span>
               <h3 className="text-sm sm:text-base font-black text-slate-900">
                 {step}. {currentTabMeta.title}
               </h3>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setAllSubSectionsInStep(true)}
-                className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-[11px] font-bold text-slate-700 cursor-pointer"
+                className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-[11px] font-bold text-slate-700 cursor-pointer"
               >
-                Buka Semua Lembar
+                Buka Semua
               </button>
               <button
                 type="button"
                 onClick={() => setAllSubSectionsInStep(false)}
-                className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-[11px] font-bold text-slate-600 cursor-pointer"
+                className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-[11px] font-bold text-slate-600 cursor-pointer"
               >
                 Tutup Semua
               </button>
@@ -2180,14 +2103,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Ringkasan Profil / Bio Kedinasan
+                      Bio / Ringkasan Kedinasan
                     </label>
                     <textarea
-                      rows={3}
-                      placeholder="Tuliskan ringkasan singkat riwayat penugasan, bidang keahlian, atau amanah jabatan saat ini..."
+                      rows={2}
+                      placeholder="Ringkasan singkat riwayat penugasan atau jabatan..."
                       value={formData.bio || ''}
                       onChange={(e) => handleInputChange('bio', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                     />
                   </div>
                 </div>
@@ -2200,7 +2123,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Korps / Kategori Personel <span className="text-red-500">*</span>
+                        Kategori Personel <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={formData.jenisAnggota || 'ANGGOTA POLRI'}
@@ -2208,15 +2131,15 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
                         <option value="ANGGOTA POLRI">Personel Polri Aktif</option>
-                        <option value="ALUMNI AKPOL 1996">Perwira Polri (Alumni Akpol 1996)</option>
+                        <option value="ALUMNI AKPOL 1996">Alumni Akpol 1996</option>
                         <option value="ASN / PNS POLRI">ASN / PNS Polri</option>
-                        <option value="PURNAWIRAWAN POLRI">Purnawirawan / Purna Tugas</option>
+                        <option value="PURNAWIRAWAN POLRI">Purnawirawan</option>
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Status Kedinasan Personel <span className="text-red-500">*</span>
+                        Status Kedinasan <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={formData.statusKedinasan || 'AKTIF'}
@@ -2265,30 +2188,27 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   {/* Kartu Informasi Khusus Personel Berstatus ALMARHUM */}
                   {formData.statusKedinasan === 'ALMARHUM' && (
-                    <div className="p-4 rounded-xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border border-amber-400/50 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                    <div className="p-3.5 rounded-xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border border-amber-400/50 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="space-y-1">
                         <div className="text-xs sm:text-sm font-extrabold text-amber-300 flex items-center gap-1.5">
-                          <span>🕊️ Status Personel: In Memoriam (Almarhum)</span>
+                          <span>🕊️ Status: In Memoriam (Almarhum)</span>
                         </div>
-                        <p className="text-[11px] text-slate-300 leading-relaxed">
-                          Pendataan keluarga &amp; ahli waris tetap aktif untuk keperluan santunan, silaturahmi, dan beasiswa pendidikan putra-putri almarhum.
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
-                          <span className="px-2.5 py-0.5 rounded-md bg-white/10 text-amber-200 font-bold border border-white/15">
-                            Istri / Ahli Waris: {formData.namaIstri?.trim() ? formData.namaIstri : 'Belum Diisi'}
+                        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                          <span className="px-2 py-0.5 rounded bg-white/10 text-amber-200 font-bold border border-white/15">
+                            Istri: {formData.namaIstri?.trim() ? formData.namaIstri : 'Belum Diisi'}
                           </span>
-                          <span className="px-2.5 py-0.5 rounded-md bg-white/10 text-emerald-200 font-bold border border-white/15">
-                            Putra-Putri Terdata: {formData.daftarAnak?.length || 0} Anak
+                          <span className="px-2 py-0.5 rounded bg-white/10 text-emerald-200 font-bold border border-white/15">
+                            Anak: {formData.daftarAnak?.length || 0} Orang
                           </span>
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => openAndFocusSubSection(2, '2B')}
-                        className="px-3.5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer shrink-0"
+                        className="px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer shrink-0"
                       >
-                        <Users className="w-4 h-4" />
-                        <span>Lengkapi Data Istri &amp; Anak Almarhum (Buka Tab 2)</span>
+                        <Users className="w-3.5 h-3.5" />
+                        <span>Isi Data Keluarga</span>
                       </button>
                     </div>
                   )}
@@ -2297,7 +2217,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-2.5">
                       <div className="space-y-0.5 min-w-0">
                         <div className="text-[11px] font-bold text-slate-600">
-                          Satker Melekat &amp; Wilayah <span className="text-red-500">*</span>
+                          Satker &amp; Wilayah <span className="text-red-500">*</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
@@ -2319,14 +2239,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       </button>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <label className="block text-xs font-bold text-slate-700">
                           {formData.statusKedinasan === 'ALMARHUM' ||
                           formData.statusKedinasan === 'PURNA_TUGAS' ||
                           formData.statusKedinasan === 'PTDH'
-                            ? 'Jabatan Terakhir Sebelum Purna Tugas / Wafat / PTDH'
-                            : 'Jabatan Organisasi Polri Saat Ini'}{' '}
+                            ? 'Jabatan Terakhir'
+                            : 'Jabatan Saat Ini'}{' '}
                           <span className="text-red-500">*</span>
                         </label>
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-700">
@@ -2369,30 +2289,26 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             ))}
                           </optgroup>
                         ))}
-                        <optgroup label="Penugasan Luar Struktur (Eksternal Polri)">
+                        <optgroup label="Penugasan Luar Struktur">
                           <option value={EXTERNAL_JABATAN_SENTINEL}>
-                            Penugasan Luar Struktur (Eksternal Polri) — Tulis Sendiri
+                            Eksternal Polri — Tulis Sendiri
                           </option>
                         </optgroup>
                       </select>
 
-                      {isExternalJabatan ? (
+                      {isExternalJabatan && (
                         <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200 space-y-1">
                           <label className="block text-[11px] font-bold text-amber-900">
-                            Ketik Nama Jabatan Eksternal (Luar Struktur Polri) <span className="text-red-500">*</span>
+                            Jabatan Eksternal <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
-                            placeholder="Masukkan nama jabatan penugasan di luar struktur Polri..."
+                            placeholder="Nama jabatan di luar struktur Polri..."
                             value={formData.jabatanTerakhir || ''}
                             onChange={(e) => handleInputChange('jabatanTerakhir', e.target.value)}
                             className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                           />
                         </div>
-                      ) : (
-                        <p className="text-[10px] text-slate-500 leading-tight">
-                          Pilihan jabatan distandarisasi sesuai pangkat. Pilih Eksternal Polri jika penugasan di luar struktur.
-                        </p>
                       )}
                     </div>
                   </div>
@@ -2406,11 +2322,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Nama Lengkap &amp; Gelar Akademik <span className="text-red-500">*</span>
+                        Nama Lengkap &amp; Gelar <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
-                        placeholder="Masukkan nama lengkap beserta gelar akademik..."
+                        placeholder="Nama lengkap beserta gelar..."
                         value={formData.namaLengkap || ''}
                         onChange={(e) => handleInputChange('namaLengkap', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -2424,7 +2340,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <input
                         type="text"
                         readOnly={activeUser.role === 'ANGGOTA' && !!baselineMember}
-                        placeholder="Masukkan 8 digit NRP atau NIP..."
+                        placeholder="8 digit NRP / NIP..."
                         value={formData.nrp || ''}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -2445,30 +2361,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
 
                     {/* Kelompok Kompi & Pleton Batalyon Wira Satya 96 */}
-                    <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
+                    <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
                       <label className="block text-xs font-extrabold text-amber-950">
-                        Kelompok Kompi Batalyon Wira Satya 96
+                        Kompi Batalyon
                       </label>
-                      <select
-                        value={formData.kompi || 'KOMPI A'}
-                        onChange={(e) => handleInputChange('kompi', e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                      >
-                        {DAFTAR_KOMPI.map((k) => (
-                          <option key={k} value={k}>
-                            {k}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      <div className="grid grid-cols-3 gap-1.5">
                         {DAFTAR_KOMPI.map((k) => (
                           <button
                             key={k}
                             type="button"
                             onClick={() => handleInputChange('kompi', k)}
-                            className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold border transition-colors cursor-pointer ${
+                            className={`px-2.5 py-2 rounded-lg text-xs font-extrabold border transition-colors cursor-pointer ${
                               (formData.kompi || 'KOMPI A') === k
-                                ? 'bg-red-800 text-white border-red-900'
+                                ? 'bg-red-800 text-white border-red-900 shadow-xs'
                                 : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100'
                             }`}
                           >
@@ -2478,30 +2383,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       </div>
                     </div>
 
-                    <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
+                    <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
                       <label className="block text-xs font-extrabold text-amber-950">
-                        Kelompok Pleton Batalyon Wira Satya 96
+                        Pleton Batalyon
                       </label>
-                      <select
-                        value={formData.pleton || 'PLETON 1'}
-                        onChange={(e) => handleInputChange('pleton', e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                      >
-                        {DAFTAR_PLETON.map((pl) => (
-                          <option key={pl} value={pl}>
-                            {pl}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      <div className="grid grid-cols-3 gap-1.5">
                         {DAFTAR_PLETON.map((pl) => (
                           <button
                             key={pl}
                             type="button"
                             onClick={() => handleInputChange('pleton', pl)}
-                            className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold border transition-colors cursor-pointer ${
+                            className={`px-2.5 py-2 rounded-lg text-xs font-extrabold border transition-colors cursor-pointer ${
                               (formData.pleton || 'PLETON 1') === pl
-                                ? 'bg-red-800 text-white border-red-900'
+                                ? 'bg-red-800 text-white border-red-900 shadow-xs'
                                 : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100'
                             }`}
                           >
@@ -2517,7 +2411,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       </label>
                       <input
                         type="text"
-                        placeholder="Masukkan kota / kabupaten tempat lahir..."
+                        placeholder="Kota / kabupaten lahir..."
                         value={formData.tempatLahir || ''}
                         onChange={(e) => handleInputChange('tempatLahir', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -2530,7 +2424,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                           Tanggal Lahir <span className="text-red-500">*</span>
                         </label>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200">
-                          Usia: {retirementCalc.usiaLabel}
+                          Usia: {retirementCalc.usiaTahun} Thn
                         </span>
                       </div>
                       <div className="relative">
@@ -2546,11 +2440,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Pendidikan Terakhir (Akademik &amp; Kedinasan)
+                        Pendidikan Terakhir
                       </label>
                       <input
                         type="text"
-                        placeholder="Masukkan pendidikan terakhir (misal: Akpol 1996 / S2 Ilmu Hukum / Sespimti)..."
+                        placeholder="Contoh: Akpol 1996 / S2 Hukum / Sespimti..."
                         value={formData.pendidikanTerakhir || ''}
                         onChange={(e) => handleInputChange('pendidikanTerakhir', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -2563,91 +2457,73 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               {/* SUB-BAGIAN 1D: UKURAN APAREL (BAJU, CELANA, SEPATU) & GOLONGAN DARAH */}
               {renderSubSectionCard(
                 '1D',
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700">
-                        Golongan Darah
-                      </label>
-                      <select
-                        value={formData.golonganDarah || 'O'}
-                        onChange={(e) => handleInputChange('golonganDarah', e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                      >
-                        {DAFTAR_GOLONGAN_DARAH.map((gd) => (
-                          <option key={gd} value={gd}>
-                            Golongan Darah {gd}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Golongan Darah
+                    </label>
+                    <select
+                      value={formData.golonganDarah || 'O'}
+                      onChange={(e) => handleInputChange('golonganDarah', e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    >
+                      {DAFTAR_GOLONGAN_DARAH.map((gd) => (
+                        <option key={gd} value={gd}>
+                          Gol. {gd}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700">
-                        Ukuran Baju / Kemeja / Kaos
-                      </label>
-                      <select
-                        value={formData.ukuranBaju || 'XL'}
-                        onChange={(e) => handleInputChange('ukuranBaju', e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                      >
-                        {DAFTAR_UKURAN_BAJU.map((sz) => (
-                          <option key={sz} value={sz}>
-                            Ukuran {sz}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="flex flex-wrap gap-1 pt-0.5">
-                        {DAFTAR_UKURAN_BAJU.map((sz) => (
-                          <button
-                            key={sz}
-                            type="button"
-                            onClick={() => handleInputChange('ukuranBaju', sz)}
-                            className={`px-2 py-0.5 rounded text-[10px] font-extrabold border transition-colors cursor-pointer ${
-                              (formData.ukuranBaju || 'XL') === sz
-                                ? 'bg-polri-navy text-polri-gold border-polri-navy'
-                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                            }`}
-                          >
-                            {sz}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Ukuran Baju
+                    </label>
+                    <select
+                      value={formData.ukuranBaju || 'XL'}
+                      onChange={(e) => handleInputChange('ukuranBaju', e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    >
+                      {DAFTAR_UKURAN_BAJU.map((sz) => (
+                        <option key={sz} value={sz}>
+                          Ukuran {sz}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700">
-                        Ukuran Celana (28 s/d 46)
-                      </label>
-                      <select
-                        value={formData.ukuranCelana || '34'}
-                        onChange={(e) => handleInputChange('ukuranCelana', e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                      >
-                        {DAFTAR_UKURAN_CELANA.map((cl) => (
-                          <option key={cl} value={cl}>
-                            Nomor {cl}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Ukuran Celana
+                    </label>
+                    <select
+                      value={formData.ukuranCelana || '34'}
+                      onChange={(e) => handleInputChange('ukuranCelana', e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    >
+                      {DAFTAR_UKURAN_CELANA.map((cl) => (
+                        <option key={cl} value={cl}>
+                          No. {cl}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700">
-                        Ukuran Sepatu (38 s/d 47)
-                      </label>
-                      <select
-                        value={formData.ukuranSepatu || '42'}
-                        onChange={(e) => handleInputChange('ukuranSepatu', e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                      >
-                        {DAFTAR_UKURAN_SEPATU.map((sp) => (
-                          <option key={sp} value={sp}>
-                            Nomor {sp}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Ukuran Sepatu
+                    </label>
+                    <select
+                      value={formData.ukuranSepatu || '42'}
+                      onChange={(e) => handleInputChange('ukuranSepatu', e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    >
+                      {DAFTAR_UKURAN_SEPATU.map((sp) => (
+                        <option key={sp} value={sp}>
+                          No. {sp}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}
@@ -2659,11 +2535,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Nomor WhatsApp Aktif
+                        No. WhatsApp Aktif
                       </label>
                       <input
                         type="text"
-                        placeholder="Masukkan nomor WhatsApp aktif..."
+                        placeholder="0812xxxxxxxx"
                         value={formData.noHp || ''}
                         onChange={(e) => handleInputChange('noHp', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -2672,13 +2548,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Email Dinas (@polri.go.id)
+                        Email Utama
                       </label>
                       <div className="relative">
                         <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
                           type="email"
-                          placeholder="Masukkan alamat email dinas..."
+                          placeholder="Alamat email utama..."
                           value={formData.email || ''}
                           onChange={(e) => handleInputChange('email', e.target.value)}
                           className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -2688,13 +2564,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Email Sekunder / Pribadi (Opsional)
+                        Email Cadangan
                       </label>
                       <div className="relative">
                         <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
                           type="email"
-                          placeholder="Masukkan alamat email sekunder..."
+                          placeholder="Opsional..."
                           value={formData.secondaryEmail || ''}
                           onChange={(e) => handleInputChange('secondaryEmail', e.target.value)}
                           className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -2705,20 +2581,17 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   {/* Daftar ADC / Ajudan */}
                   <div className="pt-3 border-t border-slate-200/80 space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 rounded-xl border border-amber-200 bg-amber-50/40">
+                    <div className="flex items-center justify-between gap-2.5 p-3 rounded-xl border border-amber-200 bg-amber-50/40">
                       <div className="min-w-0">
                         <label className="text-xs font-extrabold text-polri-navy flex items-center gap-1.5">
                           <Shield className="w-3.5 h-3.5 text-polri-gold flex-shrink-0" />
-                          <span>Daftar ADC / Ajudan / Spri Pendamping Pimpinan (Opsional)</span>
+                          <span>Daftar ADC / Ajudan Pendamping (Opsional)</span>
                         </label>
-                        <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-                          Jika NRP ADC diisi, ADC dapat login mewakili Pimpinan dan seluruh aktivitas tercatat di Log Audit.
-                        </p>
                       </div>
                       <button
                         type="button"
                         onClick={handleAddAdc}
-                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-polri-navy text-polri-gold text-xs font-bold hover:bg-polri-navyLight transition-colors cursor-pointer flex-shrink-0 shadow-xs"
+                        className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-polri-navy text-polri-gold text-xs font-bold hover:bg-polri-navyLight transition-colors cursor-pointer flex-shrink-0 shadow-xs"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Tambah ADC</span>
@@ -2726,21 +2599,21 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
 
                     {(!formData.daftarAdc || formData.daftarAdc.length === 0) && (
-                      <div className="p-3 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 text-center text-xs text-slate-500">
-                        Belum ada data ADC yang ditambahkan. Klik tombol <strong>&ldquo;Tambah ADC&rdquo;</strong> untuk menambahkan.
+                      <div className="p-2.5 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 text-center text-xs text-slate-500">
+                        Belum ada data ADC pendamping.
                       </div>
                     )}
 
                     {formData.daftarAdc?.map((adc, idx) => (
                       <div
                         key={adc.id || idx}
-                        className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3"
+                        className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3"
                       >
                         <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                           <span className="text-xs font-extrabold text-polri-navy flex items-center gap-1.5">
                             <Shield className="w-3.5 h-3.5 text-polri-gold" />
                             <span>
-                              ADC / Ajudan ke-{idx + 1}: {adc.nama?.trim() || 'Nama Belum Diisi'}
+                              ADC #{idx + 1}: {adc.nama?.trim() || 'Nama Belum Diisi'}
                             </span>
                           </span>
                           <button
@@ -2756,11 +2629,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           <div>
                             <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                              Nama Lengkap ADC / Ajudan <span className="text-red-500">*</span>
+                              Nama ADC <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
-                              placeholder="Masukkan nama lengkap ADC / Ajudan..."
+                              placeholder="Nama lengkap ADC..."
                               value={adc.nama}
                               onChange={(e) => handleUpdateAdc(idx, 'nama', e.target.value)}
                               className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-polri-navy"
@@ -2773,7 +2646,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             </label>
                             <input
                               type="text"
-                              placeholder="Masukkan NRP / NIP ADC..."
+                              placeholder="NRP / NIP ADC..."
                               value={adc.nrp || ''}
                               onChange={(e) => handleUpdateAdc(idx, 'nrp', e.target.value)}
                               className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono bg-white focus:outline-none focus:ring-2 focus:ring-polri-navy"
@@ -2782,7 +2655,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                           <div>
                             <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                              Pangkat / Golongan ADC
+                              Pangkat ADC
                             </label>
                             <select
                               value={adc.pangkat || 'Briptu'}
@@ -2799,7 +2672,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                           <div>
                             <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                              Tanggal Lahir ADC
+                              Tgl Lahir ADC
                             </label>
                             <input
                               type="date"
@@ -2827,11 +2700,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                           <div>
                             <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                              Nomor WhatsApp Aktif ADC <span className="text-red-500">*</span>
+                              No. WA ADC <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
-                              placeholder="Masukkan nomor WhatsApp ADC..."
+                              placeholder="0812xxxxxxxx"
                               value={adc.noHp}
                               onChange={(e) => handleUpdateAdc(idx, 'noHp', e.target.value)}
                               className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-polri-navy"
@@ -2852,12 +2725,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           {step === 2 && (
             <div className="space-y-4">
               {formData.statusKedinasan === 'ALMARHUM' && (
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border border-amber-400/50 shadow-sm space-y-1.5">
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border border-amber-400/50 shadow-sm space-y-1">
                   <div className="text-xs sm:text-sm font-extrabold text-amber-300 flex items-center gap-1.5">
-                    <span>🕊️ Pendataan Keluarga &amp; Ahli Waris Almarhum (Istri &amp; Putra-Putri)</span>
+                    <span>🕊️ Data Keluarga &amp; Ahli Waris Almarhum</span>
                   </div>
                   <p className="text-[11px] text-slate-300 leading-relaxed">
-                    Silakan lengkapi data Istri / Ahli Waris, Nomor HP/WhatsApp aktif keluarga, alamat domisili keluarga saat ini, serta daftar lengkap Putra-Putri Almarhum untuk keperluan santunan, silaturahmi, dan dukungan pendidikan Paguyuban Wira Satya 96.
+                    Lengkapi data Istri / Ahli Waris, No. WA aktif, alamat domisili, dan daftar Putra-Putri Almarhum.
                   </p>
                 </div>
               )}
@@ -2869,7 +2742,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Status Kepemilikan Tempat Tinggal Saat Ini
+                        Status Tempat Tinggal
                       </label>
                       <select
                         value={formData.statusTempatTinggal || 'MILIK PRIBADI'}
@@ -2886,12 +2759,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         {formData.statusKedinasan === 'ALMARHUM'
-                          ? 'Alamat Domisili Keluarga Saat Ini'
-                          : 'Alamat / Kota Domisili Saat Ini'}
+                          ? 'Alamat Domisili Keluarga'
+                          : 'Alamat / Kota Domisili'}
                       </label>
                       <input
                         type="text"
-                        placeholder="Masukkan alamat lengkap atau kota domisili saat ini..."
+                        placeholder="Alamat atau kota domisili saat ini..."
                         value={formData.alamatTempatTinggal || ''}
                         onChange={(e) => handleInputChange('alamatTempatTinggal', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -2899,39 +2772,39 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
 
                     {formData.statusTempatTinggal === 'SEWA/KONTRAK' && (
-                      <div className="sm:col-span-2 p-4 rounded-xl bg-amber-50/80 border-2 border-amber-300 space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-amber-200/80">
+                      <div className="sm:col-span-2 p-3.5 rounded-xl bg-amber-50/80 border border-amber-300 space-y-3">
+                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-amber-200/80">
                           <span className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
                             <Home className="w-3.5 h-3.5 text-amber-700" />
-                            <span>Rincian Biaya &amp; Keterangan Sewa / Kontrak Tempat Tinggal Saat Ini</span>
+                            <span>Rincian Biaya Sewa / Kontrak</span>
                           </span>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200/70 text-amber-950">
-                            Status: SEWA / KONTRAK
+                            SEWA / KONTRAK
                           </span>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                           <div className="space-y-1.5">
                             <label className="block text-[11px] font-bold text-amber-950">
-                              1. Rincian Biaya Sewa / Kontrak (Per Tahun / Bulan)
+                              Nominal Biaya Sewa
                             </label>
                             <input
                               type="text"
-                              placeholder="Masukkan nominal biaya sewa (misal: Rp 36.000.000 / Tahun)..."
+                              placeholder="Contoh: Rp 36 Juta / Tahun"
                               value={formData.biayaSewaTempatTinggal || ''}
                               onChange={(e) => handleInputChange('biayaSewaTempatTinggal', e.target.value)}
                               className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                             />
-                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            <div className="grid grid-cols-3 gap-1.5 pt-0.5">
                               {KISARAN_BIAYA_SEWA_OPTIONS.map((opt) => (
                                 <button
                                   key={opt}
                                   type="button"
                                   onClick={() => handleInputChange('biayaSewaTempatTinggal', opt)}
-                                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${
+                                  className={`px-2 py-1.5 rounded-lg text-[11px] font-extrabold border text-center whitespace-nowrap transition-colors cursor-pointer ${
                                     formData.biayaSewaTempatTinggal === opt
-                                      ? 'bg-amber-800 text-white border-amber-900'
-                                      : 'bg-white text-amber-900 border-amber-300 hover:bg-amber-100'
+                                      ? 'bg-amber-800 text-white border-amber-900 shadow-xs'
+                                      : 'bg-white text-amber-950 border-amber-300 hover:bg-amber-100'
                                   }`}
                                 >
                                   {opt}
@@ -2942,11 +2815,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                           <div className="space-y-1.5">
                             <label className="block text-[11px] font-bold text-amber-950">
-                              2. Keterangan / Masa Sewa &amp; Lokasi Hunian
+                              Masa Kontrak &amp; Keterangan
                             </label>
                             <input
                               type="text"
-                              placeholder="Masukkan keterangan hunian sewa dan masa berlaku kontrak..."
+                              placeholder="Contoh: Kontrak 2 tahun"
                               value={formData.detailSewaTempatTinggal || ''}
                               onChange={(e) => handleInputChange('detailSewaTempatTinggal', e.target.value)}
                               className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -2981,12 +2854,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       {formData.statusKedinasan === 'ALMARHUM'
-                        ? 'Nama Lengkap Istri / Ahli Waris Almarhum'
-                        : 'Nama Lengkap Istri / Pasangan'}
+                        ? 'Nama Istri / Ahli Waris'
+                        : 'Nama Istri / Pasangan'}
                     </label>
                     <input
                       type="text"
-                      placeholder="Masukkan nama lengkap istri / pasangan..."
+                      placeholder="Nama lengkap istri / pasangan..."
                       value={formData.namaIstri || ''}
                       onChange={(e) => handleInputChange('namaIstri', e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -2995,9 +2868,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {formData.statusKedinasan === 'ALMARHUM'
-                        ? 'Tanggal Lahir Istri / Ahli Waris'
-                        : 'Tanggal Lahir Istri / Pasangan'}
+                      Tanggal Lahir Istri
                     </label>
                     <input
                       type="date"
@@ -3016,13 +2887,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {formData.statusKedinasan === 'ALMARHUM'
-                        ? 'Nomor HP / WhatsApp Aktif Istri / Keluarga'
-                        : 'Nomor HP / WhatsApp Istri / Keluarga'}
+                      No. WhatsApp Istri / Keluarga
                     </label>
                     <input
                       type="text"
-                      placeholder="Masukkan nomor WhatsApp aktif istri / keluarga..."
+                      placeholder="0812xxxxxxxx"
                       value={formData.kontakIstri || ''}
                       onChange={(e) => handleInputChange('kontakIstri', e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3034,46 +2903,41 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               {/* SUB-BAGIAN 2C: DAFTAR PUTRA-PUTRI / ANAK */}
               {renderSubSectionCard(
                 '2C',
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                <div className="space-y-3.5">
+                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
                     <div>
                       <span className="text-xs font-extrabold text-slate-800 block">
-                        {formData.statusKedinasan === 'ALMARHUM'
-                          ? 'Daftar Putra-Putri Almarhum & Status Pendidikan'
-                          : 'Daftar Putra-Putri / Anak & Estimasi Biaya Pendidikan'}
-                      </span>
-                      <span className="text-[11px] text-slate-500">
-                        Total Anak Terdata: <strong>{formData.daftarAnak?.length || 0} Anak</strong>
+                        Daftar Putra-Putri ({formData.daftarAnak?.length || 0} Anak)
                       </span>
                     </div>
                     <button
                       type="button"
                       onClick={handleAddChild}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-polri-navy text-polri-gold text-xs font-bold hover:bg-polri-navyLight transition-colors cursor-pointer shadow-xs"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-polri-navy text-polri-gold text-xs font-bold hover:bg-polri-navyLight transition-colors cursor-pointer shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>+ Tambah Data Anak</span>
+                      <span>Tambah Anak</span>
                     </button>
                   </div>
 
                   {(!formData.daftarAnak || formData.daftarAnak.length === 0) && (
-                    <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 text-center text-xs text-slate-500">
-                      Belum ada data anak yang tersimpan. Klik tombol <strong>&ldquo;+ Tambah Data Anak&rdquo;</strong> untuk menambahkan rincian putra/putri.
+                    <div className="p-3 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 text-center text-xs text-slate-500">
+                      Belum ada data anak. Klik <strong>&ldquo;Tambah Anak&rdquo;</strong> untuk menambahkan.
                     </div>
                   )}
 
                   {formData.daftarAnak?.map((anak, idx) => (
                     <div
                       key={anak.id || idx}
-                      className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3"
+                      className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3"
                     >
                       <div className="flex items-center justify-between pb-2 border-b border-slate-200/80">
                         <div className="flex items-center gap-2">
                           <span className="px-2 py-0.5 rounded bg-polri-navy text-polri-gold text-[10px] font-extrabold">
-                            Anak ke-{idx + 1}
+                            Anak #{idx + 1}
                           </span>
                           <span className="text-xs font-extrabold text-slate-900">
-                            {anak.nama?.trim() || 'Nama Anak Belum Diisi (Perlu Diperbaharui)'}
+                            {anak.nama?.trim() || 'Nama Belum Diisi'}
                           </span>
                         </div>
                         <button
@@ -3089,11 +2953,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                         <div>
                           <label className="block text-[10px] font-bold text-slate-600 mb-1">
-                            Nama Lengkap Anak <span className="text-red-500">*</span>
+                            Nama Anak <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
-                            placeholder="Masukkan nama lengkap anak..."
+                            placeholder="Nama lengkap anak..."
                             value={anak.nama}
                             onChange={(e) => handleUpdateChild(idx, 'nama', e.target.value)}
                             className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
@@ -3101,11 +2965,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-slate-600 mb-1">
-                            Tempat Lahir Anak
+                            Tempat Lahir
                           </label>
                           <input
                             type="text"
-                            placeholder="Masukkan kota lahir..."
+                            placeholder="Kota lahir..."
                             value={anak.tempatLahir || ''}
                             onChange={(e) => handleUpdateChild(idx, 'tempatLahir', e.target.value)}
                             className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
@@ -3113,7 +2977,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-slate-600 mb-1">
-                            Tanggal Lahir Anak
+                            Tanggal Lahir
                           </label>
                           <input
                             type="date"
@@ -3138,16 +3002,16 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-slate-600 mb-1">
-                            Estimasi Biaya Pendidikan
+                            Biaya Pendidikan
                           </label>
                           <select
                             value={anak.biayaPendidikanTahunan || '< 5.000.000'}
                             onChange={(e) => handleUpdateChild(idx, 'biayaPendidikanTahunan', e.target.value)}
                             className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
                           >
-                            <option value="< 5.000.000">&lt; 5 Juta / Tahun</option>
-                            <option value="5.000.000 S.D. 25.000.000">5 Juta s/d 25 Juta / Tahun</option>
-                            <option value="> 25.000.000">&gt; 25 Juta / Tahun</option>
+                            <option value="< 5.000.000">&lt; 5 Jt / Thn</option>
+                            <option value="5.000.000 S.D. 25.000.000">5 - 25 Jt / Thn</option>
+                            <option value="> 25.000.000">&gt; 25 Jt / Thn</option>
                           </select>
                         </div>
                       </div>
@@ -3157,10 +3021,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 <button
                   type="button"
                   onClick={handleAddChild}
-                  className="px-2.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-3 h-3" />
-                  <span>Tambah Data Anak</span>
+                  <span>Tambah</span>
                 </button>
               )}
             </div>
@@ -3175,25 +3039,20 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               {renderSubSectionCard(
                 '3A',
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <span className="text-xs font-extrabold text-polri-navy block">
-                          Hitungan Otomatis Pensiun di Usia {RETIREMENT_AGE_POLRI} Tahun (BUP Polri)
-                        </span>
-                        <span className="text-[11px] text-slate-500">
-                          Dihitung otomatis dari Tanggal Lahir personel ({retirementCalc.formattedTanggalLahir})
-                        </span>
-                      </div>
-                      <span className="text-xs font-extrabold px-3 py-1 rounded-lg bg-polri-navy text-polri-gold">
-                        Pensiun: {retirementCalc.tahunPurnaTugas} ({retirementCalc.sisaMasaDinasShort})
+                      <span className="text-xs font-extrabold text-polri-navy">
+                        Kalkulasi Pensiun BUP {RETIREMENT_AGE_POLRI} Tahun
+                      </span>
+                      <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-lg bg-polri-navy text-polri-gold">
+                        Pensiun {retirementCalc.tahunPurnaTugas} ({retirementCalc.sisaMasaDinasShort})
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                          Tanggal Lahir Personel
+                          Tanggal Lahir
                         </label>
                         <input
                           type="date"
@@ -3205,7 +3064,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                       <div>
                         <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                          Tahun Purna Tugas (Usia {RETIREMENT_AGE_POLRI} Thn)
+                          Tahun Pensiun ({RETIREMENT_AGE_POLRI} Thn)
                         </label>
                         <input
                           type="number"
@@ -3217,12 +3076,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                       <div>
                         <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                          Sisa Masa Dinas Aktif
+                          Sisa Masa Dinas
                         </label>
                         <input
                           type="text"
                           readOnly
-                          value={`${retirementCalc.sisaMasaDinasLabel} (Usia kini ${retirementCalc.usiaTahun} Thn)`}
+                          value={`${retirementCalc.sisaMasaDinasShort} (Usia ${retirementCalc.usiaTahun} Thn)`}
                           className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-100 text-xs font-extrabold text-emerald-800 cursor-not-allowed"
                         />
                       </div>
@@ -3232,7 +3091,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Status Rumah / Tempat Tinggal Setelah Pensiun
+                        Status Hunian Pensiun
                       </label>
                       <select
                         value={formData.statusRumahPurnaTugas || 'MILIK PRIBADI'}
@@ -3241,18 +3100,18 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       >
                         <option value="MILIK PRIBADI">MILIK PRIBADI</option>
                         <option value="RUMAH KELUARGA">RUMAH KELUARGA</option>
-                        <option value="SEWA/KONTRAK">SEWA / KONTRAK (Belum Ada Rumah Tetap)</option>
+                        <option value="SEWA/KONTRAK">SEWA / KONTRAK</option>
                         <option value="DINAS">DINAS</option>
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Alamat / Kota Rencana Domisili Purna Tugas
+                        Kota / Alamat Rencana Pensiun
                       </label>
                       <input
                         type="text"
-                        placeholder="Masukkan kota atau wilayah rencana domisili pensiun..."
+                        placeholder="Kota atau alamat rencana pensiun..."
                         value={formData.alamatPurnaTugas || ''}
                         onChange={(e) => handleInputChange('alamatPurnaTugas', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3260,39 +3119,39 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
 
                     {formData.statusRumahPurnaTugas === 'SEWA/KONTRAK' && (
-                      <div className="sm:col-span-2 p-4 rounded-xl bg-amber-50/80 border-2 border-amber-300 space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-amber-200/80">
+                      <div className="sm:col-span-2 p-3.5 rounded-xl bg-amber-50/80 border border-amber-300 space-y-3">
+                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-amber-200/80">
                           <span className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
                             <Home className="w-3.5 h-3.5 text-amber-700" />
-                            <span>Rincian Biaya &amp; Keterangan Sewa / Kontrak Hunian Purna Tugas</span>
+                            <span>Rincian Biaya Sewa Hunian Pensiun</span>
                           </span>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200/70 text-amber-950">
-                            Hunian Pensiun: SEWA / KONTRAK
+                            SEWA / KONTRAK
                           </span>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                           <div className="space-y-1.5">
                             <label className="block text-[11px] font-bold text-amber-950">
-                              1. Rincian Estimasi Biaya Sewa / Kontrak Tahunan
+                              Estimasi Biaya Sewa
                             </label>
                             <input
                               type="text"
-                              placeholder="Masukkan estimasi biaya sewa tahunan (misal: Rp 30.000.000 / Tahun)..."
+                              placeholder="Contoh: Rp 30 Juta / Tahun"
                               value={formData.biayaSewaTahunan || ''}
                               onChange={(e) => handleInputChange('biayaSewaTahunan', e.target.value)}
                               className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                             />
-                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            <div className="grid grid-cols-3 gap-1.5 pt-0.5">
                               {KISARAN_BIAYA_SEWA_OPTIONS.map((opt) => (
                                 <button
                                   key={opt}
                                   type="button"
                                   onClick={() => handleInputChange('biayaSewaTahunan', opt)}
-                                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${
+                                  className={`px-2 py-1.5 rounded-lg text-[11px] font-extrabold border text-center whitespace-nowrap transition-colors cursor-pointer ${
                                     formData.biayaSewaTahunan === opt
-                                      ? 'bg-amber-800 text-white border-amber-900'
-                                      : 'bg-white text-amber-900 border-amber-300 hover:bg-amber-100'
+                                      ? 'bg-amber-800 text-white border-amber-900 shadow-xs'
+                                      : 'bg-white text-amber-950 border-amber-300 hover:bg-amber-100'
                                   }`}
                                 >
                                   {opt}
@@ -3303,11 +3162,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                           <div className="space-y-1.5">
                             <label className="block text-[11px] font-bold text-amber-950">
-                              2. Detail Rencana Sewa / Kontrak Hunian Purna Tugas
+                              Keterangan Rencana Sewa
                             </label>
                             <input
                               type="text"
-                              placeholder="Masukkan detail rencana sewa/kontrak hunian purna tugas..."
+                              placeholder="Contoh: Rencana kontrak 2 tahun"
                               value={formData.detailSewaPurnaTugas || ''}
                               onChange={(e) => handleInputChange('detailSewaPurnaTugas', e.target.value)}
                               className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3325,10 +3184,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 '3B',
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-2">
-                      Rencana Aktivitas Utama Pasca Dinas (Dapat pilih lebih dari satu)
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Rencana Aktivitas Pasca Dinas
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200">
                       {DAFTAR_RENCANA_AKTIVITAS.map((act) => {
                         const checked = (formData.rencanaAktivitas || []).includes(act);
                         return (
@@ -3354,7 +3213,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Bentuk Partisipasi Usaha Bersama / Yayasan
+                        Bentuk Usaha / Yayasan
                       </label>
                       <select
                         value={formData.kategoriUsaha || 'USAHA BERSAMA LETING'}
@@ -3371,7 +3230,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Peran dalam Usaha Bersama / Yayasan
+                        Peran dalam Usaha / Yayasan
                       </label>
                       <select
                         value={formData.peranUsahaYayasan || 'ANGGOTA PENYERTA MODAL'}
@@ -3388,11 +3247,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Nama Usaha Bersama / Yayasan / Unit Kegiatan
+                        Nama Unit Usaha / Yayasan
                       </label>
                       <input
                         type="text"
-                        placeholder="Masukkan nama unit usaha bersama atau yayasan..."
+                        placeholder="Nama unit usaha bersama atau yayasan..."
                         value={formData.namaUsahaYayasan || ''}
                         onChange={(e) => handleInputChange('namaUsahaYayasan', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3401,11 +3260,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Bidang / Sektor Usaha Bersama &amp; Sosial
+                        Bidang Usaha / Sosial
                       </label>
                       <input
                         type="text"
-                        placeholder="Masukkan bidang kegiatan usaha bersama atau yayasan..."
+                        placeholder="Contoh: Agribisnis, Logistik, Pendidikan..."
                         value={formData.jenisUsaha || ''}
                         onChange={(e) => handleInputChange('jenisUsaha', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3414,7 +3273,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Status Pelaksanaan Usaha / Yayasan
+                        Status Pelaksanaan
                       </label>
                       <select
                         value={formData.statusUsaha || 'MASIH RENCANA'}
@@ -3451,15 +3310,15 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Kebutuhan Dukungan Paguyuban / Yayasan
+                      Dukungan Paguyuban / Yayasan
                     </label>
                     <select
                       value={formData.kebutuhanPembekalan?.[0] || 'PELATIHAN'}
                       onChange={(e) => handleInputChange('kebutuhanPembekalan', [e.target.value])}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                     >
-                      <option value="MODAL">Bantuan Akses Modal &amp; Kemitraan</option>
-                      <option value="PELATIHAN">Pelatihan &amp; Inkubasi Usaha Bersama</option>
+                      <option value="MODAL">Akses Modal &amp; Kemitraan</option>
+                      <option value="PELATIHAN">Pelatihan &amp; Inkubasi Usaha</option>
                       <option value="PENDAMPINGAN">Pendampingan Manajemen &amp; Hukum</option>
                       <option value="TIDAK PERLU">Tidak Perlu</option>
                     </select>
@@ -3467,7 +3326,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Kesiapan Menghadapi Purna Tugas
+                      Kesiapan Purna Tugas
                     </label>
                     <select
                       value={formData.perasaanPensiun || 'OPTIMIS'}
@@ -3483,7 +3342,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Dukungan Keluarga terhadap Rencana Purna Tugas
+                      Dukungan Keluarga
                     </label>
                     <select
                       value={formData.dukunganKeluarga || 'SANGAT MENDUKUNG'}
@@ -3512,7 +3371,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Golongan Darah Personel
+                        Golongan Darah
                       </label>
                       <select
                         value={formData.golonganDarah || 'O'}
@@ -3521,7 +3380,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       >
                         {DAFTAR_GOLONGAN_DARAH.map((gd) => (
                           <option key={gd} value={gd}>
-                            Golongan Darah {gd}
+                            Gol. {gd}
                           </option>
                         ))}
                       </select>
@@ -3529,7 +3388,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Kondisi Kesehatan Saat Ini
+                        Kondisi Kesehatan
                       </label>
                       <select
                         value={formData.kondisiKesehatan || 'BAIK'}
@@ -3546,7 +3405,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Riwayat Penyakit Kronis
+                        Penyakit Kronis
                       </label>
                       <select
                         value={formData.adaPenyakitKronis || 'TIDAK ADA'}
@@ -3561,10 +3420,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   {/* Checkbox Penyakit */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-2">
-                      Daftar Diagnosa Medis / Riwayat Penyakit (Centang jika ada):
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                      Riwayat Diagnosa Medis:
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                       {DAFTAR_PENYAKIT.map((penyakit) => {
                         const isChecked = formData.daftarPenyakit?.includes(penyakit);
                         return (
@@ -3588,19 +3447,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   </div>
 
                   {/* Opsi Diagnosa Lainnya */}
-                  <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/90 space-y-1.5">
+                  <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/90 space-y-1.5">
                     <label className="block text-xs font-bold text-amber-950">
-                      Diagnosa Medis Lainnya (Pisahkan dengan tanda koma):
+                      Diagnosa Lainnya (pisahkan koma):
                     </label>
                     <input
                       type="text"
-                      placeholder="Masukkan diagnosa lainnya jika tidak ada di daftar atas..."
+                      placeholder="Diagnosa lain jika ada..."
                       value={penyakitLainnya}
                       onChange={(e) => {
                         if (errorMsg) setErrorMsg(null);
                         setPenyakitLainnya(e.target.value);
                       }}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-amber-300 text-xs font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white text-slate-800"
+                      className="w-full px-3.5 py-2 rounded-lg border border-amber-300 text-xs font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white text-slate-800"
                     />
                   </div>
                 </div>
@@ -3611,10 +3470,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 '4B',
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-2">
-                      Jaminan Kesehatan &amp; Asuransi Aktif:
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                      Asuransi Kesehatan Aktif:
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
                       {DAFTAR_ASURANSI.map((ins) => {
                         const isChecked = formData.asuransiAktif?.includes(ins);
                         return (
@@ -3640,7 +3499,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Rutin Medical Check-Up (MCU)
+                        Rutin MCU
                       </label>
                       <select
                         value={formData.rutinMcu || 'YA'}
@@ -3654,31 +3513,31 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Pelaksanaan MCU Terakhir
+                        MCU Terakhir
                       </label>
                       <select
                         value={formData.mcuTerakhir || '< 6 BULAN'}
                         onChange={(e) => handleInputChange('mcuTerakhir', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
-                        <option value="< 6 BULAN">&lt; 6 Bulan Terakhir</option>
-                        <option value="6-12 BULAN">6 - 12 Bulan Terakhir</option>
+                        <option value="< 6 BULAN">&lt; 6 Bulan Lalu</option>
+                        <option value="6-12 BULAN">6 - 12 Bulan Lalu</option>
                         <option value="> 1 TAHUN">&gt; 1 Tahun Lalu</option>
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Penanggungan Biaya Pengobatan
+                        Penanggungan Biaya
                       </label>
                       <select
                         value={formData.biayaPengobatanDitanggung || 'DITANGGUNG BPJS/ASURANSI'}
                         onChange={(e) => handleInputChange('biayaPengobatanDitanggung', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
-                        <option value="DITANGGUNG BPJS/ASURANSI">Ditanggung BPJS / Asuransi</option>
-                        <option value="5.000.000 S.D. 10.000.000">Rp 5 Juta s/d 10 Juta</option>
-                        <option value="DI ATAS 10.000.000">Di Atas Rp 10 Juta</option>
+                        <option value="DITANGGUNG BPJS/ASURANSI">BPJS / Asuransi</option>
+                        <option value="5.000.000 S.D. 10.000.000">Rp 5 - 10 Jt</option>
+                        <option value="DI ATAS 10.000.000">&gt; Rp 10 Jt</option>
                       </select>
                     </div>
                   </div>
@@ -3688,43 +3547,43 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               {/* SUB-BAGIAN 4C: KOLOM LAIN-LAIN KESEHATAN & HARAPAN DUKUNGAN MEDIS */}
               {renderSubSectionCard(
                 '4C',
-                <div className="space-y-4">
+                <div className="space-y-3.5">
                   <div>
                     <label className="block text-xs font-bold text-slate-800 mb-1">
-                      Kolom Lain-lain Kesehatan (Alergi, Terapi Khusus, Alat Bantu Medis, atau Catatan Kesehatan Lainnya)
+                      Lain-lain Kesehatan (Alergi / Terapi / Catatan Khusus)
                     </label>
                     <textarea
-                      rows={3}
-                      placeholder="Masukkan keterangan kesehatan lain-lain seperti alergi obat/makanan, terapi rutin, pantangan medis, atau catatan khusus..."
+                      rows={2}
+                      placeholder="Alergi obat/makanan, terapi rutin, atau catatan khusus..."
                       value={formData.kesehatanLainLain || ''}
                       onChange={(e) => handleInputChange('kesehatanLainLain', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Kondisi Terkini &amp; Penanganan Medis
+                      Kondisi &amp; Penanganan Terkini
                     </label>
                     <textarea
                       rows={2}
-                      placeholder="Masukkan rincian kondisi kesehatan terkini atau penanganan medis yang sedang dijalani..."
+                      placeholder="Kondisi kesehatan terkini atau penanganan medis..."
                       value={formData.kondisiSaatIni || ''}
                       onChange={(e) => handleInputChange('kondisiSaatIni', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Harapan Layanan Kesehatan &amp; Dukungan Solidaritas Leting
+                      Harapan Dukungan Kesehatan Leting
                     </label>
                     <textarea
                       rows={2}
-                      placeholder="Masukkan saran atau harapan dukungan kesejahteraan dan kesehatan dari Paguyuban Wira Satya 96..."
+                      placeholder="Saran atau harapan dukungan kesehatan dari Paguyuban..."
                       value={formData.harapanDukunganLeting || ''}
                       onChange={(e) => handleInputChange('harapanDukunganLeting', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                     />
                   </div>
                 </div>
@@ -3733,14 +3592,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           )}
 
           {/* Unified Action Footer on ALL 4 Categories */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                Batal / Kembali
+                Kembali
               </button>
 
               {step > 1 && (
@@ -3750,10 +3609,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     setStep((step - 1) as 1 | 2 | 3 | 4);
                     setErrorMsg(null);
                   }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  Kategori Sebelumnya
+                  <span>Sebelumnya</span>
                 </button>
               )}
             </div>
@@ -3763,20 +3622,20 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 type="button"
                 disabled={!hasEditPermission}
                 onClick={() => handleSaveTab(step, true)}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-polri-navy hover:bg-polri-navyLight disabled:opacity-50 text-polri-gold text-xs font-extrabold shadow-md transition-colors cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-polri-navy hover:bg-polri-navyLight disabled:opacity-50 text-polri-gold text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
               >
-                <Save className="w-4 h-4" />
-                <span>Simpan Kategori {currentTabMeta.shortTitle}</span>
+                <Save className="w-3.5 h-3.5" />
+                <span>Simpan Kategori {step}</span>
               </button>
 
               <button
                 type="button"
                 disabled={!hasEditPermission}
                 onClick={() => handleSaveTab(step, false)}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold shadow-sm transition-colors cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
               >
-                <Eye className="w-4 h-4" />
-                <span>Simpan &amp; Lihat Profil</span>
+                <Eye className="w-3.5 h-3.5" />
+                <span>Simpan &amp; Profil</span>
               </button>
 
               {step < 4 && (
@@ -3786,9 +3645,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     setStep((step + 1) as 1 | 2 | 3 | 4);
                     setErrorMsg(null);
                   }}
-                  className="inline-flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl border border-polri-navy/30 bg-slate-50 hover:bg-slate-100 text-polri-navy text-xs font-bold transition-colors cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1 px-3.5 py-2 rounded-xl border border-polri-navy/30 bg-slate-50 hover:bg-slate-100 text-polri-navy text-xs font-bold transition-colors cursor-pointer"
                 >
-                  <span>Kategori Berikutnya</span>
+                  <span>Berikutnya</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               )}

@@ -224,6 +224,21 @@ const INITIAL_REGISTRATIONS: PendingRegistration[] = [
 const PURGED_DUMMY_NRPS = new Set(['980107102', '980107103', '980107104', '980107105', '980107106']);
 
 const LOCAL_DB_PATH = path.join(process.cwd(), '.data', 'local_db.json');
+const TMP_DB_PATH = '/tmp/ws96_local_db.json';
+
+function getReadableDbPath(): string {
+  if (process.env.VERCEL && fs.existsSync(TMP_DB_PATH)) {
+    return TMP_DB_PATH;
+  }
+  return LOCAL_DB_PATH;
+}
+
+function getWritableDbPath(): string {
+  if (process.env.VERCEL) {
+    return TMP_DB_PATH;
+  }
+  return LOCAL_DB_PATH;
+}
 
 function cleanSatkerRoleSuffix(satker?: string, _nrp?: string): string {
   let cleaned = (satker || '').trim();
@@ -309,8 +324,9 @@ export function readDb(): GlobalStore {
   };
 
   try {
-    if (fs.existsSync(LOCAL_DB_PATH)) {
-      const raw = fs.readFileSync(LOCAL_DB_PATH, 'utf-8');
+    const dbPathToRead = getReadableDbPath();
+    if (fs.existsSync(dbPathToRead)) {
+      const raw = fs.readFileSync(dbPathToRead, 'utf-8');
       const parsed = JSON.parse(raw) as Partial<GlobalStore> & { iuran?: IuranAnggota[] };
       const deletedSet = new Set<string>(
         Array.isArray(parsed.deletedNrps) ? parsed.deletedNrps.map((n) => String(n).trim()).filter(Boolean) : []
@@ -946,9 +962,9 @@ let isInitialBoot = true;
 let lastSupabaseSyncAt = 0;
 let lastSupabaseSyncIso: string | undefined = undefined;
 const SUPABASE_SYNC_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes cooldown to prevent Supabase Egress bloat
-// Default ke Mode Lokalan JSON Mandiri (.data/local_db.json) agar 100% bebas limit kuota Egress 5 GB Supabase.
-// Jika ingin mengaktifkan auto-sync ke Cloud baru, cukup set NEXT_PUBLIC_CLOUD_SYNC_AUTO=true di .env
-const LOCAL_JSON_PRIMARY_MODE = process.env.NEXT_PUBLIC_CLOUD_SYNC_AUTO !== 'true';
+// Mode Hybrid Local JSON (.data/local_db.json / /tmp/ws96_local_db.json) + Delta Cloud Sync (< 1 KB per edit).
+// Jika ingin 100% offline tanpa sinkronisasi cloud sama sekali, set NEXT_PUBLIC_CLOUD_SYNC_AUTO=false di .env
+const LOCAL_JSON_PRIMARY_MODE = process.env.NEXT_PUBLIC_CLOUD_SYNC_AUTO === 'false';
 let activeSyncPromise: Promise<{ synced: boolean; seeded?: boolean; rowCount?: number }> | null = null;
 const lastCloudSnapshotMap = new Map<string, string>();
 const pendingCloudPromises: Promise<unknown>[] = [];
@@ -1029,7 +1045,8 @@ function buildCloudSnapshotMap(
 
 function writeDiskSnapshotOnly(store: GlobalStore) {
   try {
-    const dir = path.dirname(LOCAL_DB_PATH);
+    const targetDbPath = getWritableDbPath();
+    const dir = path.dirname(targetDbPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
@@ -1053,7 +1070,7 @@ function writeDiskSnapshotOnly(store: GlobalStore) {
         .map((l) => stripEmptyJsonFields(l, { stripAuditSnapshotMedia: true })),
     };
     // Write minified JSON (no indentation whitespace bloat)
-    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(compactStore), 'utf-8');
+    fs.writeFileSync(targetDbPath, JSON.stringify(compactStore), 'utf-8');
   } catch {
     // Ignore write errors in read-only serverless environments
   }
