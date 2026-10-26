@@ -222,11 +222,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         )}
 
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 gap-2 sm:gap-4">
+        <div className="w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-2.5 sm:px-5 lg:px-8 xl:px-10 2xl:px-12">
+          <div className="flex items-center justify-between h-14 gap-2 sm:gap-3 lg:gap-4">
             
             {/* Left: Brand Logo + Bareskrim Red Search Box */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 max-w-md">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 max-w-md xl:max-w-lg">
               <WSLogo 
                 size="sm"
                 onClick={() => {
@@ -238,7 +238,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               />
 
               {/* Search Bar with Live Quick-Action Results (Mobile & Desktop) */}
-              <div className="relative flex-1 min-w-0 max-w-xs" ref={searchBoxRef}>
+              <div className="relative flex-1 min-w-0 max-w-xs lg:max-w-sm xl:max-w-md" ref={searchBoxRef}>
                 <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
@@ -354,7 +354,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Right: Stacked Nav Items (Bareskrim Red Active Colors) */}
             {/* Urutan PC: 1. Beranda, 2. Data Diri, 3. Anev, 4. Dana Sosial, 5. Pesan, 6. User, 7. ToD, 8. Notif */}
-            <nav className="flex items-center gap-0.5 sm:gap-1.5 lg:gap-2.5 flex-shrink-0">
+            <nav className="flex items-center gap-0.5 md:gap-0.5 lg:gap-1.5 xl:gap-2.5 2xl:gap-3.5 flex-shrink-0">
               
               {/* 1. Beranda */}
               <button
@@ -364,7 +364,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     window.dispatchEvent(new Event('ws96_reset_beranda'));
                   }
                 }}
-                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1 lg:px-2 xl:px-2.5 py-1 min-w-[40px] lg:min-w-[52px] xl:min-w-[56px] text-center transition-all border-b-2 ${
                   activeTab === 'direktori' && !isViewingOwnProfile
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -381,7 +381,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* 2. Data Diri (di HP: RH) */}
               <button
                 onClick={() => setActiveTab('form')}
-                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[56px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1 lg:px-2 xl:px-2.5 py-1 min-w-[42px] lg:min-w-[56px] xl:min-w-[60px] text-center transition-all border-b-2 ${
                   activeTab === 'form' || isViewingOwnProfile
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -395,7 +395,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* 3. Anev */}
               <button
                 onClick={() => setActiveTab('dashboard')}
-                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1 lg:px-2 xl:px-2.5 py-1 min-w-[38px] lg:min-w-[48px] xl:min-w-[52px] text-center transition-all border-b-2 ${
                   activeTab === 'dashboard'
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -409,7 +409,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* 4. Dana Sosial (di HP: Dansos) */}
               <button
                 onClick={() => setActiveTab('bendahara')}
-                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1 lg:px-2 xl:px-2.5 py-1 min-w-[44px] lg:min-w-[56px] xl:min-w-[62px] text-center transition-all border-b-2 ${
                   activeTab === 'bendahara'
                     ? 'border-amber-700 text-amber-800 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -417,13 +417,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="Dana Sosial & Investasi (Dansos)"
               >
                 <Wallet className="w-5 h-5" />
-                <span className="text-[10px] mt-0.5 whitespace-nowrap">Dana Sosial</span>
+                <span className="text-[10px] mt-0.5 whitespace-nowrap">
+                  <span className="lg:hidden">Dansos</span>
+                  <span className="hidden lg:inline">Dana Sosial</span>
+                </span>
               </button>
 
               {/* 5. Pesan */}
               <button
                 onClick={() => setActiveTab('pesan')}
-                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1 lg:px-2 xl:px-2.5 py-1 min-w-[38px] lg:min-w-[50px] xl:min-w-[54px] text-center transition-all border-b-2 ${
                   activeTab === 'pesan'
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -444,7 +447,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* 6. User */}
               <button
                 onClick={() => setActiveTab('users')}
-                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1 lg:px-2 xl:px-2.5 py-1 min-w-[38px] lg:min-w-[48px] xl:min-w-[52px] text-center transition-all border-b-2 ${
                   activeTab === 'users'
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-600 hover:text-red-900'
@@ -465,7 +468,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* 7. ToD (Tour of Duty) */}
               <button
                 onClick={() => setActiveTab('purnaTugas')}
-                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[48px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1 lg:px-2 xl:px-2.5 py-1 min-w-[36px] lg:min-w-[48px] xl:min-w-[52px] text-center transition-all border-b-2 ${
                   activeTab === 'purnaTugas'
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -479,7 +482,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* 8. Notif */}
               <button
                 onClick={() => setActiveTab('notifikasi')}
-                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[48px] text-center transition-all border-b-2 ${
+                className={`hidden md:flex flex-col items-center justify-center px-1 lg:px-2 xl:px-2.5 py-1 min-w-[38px] lg:min-w-[48px] xl:min-w-[52px] text-center transition-all border-b-2 ${
                   activeTab === 'notifikasi'
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'

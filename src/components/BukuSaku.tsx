@@ -1029,11 +1029,11 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
 
   return (
     <div className="font-sans text-slate-900 pb-20">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 xl:gap-6 items-start">
         {/* ============================================================ */}
         {/* 1. LEFT RAIL (lg:col-span-3): PROFIL SAYA & TOUR OF DUTY     */}
         {/* ============================================================ */}
-        <div className="order-1 lg:order-1 lg:col-span-3 space-y-3 sm:space-y-4">
+        <div className="order-1 md:col-span-1 lg:order-1 lg:col-span-3 lg:sticky lg:top-[76px] space-y-3 sm:space-y-4">
           {/* Card 1: Profil Saya (Kiri Atas) */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             {/* Mobile Compact Header (muncul Header doang di HP, klik muncul detail & navigasi ke bawah) */}
@@ -1123,19 +1123,19 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                   <span>NRP:</span>
                   <span className="font-mono font-bold text-slate-800">{currentUser.nrp}</span>
                 </div>
-                <div className="flex items-center justify-between gap-2 text-slate-500">
+                <div className="flex items-start justify-between gap-2 text-slate-500">
                   <span className="shrink-0">Jabatan Polri:</span>
                   <span
-                    className="font-bold text-slate-800 truncate text-right"
+                    className="font-bold text-slate-800 line-clamp-2 text-right leading-snug"
                     title={cleanJabatanOnly(currentMemberObj?.jabatanTerakhir) || currentUser.satker || '-'}
                   >
                     {cleanJabatanOnly(currentMemberObj?.jabatanTerakhir) || currentUser.satker || '-'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between gap-2 text-slate-500">
+                <div className="flex items-start justify-between gap-2 text-slate-500">
                   <span className="shrink-0">Satker / Wilayah:</span>
                   <span
-                    className="font-bold text-slate-700 truncate text-right"
+                    className="font-bold text-slate-700 line-clamp-2 text-right leading-snug"
                     title={currentMemberObj?.satuanKerja || currentUser.polda || 'MABES POLRI'}
                   >
                     {currentMemberObj?.satuanKerja || currentUser.polda || 'MABES POLRI'}
@@ -1260,7 +1260,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
         {/* ============================================================ */}
         {/* 2. RIGHT RAIL (lg:col-span-3, order-2 di HP): ATENSI & DANA  */}
         {/* ============================================================ */}
-        <div className="order-2 lg:order-3 lg:col-span-3 space-y-3 sm:space-y-4">
+        <div className="order-2 md:col-span-1 lg:order-3 lg:col-span-3 lg:sticky lg:top-[76px] space-y-3 sm:space-y-4 lg:pb-16">
           {/* Card 3: Atensi Kesehatan (Kanan Atas) */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5 sm:p-4">
             <div
@@ -1436,8 +1436,8 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                         onClick={() => onNavigateToBendahara && onNavigateToBendahara()}
                         className="p-2 rounded-lg bg-slate-50 hover:bg-emerald-50/50 border border-slate-200/80 cursor-pointer transition-colors"
                       >
-                        <div className="flex items-center justify-between gap-1.5 mb-1">
-                          <span className="font-bold text-slate-800 truncate text-[11px]">
+                        <div className="flex items-start justify-between gap-1.5 mb-1">
+                          <span className="font-bold text-slate-800 line-clamp-2 leading-snug text-[11px]">
                             {icon} {cmp.title}
                           </span>
                           <span className="text-[10px] font-extrabold text-emerald-700 shrink-0">{pct}%</span>
@@ -1516,7 +1516,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
         {/*    Card Posting -> Linimasa -> Feed Scroll -> #SELALUBAHAGIA */}
         {/*    -> BATALYON WIRA SATYA 1996 (Paling Bawah di HP)          */}
         {/* ============================================================ */}
-        <div className="order-3 lg:order-2 lg:col-span-6 space-y-4 scroll-mt-20">
+        <div className="order-3 md:col-span-2 lg:order-2 lg:col-span-6 space-y-4 scroll-mt-20">
           {/* Quick Search Results if user typed in Navbar Search */}
           {externalSearch.trim() !== '' && (
             <div className="bg-white rounded-xl border border-red-200 shadow-sm p-3.5 sm:p-4 space-y-2.5">

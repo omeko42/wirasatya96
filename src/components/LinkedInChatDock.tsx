@@ -14,6 +14,9 @@ import {
   Pin,
   Plus,
   Maximize2,
+  ChevronUp,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { AnggotaWiraSatya, ChatMessage } from '@/types';
 import { getAvatarUrl, formatMemberDisplayName, isSuperadminAccount } from '@/lib/avatarUtils';
@@ -36,6 +39,7 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
   onOpenFullMessaging,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isCompactPill, setIsCompactPill] = useState(false);
   const [activeChatMember, setActiveChatMember] = useState<AnggotaWiraSatya | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputText, setInputText] = useState('');
@@ -240,10 +244,10 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
   const unreadCount = messages.filter((m) => m.receiverNrp === currentUserNrp && !m.isRead).length;
 
   return (
-    <div className="hidden md:flex fixed bottom-4 right-5 z-40 items-end gap-3 font-sans">
+    <div className="hidden md:flex fixed bottom-3 lg:bottom-4 right-3 sm:right-5 lg:right-8 xl:right-10 2xl:right-[max(2.5rem,calc((100vw-1720px)/2+3rem))] z-40 items-end gap-2.5 lg:gap-3 font-sans max-w-[calc(100vw-1.5rem)]">
       {/* 1. ACTIVE POPUP CONVERSATION BOX */}
       {activeChatMember && (
-        <div className="w-80 sm:w-88 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col h-[430px] overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
+        <div className="w-[min(330px,calc(100vw-1.5rem))] lg:w-[348px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col h-[min(440px,calc(100vh-5.5rem))] overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
           {/* Header of Active Chat */}
           <div className="bg-slate-900 text-white px-3.5 py-2.5 flex items-center justify-between border-b border-slate-800">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -399,41 +403,112 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
         </div>
       )}
 
-      {/* 2. FLOATING MESSAGE BAR LAUNCHER OR POP-UP MESSAGING MODULE */}
+      {/* 2. DOCKED MESSAGE BAR LAUNCHER OR POP-UP MESSAGING MODULE */}
       {!isOpen ? (
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="ws96-float-cta group relative flex items-center gap-2.5 pl-2.5 pr-3.5 py-2 rounded-2xl text-white shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-red-400/30"
-          style={{
-            background: 'linear-gradient(180deg, #D81818 0%, #B80A0A 52%, #9E0404 100%)',
-            boxShadow:
-              '0 8px 20px rgba(184, 10, 10, 0.4), inset 0 1px 1px rgba(255,255,255,0.35)',
-          }}
-          title="Buka Pop-up Modul Perpesanan"
-        >
-          <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-white/15 border border-white/25">
-            <MessageSquare className="w-4 h-4 text-white fill-white/15" />
-            <span className="w-2.5 h-2.5 bg-emerald-400 border-2 border-[#9E0404] rounded-full absolute -bottom-0.5 -right-0.5" />
+        isCompactPill ? (
+          <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-full shadow-[0_10px_28px_rgba(15,23,42,0.18)] border-2 border-red-800/30 hover:border-red-800/60 transition-all">
+            <button
+              type="button"
+              onClick={() => {
+                setIsCompactPill(false);
+                setIsOpen(true);
+              }}
+              className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full bg-gradient-to-r from-red-800 to-red-900 text-white font-extrabold text-xs shadow-xs hover:brightness-110 transition cursor-pointer"
+              title="Buka Obrolan Cepat"
+            >
+              <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-white/15">
+                <MessageSquare className="w-3.5 h-3.5 text-white" />
+                <span className="w-2 h-2 bg-emerald-400 border border-red-900 rounded-full absolute -bottom-0.5 -right-0.5" />
+              </div>
+              <span>Pesan</span>
+              {unreadCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-white text-red-900 text-[10px] font-black">
+                  {unreadCount}
+                </span>
+              )}
+              <ChevronUp className="w-3.5 h-3.5 text-amber-300" />
+            </button>
           </div>
-          <div className="text-left pr-0.5">
-            <span className="font-extrabold text-xs text-white block leading-tight tracking-tight">
-              Pesan
-            </span>
-            <span className="text-[10px] text-white/85 font-medium block leading-tight">
-              {activeChatMembers.length > 0
-                ? `${activeChatMembers.length} aktif`
-                : 'Obrolan Cepat'}
-            </span>
+        ) : (
+          <div
+            onClick={() => setIsOpen(true)}
+            className="w-[260px] lg:w-[292px] xl:w-[312px] bg-white hover:bg-slate-50/95 rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.16)] hover:shadow-[0_14px_36px_rgba(153,27,27,0.22)] border-2 border-red-800/25 hover:border-red-800/50 px-3 py-2.5 flex items-center justify-between gap-2 cursor-pointer transition-all select-none group"
+            title="Klik untuk membuka Obrolan Cepat"
+          >
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-red-700 to-red-900 text-white shadow-sm shrink-0">
+                <MessageSquare className="w-4 h-4 text-white fill-white/15" />
+                <span className="w-2.5 h-2.5 bg-emerald-400 border-2 border-white rounded-full absolute -bottom-0.5 -right-0.5" />
+              </div>
+              <div className="min-w-0 flex-1 text-left">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-xs text-slate-900 truncate leading-tight">
+                    Obrolan Cepat
+                  </span>
+                  {unreadCount > 0 && (
+                    <span className="px-1.5 py-0.2 min-w-[18px] h-4 flex items-center justify-center rounded-full bg-red-800 text-white text-[9px] font-black shadow-2xs shrink-0">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-slate-500 font-semibold truncate block leading-tight mt-0.5">
+                  {activeChatMembers.length > 0
+                    ? `${activeChatMembers.length} obrolan aktif • Online`
+                    : 'Pesan Leting 96 • Online'}
+                </span>
+              </div>
+            </div>
+
+            <div
+              className="flex items-center gap-1 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(true);
+                  setShowDirectoryPicker(true);
+                  setTimeout(() => searchInputRef.current?.focus(), 60);
+                }}
+                className="p-1.5 rounded-lg hover:bg-red-50 text-slate-500 hover:text-red-800 transition-colors cursor-pointer"
+                title="Mulai Obrolan Baru"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+              {onOpenFullMessaging && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    onOpenFullMessaging();
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                  title="Buka Halaman Pesan Penuh"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsCompactPill(true)}
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                title="Kecilkan ke Tombol Ringkas"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className="p-1.5 rounded-xl bg-red-800 group-hover:bg-red-900 text-white shadow-xs transition-colors cursor-pointer"
+                title="Buka Daftar Obrolan"
+              >
+                <ChevronUp className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-          {unreadCount > 0 && (
-            <span className="ml-0.5 px-1.5 py-0.5 min-w-[20px] h-5 flex items-center justify-center rounded-full bg-white text-red-900 text-[10px] font-black shadow-sm">
-              {unreadCount}
-            </span>
-          )}
-        </button>
+        )
       ) : (
-        <div className="w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in slide-in-from-bottom-3 duration-150">
+        <div className="w-[min(340px,calc(100vw-1.5rem))] sm:w-[350px] max-h-[min(480px,calc(100vh-5.5rem))] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in slide-in-from-bottom-3 duration-150">
           {/* Pop-up Header with Official Red & White Branding Icon (WSLogo) */}
           <div
             onClick={() => setIsOpen(false)}
@@ -446,7 +521,7 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
               </div>
               <div className="min-w-0">
                 <span className="font-extrabold text-xs text-slate-900 block leading-tight truncate">
-                  Pesan
+                  Obrolan Cepat
                 </span>
                 <span className="text-[10px] text-slate-500 font-medium truncate block">
                   {activeChatMembers.length} obrolan aktif • {pinnedMembers.length} disematkan
@@ -481,9 +556,9 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
                   setIsOpen(false);
                 }}
                 className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors"
-                title="Perkecil"
+                title="Tutup Daftar Obrolan"
               >
-                <Minus className="w-4 h-4" />
+                <ChevronDown className="w-4 h-4" />
               </button>
             </div>
           </div>

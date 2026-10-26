@@ -612,7 +612,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
   const badgeStatus = getBadgeStatusDescription();
 
   return (
-    <div className="max-w-6xl mx-auto py-4 px-2 sm:px-4 font-sans text-slate-900 space-y-4 relative">
+    <div className="w-full py-2 font-sans text-slate-900 space-y-4 relative">
       {/* Hidden File Inputs for Cover & Avatar */}
       <input
         ref={coverInputRef}

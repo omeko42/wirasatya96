@@ -2015,7 +2015,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4 pb-24 md:pb-12">
+    <div className="w-full space-y-4 pb-24 md:pb-12">
       {!hasEditPermission && (
         <div className="p-3.5 rounded-2xl bg-red-50 border-2 border-red-200 text-red-900 flex items-center gap-2.5 text-xs font-bold">
           <Lock className="w-4 h-4 text-red-600 shrink-0" />
@@ -2064,9 +2064,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {/* ===================================================================== */}
       {/* 2-COLUMN TOUR OF DUTY LAYOUT: LEFT SIDEBAR (4) + RIGHT ACCORDION (8)  */}
       {/* ===================================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        {/* LEFT COLUMN (lg:col-span-4): COMPACT SIDEBAR */}
-        <div className="lg:col-span-4 space-y-3.5 lg:sticky lg:top-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6 items-start">
+        {/* LEFT COLUMN (lg:col-span-4 xl:col-span-3): COMPACT SIDEBAR */}
+        <div className="lg:col-span-4 xl:col-span-3 space-y-3.5 lg:sticky lg:top-[76px]">
           {/* 1. KARTU RINGKASAN PERSONEL */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-3.5 space-y-3">
             <div className="flex items-center gap-3">
@@ -2220,8 +2220,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           </div>
         </div>
 
-        {/* RIGHT COLUMN (lg:col-span-8): COLLAPSIBLE SUB-SECTION CARDS */}
-        <form onSubmit={handleFormSubmit} noValidate className="lg:col-span-8 space-y-3.5">
+        {/* RIGHT COLUMN (lg:col-span-8 xl:col-span-9): COLLAPSIBLE SUB-SECTION CARDS */}
+        <form onSubmit={handleFormSubmit} noValidate className="lg:col-span-8 xl:col-span-9 space-y-3.5">
           {/* Active Category Header Bar */}
           <div className="bg-white p-3.5 sm:px-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
             <div>

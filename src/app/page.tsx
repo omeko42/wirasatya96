@@ -2314,8 +2314,8 @@ export default function Home() {
       />
 
       {/* Top Red Ribbon: [Live Sync & Redis Cache Beacon] Online/Offline | Running Text Notifikasi */}
-      <div className="bg-gradient-to-r from-red-950 via-slate-900 to-red-950 border-b border-red-900/40 text-slate-200 text-xs py-1.5 px-3 sm:px-6 relative z-20 overflow-hidden">
-        <div className="max-w-7xl mx-auto flex items-center gap-2.5 text-[11px]">
+      <div className="bg-gradient-to-r from-red-950 via-slate-900 to-red-950 border-b border-red-900/40 text-slate-200 text-xs py-1.5 relative z-20 overflow-hidden">
+        <div className="w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-2.5 sm:px-5 lg:px-8 xl:px-10 2xl:px-12 flex items-center gap-2.5 text-[11px]">
           {/* Left: Interactive Lamp Beacon + Online/Offline Sync Status */}
           <button
             type="button"
@@ -2383,7 +2383,7 @@ export default function Home() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 pb-24 md:pb-6">
+      <main className="flex-1 w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-2.5 sm:px-5 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4 pb-24 md:pb-8">
         <div key={`${activeTab}-${viewingMember?.nrp || 'main'}`} className="ws96-tab-enter">
         {/* VIEWING SPECIFIC PROFILE (VIA NAVBAR SAYA / CONNECTION CARDS) */}
         {viewingMember ? (

@@ -264,13 +264,13 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="max-w-7xl mx-auto py-2 font-sans text-slate-900 pb-20">
+    <div className="w-full py-2 font-sans text-slate-900 pb-20">
       {/* 2-Column LinkedIn Notifications Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6 items-start">
         {/* ============================================================ */}
-        {/* LEFT RAIL (lg:col-span-4): USER PROFILE CARD & SETTINGS     */}
+        {/* LEFT RAIL (lg:col-span-4 xl:col-span-3): USER PROFILE CARD   */}
         {/* ============================================================ */}
-        <div className="lg:col-span-4 space-y-4">
+        <div className="lg:col-span-4 xl:col-span-3 space-y-4 lg:sticky lg:top-[76px]">
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden text-center">
             <div className="h-16 relative overflow-hidden bg-slate-900">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -322,9 +322,9 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
         </div>
 
         {/* ============================================================ */}
-        {/* CENTER / MAIN CONTENT (lg:col-span-8): NOTIFICATION ITEMS   */}
+        {/* CENTER / MAIN CONTENT (lg:col-span-8 xl:col-span-9): ITEMS  */}
         {/* ============================================================ */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className="lg:col-span-8 xl:col-span-9 space-y-4">
           {/* Header & Filter Pills */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
             <div className="flex items-center justify-between">

@@ -448,7 +448,7 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
     <div className="max-w-7xl mx-auto py-2 font-sans text-slate-900">
       
       {/* 2-Column LinkedIn Messenger Layout with Fixed Height & Internal Scroll */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12 h-[calc(100dvh-165px)] md:h-[calc(100vh-140px)] min-h-[480px] max-h-[760px]">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12 h-[calc(100dvh-165px)] md:h-[calc(100vh-132px)] min-h-[480px] max-h-[860px] 2xl:max-h-[900px]">
         
         {/* ============================================================ */}
         {/* LEFT COLUMN: CONVERSATION LIST (md:col-span-5 lg:col-span-4) */}
