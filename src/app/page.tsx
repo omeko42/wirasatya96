@@ -51,7 +51,7 @@ export default function Home() {
   const [navbarSearchQuery, setNavbarSearchQuery] = useState('');
   const [viewingMember, setViewingMember] = useState<AnggotaWiraSatya | null>(null);
   const [editingMember, setEditingMember] = useState<AnggotaWiraSatya | null | 'NEW'>(null);
-  const [editingInitialTab, setEditingInitialTab] = useState<1 | 2 | 3 | 4>(1);
+  const [editingInitialTab, setEditingInitialTab] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [messagingTargetMember, setMessagingTargetMember] = useState<AnggotaWiraSatya | null>(null);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [isOnlineStatus, setIsOnlineStatus] = useState(true);
@@ -1307,7 +1307,7 @@ export default function Home() {
   };
 
   // Start editing a specific member (Admin/Sekretaris, self, or ADC of that Alumni)
-  const handleStartEditMember = (member: AnggotaWiraSatya, initialTab: 1 | 2 | 3 | 4 = 1) => {
+  const handleStartEditMember = (member: AnggotaWiraSatya, initialTab: 1 | 2 | 3 | 4 | 5 = 1) => {
     const isAdcOfTarget =
       Boolean(currentUser.isAdcAccount && currentUser.adcOfNrp && currentUser.adcOfNrp === member.nrp);
     if (

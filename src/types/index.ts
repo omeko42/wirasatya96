@@ -64,9 +64,14 @@ export interface AuthUser {
   tanggalLahir?: string;
   tempatLahir?: string;
   golonganDarah?: string;
+  rhesusDarah?: 'Rh+' | 'Rh-';
+  tinggiBadan?: number;
+  beratBadan?: number;
   ukuranBaju?: string;
+  ukuranJaket?: string;
   ukuranCelana?: string;
   ukuranSepatu?: string;
+  ukuranTutupKepala?: string;
   kompi?: string;
   pleton?: string;
   status?: UserAccountStatus;
@@ -103,9 +108,11 @@ export interface AdcPersonel {
 export interface TanggunganLain {
   jumlah: number;
   rincian: string;
-  masaTanggungan: '< 5 TAHUN' | '5-10 TAHUN' | '> 10 TAHUN';
-  adaSakitKhusus: boolean;
+  masaTanggungan?: '< 5 TAHUN' | '5-10 TAHUN' | '> 10 TAHUN';
+  masaTanggunganTahun?: number;
+  adaSakitKhusus?: boolean;
   rincianSakitKhusus?: string;
+  kondisiKesehatan?: string;
 }
 
 export interface AnggotaWiraSatya {
@@ -131,6 +138,11 @@ export interface AnggotaWiraSatya {
   jenisAnggota?: 'ANGGOTA POLRI' | 'ALUMNI AKPOL 1996' | 'ASN / PNS POLRI' | 'PURNAWIRAWAN POLRI';
   polda: string;
   pendidikanTerakhir: string;
+  tmtPangkat?: string;
+  dikbangPolri?: string;
+  tandaKehormatan?: string;
+  agama?: string;
+  sukuBangsa?: string;
   nomorKtp?: string;
   tempatLahir: string;
   tanggalLahir: string;
@@ -150,12 +162,25 @@ export interface AnggotaWiraSatya {
   bio?: string;
   catatanMedis?: string;
   golonganDarah?: string;
+  rhesusDarah?: 'Rh+' | 'Rh-';
+  tinggiBadan?: number;
+  beratBadan?: number;
+  kondisiMata?: string;
+  frekuensiOlahraga?: string;
+  olahragaFavorit?: string;
+  faskesRujukan?: string;
+  alergiObatMakanan?: string;
   ukuranBaju?: string;
+  ukuranJaket?: string;
   ukuranCelana?: string;
   ukuranSepatu?: string;
+  ukuranTutupKepala?: string;
+  catatanAparel?: string;
   kompi?: string;
   pleton?: string;
   alamatTempatTinggal: string;
+  kotaDomisili?: string;
+  provinsiDomisili?: string;
   statusTempatTinggal: 'MILIK PRIBADI' | 'RUMAH KELUARGA' | 'DINAS' | 'SEWA/KONTRAK';
   biayaSewaTempatTinggal?: string;
   detailSewaTempatTinggal?: string;
@@ -163,6 +188,7 @@ export interface AnggotaWiraSatya {
   // Modul 2: Data Keluarga & Tanggungan
   statusPerkawinan: 'MENIKAH' | 'BELUM MENIKAH' | 'DUDA/JANDA';
   namaIstri?: string;
+  pekerjaanIstri?: string;
   tempatLahirIstri?: string;
   tanggalLahirIstri?: string;
   usiaIstri?: number;
@@ -184,6 +210,8 @@ export interface AnggotaWiraSatya {
   namaUsahaYayasan?: string;
   peranUsahaYayasan?: string;
   jenisUsaha?: string;
+  lokasiUsaha?: string;
+  bidangKeahlianPensiun?: string;
   statusUsaha?: 'SUDAH JALAN' | 'DALAM PERSIAPAN' | 'MASIH RENCANA';
   kebutuhanPembekalan?: ('MODAL' | 'PELATIHAN' | 'PENDAMPINGAN' | 'TIDAK PERLU')[];
   sumberPenghasilanPasca: ('DANA PENSIUN' | 'USAHA' | 'INVESTASI')[];

@@ -37,7 +37,7 @@ interface BukuSakuProps {
   members: AnggotaWiraSatya[];
   onAddNew: () => void;
   currentUser: AuthUser;
-  onEditMember?: (member: AnggotaWiraSatya, initialTab?: 1 | 2 | 3 | 4) => void;
+  onEditMember?: (member: AnggotaWiraSatya, initialTab?: 1 | 2 | 3 | 4 | 5) => void;
   onUpdateMemberDirect?: (member: AnggotaWiraSatya) => void;
   onOpenChat?: (member: AnggotaWiraSatya) => void;
   onNavigateToJabatan?: () => void;

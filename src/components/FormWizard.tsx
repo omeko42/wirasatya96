@@ -29,6 +29,7 @@ import {
   Users,
   Home,
   Activity,
+  Shirt,
   CheckCircle2,
   ChevronRight,
   ChevronLeft,
@@ -56,8 +57,8 @@ export interface FormWizardProps {
   onCancel: () => void;
   currentUser?: AuthUser;
   existingMember?: AnggotaWiraSatya;
-  initialTab?: 1 | 2 | 3 | 4;
-  onSaveTab?: (data: AnggotaWiraSatya, tabNum: 1 | 2 | 3 | 4, stayOpen?: boolean) => void;
+  initialTab?: 1 | 2 | 3 | 4 | 5;
+  onSaveTab?: (data: AnggotaWiraSatya, tabNum: 1 | 2 | 3 | 4 | 5, stayOpen?: boolean) => void;
 }
 
 type JenisAnggotaOption =
@@ -79,12 +80,14 @@ export type SubSectionId =
   | '2A'
   | '2B'
   | '2C'
+  | '2D'
   | '3A'
   | '3B'
   | '3C'
   | '4A'
   | '4B'
-  | '4C';
+  | '4C'
+  | '5A';
 
 const BINTARA_TAMTAMA_RANKS = [
   'Briptu',
@@ -132,11 +135,49 @@ const DAFTAR_GOLONGAN_DARAH = [
   'BELUM TERDATA',
 ] as const;
 
+const DAFTAR_RHESUS_DARAH = ['Rh+', 'Rh-'] as const;
+
+const DAFTAR_KONDISI_MATA = [
+  'Normal (Tanpa Kacamata)',
+  'Kacamata Baca (Plus / Presbiopi)',
+  'Kacamata Minus / Silinder',
+  'Kacamata Bifokal / Progresif',
+  'Lensa Kontak / Riwayat Lasik',
+] as const;
+
+const DAFTAR_FREKUENSI_OLAHRAGA = [
+  'Rutin (3-5x Seminggu)',
+  'Cukup Rutin (1-2x Seminggu)',
+  'Kadang-kadang (1-3x Sebulan)',
+  'Jarang / Belum Rutin',
+] as const;
+
+const DAFTAR_AGAMA = [
+  'ISLAM',
+  'KRISTEN PROTESTAN',
+  'KATOLIK',
+  'HINDU',
+  'BUDDHA',
+  'KONGHUCU',
+] as const;
+
+const DAFTAR_DIKBANG_POLRI = [
+  'SESPIMTI POLRI',
+  'LEMHANNAS RI (PPRA/PPSA)',
+  'PKN TK. I (LAN RI)',
+  'SESPIMMEN POLRI',
+  'PKN TK. II',
+  'STIK - PTIK',
+  'SESPIMMA POLRI',
+] as const;
+
 const DAFTAR_UKURAN_BAJU = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL', '4XL'] as const;
+const DAFTAR_UKURAN_JAKET = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL', '4XL'] as const;
 const DAFTAR_UKURAN_CELANA = [
   '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '42', '44', '46',
 ] as const;
 const DAFTAR_UKURAN_SEPATU = ['38', '39', '40', '41', '42', '43', '44', '45', '46', '47'] as const;
+const DAFTAR_UKURAN_TUTUP_KEPALA = ['54', '55', '56', '57', '58', '59', '60', '61', '62'] as const;
 
 const DAFTAR_KOMPI = ['KOMPI A', 'KOMPI B', 'KOMPI C', 'KOMPI D'] as const;
 const DAFTAR_PLETON = ['PLETON 1', 'PLETON 2', 'PLETON 3', 'PLETON 4'] as const;
@@ -216,7 +257,7 @@ function resolveDefaultJenisAnggota(member?: AnggotaWiraSatya, user?: AuthUser):
 }
 
 const TAB_CONFIG: {
-  num: 1 | 2 | 3 | 4;
+  num: 1 | 2 | 3 | 4 | 5;
   title: string;
   shortTitle: string;
   subSections: SubSectionId[];
@@ -233,7 +274,7 @@ const TAB_CONFIG: {
     num: 2,
     title: 'Domisili & Keluarga',
     shortTitle: 'Keluarga',
-    subSections: ['2A', '2B', '2C'],
+    subSections: ['2A', '2B', '2C', '2D'],
     icon: Users,
   },
   {
@@ -245,10 +286,17 @@ const TAB_CONFIG: {
   },
   {
     num: 4,
-    title: 'Kesehatan & Asuransi',
+    title: 'Kesehatan, Fisik & Asuransi',
     shortTitle: 'Kesehatan',
     subSections: ['4A', '4B', '4C'],
     icon: Activity,
+  },
+  {
+    num: 5,
+    title: 'Aparel & Perlengkapan',
+    shortTitle: 'Aparel',
+    subSections: ['5A'],
+    icon: Shirt,
   },
 ];
 
@@ -272,7 +320,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     mfaMethod: 'PIN',
   };
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(initialTab || 1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(initialTab || 1);
   const [baselineMember, setBaselineMember] = useState<AnggotaWiraSatya | undefined>(existingMember);
   const [savedBanner, setSavedBanner] = useState<{
     tabNum: number;
@@ -287,7 +335,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   const [avatarCleared, setAvatarCleared] = useState(false);
   const [isExternalJabatan, setIsExternalJabatan] = useState(false);
 
-  // Accordion state for sub-sections (1A-1E, 2A-2C, 3A-3C, 4A-4C)
+  // Accordion state for sub-sections (1A-1E, 2A-2D, 3A-3C, 4A-4C, 5A)
   const [expandedSections, setExpandedSections] = useState<Record<SubSectionId, boolean>>({
     '1A': true,
     '1B': true,
@@ -297,12 +345,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     '2A': true,
     '2B': true,
     '2C': false,
+    '2D': false,
     '3A': true,
     '3B': true,
     '3C': false,
     '4A': true,
-    '4B': false,
+    '4B': true,
     '4C': false,
+    '5A': true,
   });
 
   const initializedMemberKeyRef = useRef<string | null>(null);
@@ -357,19 +407,38 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     namaPolres: '',
     namaPolsek: '',
     pangkat: 'Kombes Pol',
+    tmtPangkat: '',
     polda: 'MABES POLRI',
     pendidikanTerakhir: '',
+    dikbangPolri: 'SESPIMTI POLRI',
+    tandaKehormatan: 'Bintang Bhayangkara Nararya, SL Pengabdian 24 Thn',
+    agama: 'ISLAM',
+    sukuBangsa: '',
     jenisKelamin: 'LAKI-LAKI',
     kompi: 'KOMPI A',
     pleton: 'PLETON 1',
     golonganDarah: 'O',
+    rhesusDarah: 'Rh+',
+    tinggiBadan: 172,
+    beratBadan: 74,
+    kondisiMata: 'Normal (Tanpa Kacamata)',
+    frekuensiOlahraga: 'Rutin (3-5x Seminggu)',
+    olahragaFavorit: '',
+    faskesRujukan: '',
+    alergiObatMakanan: '',
     ukuranBaju: 'XL',
+    ukuranJaket: 'XL',
     ukuranCelana: '34',
     ukuranSepatu: '42',
+    ukuranTutupKepala: '58',
+    catatanAparel: '',
     statusTempatTinggal: 'MILIK PRIBADI',
+    kotaDomisili: '',
+    provinsiDomisili: '',
     biayaSewaTempatTinggal: '',
     detailSewaTempatTinggal: '',
     statusPerkawinan: 'MENIKAH',
+    pekerjaanIstri: '',
     jumlahAnak: 0,
     daftarAnak: [],
     namaAdc: '',
@@ -387,6 +456,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     kategoriUsaha: 'USAHA BERSAMA LETING',
     namaUsahaYayasan: '',
     peranUsahaYayasan: 'ANGGOTA PENYERTA MODAL',
+    lokasiUsaha: '',
+    bidangKeahlianPensiun: '',
     statusUsaha: 'MASIH RENCANA',
     kebutuhanPembekalan: ['PELATIHAN'],
     sumberPenghasilanPasca: ['DANA PENSIUN'],
@@ -474,16 +545,49 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         sisaTahunDinas: calc58.sisaTahunDinas,
         jabatanTerakhir: cleanedJabatan,
         jenisAnggota: resolvedKind,
+        tmtPangkat: existingMember.tmtPangkat || '',
+        dikbangPolri:
+          existingMember.dikbangPolri ||
+          (existingMember.nrp === '98010710' ? 'DIKBANGSPES TI POLRI' : 'SESPIMTI POLRI'),
+        tandaKehormatan:
+          existingMember.tandaKehormatan ||
+          'Bintang Bhayangkara Nararya, SL Pengabdian 24 Thn',
+        agama: existingMember.agama || 'ISLAM',
+        sukuBangsa: existingMember.sukuBangsa || '',
         kompi: existingMember.kompi || (isSelf ? activeUser.kompi : undefined) || 'KOMPI A',
         pleton: existingMember.pleton || (isSelf ? activeUser.pleton : undefined) || 'PLETON 1',
         golonganDarah:
           existingMember.golonganDarah || (isSelf ? activeUser.golonganDarah : undefined) || 'O',
+        rhesusDarah:
+          existingMember.rhesusDarah || (isSelf ? activeUser.rhesusDarah : undefined) || 'Rh+',
+        tinggiBadan:
+          existingMember.tinggiBadan || (isSelf ? activeUser.tinggiBadan : undefined) || 172,
+        beratBadan:
+          existingMember.beratBadan || (isSelf ? activeUser.beratBadan : undefined) || 74,
+        kondisiMata: existingMember.kondisiMata || 'Normal (Tanpa Kacamata)',
+        frekuensiOlahraga: existingMember.frekuensiOlahraga || 'Rutin (3-5x Seminggu)',
+        olahragaFavorit: existingMember.olahragaFavorit || '',
+        faskesRujukan: existingMember.faskesRujukan || '',
+        alergiObatMakanan: existingMember.alergiObatMakanan || '',
         ukuranBaju:
           existingMember.ukuranBaju || (isSelf ? activeUser.ukuranBaju : undefined) || 'XL',
+        ukuranJaket:
+          existingMember.ukuranJaket ||
+          (isSelf ? activeUser.ukuranJaket : undefined) ||
+          existingMember.ukuranBaju ||
+          'XL',
         ukuranCelana:
           existingMember.ukuranCelana || (isSelf ? activeUser.ukuranCelana : undefined) || '34',
         ukuranSepatu:
           existingMember.ukuranSepatu || (isSelf ? activeUser.ukuranSepatu : undefined) || '42',
+        ukuranTutupKepala:
+          existingMember.ukuranTutupKepala ||
+          (isSelf ? activeUser.ukuranTutupKepala : undefined) ||
+          '58',
+        catatanAparel: existingMember.catatanAparel || '',
+        kotaDomisili: existingMember.kotaDomisili || '',
+        provinsiDomisili: existingMember.provinsiDomisili || '',
+        pekerjaanIstri: existingMember.pekerjaanIstri || '',
         biayaSewaTempatTinggal: existingMember.biayaSewaTempatTinggal || '',
         detailSewaTempatTinggal: existingMember.detailSewaTempatTinggal || '',
         biayaSewaTahunan: existingMember.biayaSewaTahunan || '',
@@ -492,6 +596,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         kategoriUsaha: existingMember.kategoriUsaha || 'USAHA BERSAMA LETING',
         namaUsahaYayasan: existingMember.namaUsahaYayasan || '',
         peranUsahaYayasan: existingMember.peranUsahaYayasan || 'ANGGOTA PENYERTA MODAL',
+        lokasiUsaha: existingMember.lokasiUsaha || '',
+        bidangKeahlianPensiun: existingMember.bidangKeahlianPensiun || '',
         kesehatanLainLain: existingMember.kesehatanLainLain || '',
         namaAdc: existingMember.namaAdc || firstAdc?.nama || '',
         pangkatAdc: existingMember.pangkatAdc || firstAdc?.pangkat || 'Briptu',
@@ -503,7 +609,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           (existingMember.polda?.toUpperCase().includes('MABES') ? 'MABES' : 'POLDA'),
         pendidikanTerakhir:
           existingMember.pendidikanTerakhir ||
-          (existingMember.nrp === '98010710' ? 'S1 Teknik Informatika' : 'Akpol 1996 / Sespimti'),
+          (existingMember.nrp === '98010710' ? 'S1 Teknik Informatika' : 'Akpol 1996 / S2 Hukum'),
         fotoUrl: isSelf
           ? resolveAvatarUrl(existingMember.fotoUrl, activeUser.fotoUrl)
           : getAvatarUrl(existingMember.fotoUrl),
@@ -543,9 +649,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         kompi: activeUser.kompi || 'KOMPI A',
         pleton: activeUser.pleton || 'PLETON 1',
         golonganDarah: activeUser.golonganDarah || 'O',
+        rhesusDarah: activeUser.rhesusDarah || 'Rh+',
+        tinggiBadan: activeUser.tinggiBadan || 172,
+        beratBadan: activeUser.beratBadan || 74,
         ukuranBaju: activeUser.ukuranBaju || 'XL',
+        ukuranJaket: activeUser.ukuranJaket || 'XL',
         ukuranCelana: activeUser.ukuranCelana || '34',
         ukuranSepatu: activeUser.ukuranSepatu || '42',
+        ukuranTutupKepala: activeUser.ukuranTutupKepala || '58',
         biayaSewaTempatTinggal: '',
         detailSewaTempatTinggal: '',
         rencanaAktivitas: ['USAHA BERSAMA / YAYASAN'],
@@ -579,9 +690,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         kompi: 'KOMPI A',
         pleton: 'PLETON 1',
         golonganDarah: 'O',
+        rhesusDarah: 'Rh+',
+        tinggiBadan: 172,
+        beratBadan: 74,
         ukuranBaju: 'XL',
+        ukuranJaket: 'XL',
         ukuranCelana: '34',
         ukuranSepatu: '42',
+        ukuranTutupKepala: '58',
         biayaSewaTempatTinggal: '',
         detailSewaTempatTinggal: '',
         biayaSewaTahunan: '',
@@ -639,7 +755,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     setExpandedSections((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const openAndFocusSubSection = (tabNum: 1 | 2 | 3 | 4, id: SubSectionId) => {
+  const openAndFocusSubSection = (tabNum: 1 | 2 | 3 | 4 | 5, id: SubSectionId) => {
     setStep(tabNum);
     setExpandedSections((prev) => ({ ...prev, [id]: true }));
     if (typeof document !== 'undefined') {
@@ -666,7 +782,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
   const handleInputChange = (
     field: keyof FormWizardData,
-    value: string | number | string[] | undefined
+    value: any
   ) => {
     if (errorMsg) setErrorMsg(null);
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -814,6 +930,44 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     });
   };
 
+  const handleToggleSumberPenghasilan = (src: 'DANA PENSIUN' | 'USAHA' | 'INVESTASI') => {
+    setFormData((prev) => {
+      const current = (prev.sumberPenghasilanPasca || []) as ('DANA PENSIUN' | 'USAHA' | 'INVESTASI')[];
+      const updated = current.includes(src)
+        ? current.filter((x) => x !== src)
+        : [...current, src];
+      return {
+        ...prev,
+        sumberPenghasilanPasca: updated.length > 0 ? updated : ['DANA PENSIUN'],
+      };
+    });
+  };
+
+  // Real-time BMI / IMT calculation from Tinggi Badan (cm) & Berat Badan (kg)
+  const bmiInfo = React.useMemo(() => {
+    const tbCm = Number(formData.tinggiBadan) || 0;
+    const bbKg = Number(formData.beratBadan) || 0;
+    if (tbCm < 100 || bbKg < 30) {
+      return null;
+    }
+    const tbM = tbCm / 100;
+    const bmi = bbKg / (tbM * tbM);
+    const rounded = bmi.toFixed(1);
+    let label = 'Normal / Ideal';
+    let colorClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+    if (bmi < 18.5) {
+      label = 'Berat Kurang';
+      colorClass = 'bg-amber-50 text-amber-800 border-amber-200';
+    } else if (bmi >= 25 && bmi < 30) {
+      label = 'Berat Lebih (Overweight)';
+      colorClass = 'bg-amber-50 text-amber-900 border-amber-300';
+    } else if (bmi >= 30) {
+      label = 'Obesitas';
+      colorClass = 'bg-red-50 text-red-800 border-red-200';
+    }
+    return { value: rounded, label, colorClass };
+  }, [formData.tinggiBadan, formData.beratBadan]);
+
   // Sub-section metadata & existing data summaries for left sidebar & right accordion headers
   const subSectionMetaList = React.useMemo(() => {
     const hasCustomFoto = Boolean(formData.fotoUrl && formData.fotoUrl !== DEFAULT_AVATAR_URL);
@@ -824,7 +978,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
     const list: {
       id: SubSectionId;
-      tab: 1 | 2 | 3 | 4;
+      tab: 1 | 2 | 3 | 4 | 5;
       title: string;
       shortTitle: string;
       existingDetail: string;
@@ -855,8 +1009,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '1C',
         tab: 1,
-        title: 'Kompi, Pleton & Identitas',
-        shortTitle: '1C. Kompi & Identitas',
+        title: 'Identitas Pribadi & Batalyon',
+        shortTitle: '1C. Identitas & Kompi',
         existingDetail: `${formData.kompi || 'KOMPI A'} • ${formData.pleton || 'PLETON 1'} • ${
           retirementCalc.formattedTanggalLahir
         } (${retirementCalc.usiaTahun} Thn)`,
@@ -871,16 +1025,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '1D',
         tab: 1,
-        title: 'Aparel & Golongan Darah',
-        shortTitle: '1D. Aparel & Darah',
-        existingDetail: `Darah: ${formData.golonganDarah || 'O'} • Baju: ${
-          formData.ukuranBaju || '-'
-        } • Celana: ${formData.ukuranCelana || '-'} • Sepatu: ${formData.ukuranSepatu || '-'}`,
+        title: 'Pendidikan, Dikbang & Tanda Kehormatan',
+        shortTitle: '1D. Dikbang & Brevet',
+        existingDetail: `${formData.pendidikanTerakhir?.trim() || 'Akpol 1996'} • ${
+          formData.dikbangPolri?.trim() || 'SESPIMTI POLRI'
+        }`,
         isComplete: Boolean(
-          formData.golonganDarah &&
-            formData.ukuranBaju &&
-            formData.ukuranCelana &&
-            formData.ukuranSepatu
+          formData.pendidikanTerakhir?.trim() || formData.dikbangPolri?.trim()
         ),
       },
       {
@@ -937,6 +1088,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         isComplete: (formData.daftarAnak?.length || 0) > 0 && anakNames.length === (formData.daftarAnak?.length || 0),
       },
       {
+        id: '2D',
+        tab: 2,
+        title: 'Tanggungan Keluarga Lain',
+        shortTitle: '2D. Tanggungan Lain',
+        existingDetail:
+          (formData.tanggunganLain?.jumlah || 0) > 0
+            ? `${formData.tanggunganLain?.jumlah} Orang (${
+                formData.tanggunganLain?.rincian || 'Keluarga'
+              })`
+            : 'Tidak ada tanggungan tambahan',
+        isComplete: true,
+      },
+      {
         id: '3A',
         tab: 3,
         title: `Purna Tugas (${RETIREMENT_AGE_POLRI} Thn) & Hunian`,
@@ -980,41 +1144,59 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '4A',
         tab: 4,
-        title: 'Kondisi Kesehatan & Penyakit',
-        shortTitle: '4A. Kondisi & Penyakit',
-        existingDetail: `${formData.kondisiKesehatan || 'BAIK'} • Darah ${
-          formData.golonganDarah || 'O'
-        } • Kronis: ${formData.adaPenyakitKronis || 'TIDAK ADA'}`,
-        isComplete: Boolean(formData.kondisiKesehatan && formData.golonganDarah),
+        title: 'Postur Fisik & Golongan Darah',
+        shortTitle: '4A. Fisik & Gol. Darah',
+        existingDetail: `Gol. Darah: ${formData.golonganDarah || 'O'} (${
+          formData.rhesusDarah || 'Rh+'
+        }) • TB: ${formData.tinggiBadan || '-'} cm • BB: ${formData.beratBadan || '-'} kg${
+          bmiInfo ? ` (IMT ${bmiInfo.value})` : ''
+        }`,
+        isComplete: Boolean(
+          formData.golonganDarah && formData.tinggiBadan && formData.beratBadan
+        ),
       },
       {
         id: '4B',
         tab: 4,
-        title: 'Asuransi & MCU Berkala',
-        shortTitle: '4B. Asuransi & MCU',
-        existingDetail: `${(formData.asuransiAktif || ['BPJS']).join(', ')} • MCU: ${
-          formData.rutinMcu || 'YA'
+        title: 'Kondisi Medis & Riwayat Penyakit',
+        shortTitle: '4B. Riwayat Penyakit',
+        existingDetail: `Kondisi: ${formData.kondisiKesehatan || 'BAIK'} • Kronis: ${
+          formData.adaPenyakitKronis || 'TIDAK ADA'
+        }${
+          (formData.daftarPenyakit?.length || 0) > 0
+            ? ` (${formData.daftarPenyakit?.length} diagnosa)`
+            : ''
         }`,
-        isComplete: Boolean((formData.asuransiAktif?.length || 0) > 0 && formData.rutinMcu),
+        isComplete: Boolean(formData.kondisiKesehatan && formData.adaPenyakitKronis),
       },
       {
         id: '4C',
         tab: 4,
-        title: 'Catatan Kesehatan Lainnya',
-        shortTitle: '4C. Catatan Lainnya',
-        existingDetail: formData.kesehatanLainLain?.trim()
-          ? formData.kesehatanLainLain.trim().slice(0, 40)
-          : 'Belum ada catatan khusus',
+        title: 'Asuransi, MCU & Alergi / Catatan',
+        shortTitle: '4C. Asuransi, MCU & Alergi',
+        existingDetail: `${(formData.asuransiAktif || ['BPJS']).join(', ')} • MCU: ${
+          formData.rutinMcu || 'YA'
+        }${formData.alergiObatMakanan?.trim() ? ` • Alergi: ${formData.alergiObatMakanan}` : ''}`,
+        isComplete: Boolean((formData.asuransiAktif?.length || 0) > 0 && formData.rutinMcu),
+      },
+      {
+        id: '5A',
+        tab: 5,
+        title: 'Ukuran Pakaian, Sepatu & Atribut',
+        shortTitle: '5A. Ukuran Aparel',
+        existingDetail: `Baju: ${formData.ukuranBaju || '-'} • Jaket: ${
+          formData.ukuranJaket || formData.ukuranBaju || '-'
+        } • Celana: ${formData.ukuranCelana || '-'} • Sepatu: ${
+          formData.ukuranSepatu || '-'
+        } • Baret/Peci: ${formData.ukuranTutupKepala || '-'}`,
         isComplete: Boolean(
-          formData.kesehatanLainLain?.trim() ||
-            formData.kondisiSaatIni?.trim() ||
-            formData.harapanDukunganLeting?.trim()
+          formData.ukuranBaju && formData.ukuranCelana && formData.ukuranSepatu
         ),
       },
     ];
 
     return list;
-  }, [formData, retirementCalc]);
+  }, [formData, retirementCalc, bmiInfo]);
 
   const getSubMeta = (id: SubSectionId) =>
     subSectionMetaList.find((m) => m.id === id) || subSectionMetaList[0];
@@ -1025,7 +1207,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   }, [subSectionMetaList]);
 
   // Per-Tab Validation
-  const validateTab = (tabNum: 1 | 2 | 3 | 4): boolean => {
+  const validateTab = (tabNum: 1 | 2 | 3 | 4 | 5): boolean => {
     setErrorMsg(null);
 
     if (!hasEditPermission) {
@@ -1111,9 +1293,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         !hasCustomDisease &&
         !hasMedicalNote
       ) {
-        setExpandedSections((prev) => ({ ...prev, '4A': true }));
+        setExpandedSections((prev) => ({ ...prev, '4B': true }));
         setErrorMsg(
-          'Anda memilih Riwayat Penyakit Kronis "ADA". Mohon centang minimal satu diagnosa medis atau isi Diagnosa Lainnya / Kondisi Terkini.'
+          'Anda memilih Riwayat Penyakit Kronis "ADA". Mohon centang minimal satu diagnosa medis atau isi Diagnosa Lainnya / Kondisi Terkini pada Sub-bagian 4B.'
         );
         return false;
       }
@@ -1196,6 +1378,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         : {}),
       namaLengkap: (formData.namaLengkap || base?.namaLengkap || '').trim(),
       pangkat: formData.pangkat || base?.pangkat || 'Kombes Pol',
+      tmtPangkat: formData.tmtPangkat || base?.tmtPangkat || '',
       jabatanTerakhir: cleanJabTitle,
       statusKedinasan: resolvedStatusKedinasan,
       statusDinas: resolvedStatusKedinasan,
@@ -1209,6 +1392,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       jenisAnggota: (formData.jenisAnggota || 'ANGGOTA POLRI') as AnggotaWiraSatya['jenisAnggota'],
       polda: derivedPolda,
       pendidikanTerakhir: formData.pendidikanTerakhir || '',
+      dikbangPolri: formData.dikbangPolri || '',
+      tandaKehormatan: formData.tandaKehormatan || '',
+      agama: formData.agama || 'ISLAM',
+      sukuBangsa: formData.sukuBangsa || '',
       nomorKtp: formData.nomorKtp || '',
       tempatLahir: formData.tempatLahir || 'Jakarta',
       tanggalLahir: finalCalc58.tanggalLahir,
@@ -1228,16 +1415,30 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       kompi: formData.kompi || base?.kompi || 'KOMPI A',
       pleton: formData.pleton || base?.pleton || 'PLETON 1',
       golonganDarah: formData.golonganDarah || base?.golonganDarah || 'O',
+      rhesusDarah: formData.rhesusDarah || base?.rhesusDarah || 'Rh+',
+      tinggiBadan: Number(formData.tinggiBadan) || base?.tinggiBadan || 172,
+      beratBadan: Number(formData.beratBadan) || base?.beratBadan || 74,
+      kondisiMata: formData.kondisiMata || base?.kondisiMata || 'Normal (Tanpa Kacamata)',
+      frekuensiOlahraga: formData.frekuensiOlahraga || base?.frekuensiOlahraga || '',
+      olahragaFavorit: formData.olahragaFavorit || base?.olahragaFavorit || '',
+      faskesRujukan: formData.faskesRujukan || base?.faskesRujukan || '',
+      alergiObatMakanan: formData.alergiObatMakanan || base?.alergiObatMakanan || '',
       ukuranBaju: formData.ukuranBaju || base?.ukuranBaju || 'XL',
+      ukuranJaket: formData.ukuranJaket || base?.ukuranJaket || formData.ukuranBaju || 'XL',
       ukuranCelana: formData.ukuranCelana || base?.ukuranCelana || '34',
       ukuranSepatu: formData.ukuranSepatu || base?.ukuranSepatu || '42',
+      ukuranTutupKepala: formData.ukuranTutupKepala || base?.ukuranTutupKepala || '58',
+      catatanAparel: formData.catatanAparel || base?.catatanAparel || '',
       alamatTempatTinggal: formData.alamatTempatTinggal || '',
+      kotaDomisili: formData.kotaDomisili || '',
+      provinsiDomisili: formData.provinsiDomisili || '',
       statusTempatTinggal: formData.statusTempatTinggal || 'MILIK PRIBADI',
       biayaSewaTempatTinggal: formData.biayaSewaTempatTinggal || '',
       detailSewaTempatTinggal: formData.detailSewaTempatTinggal || '',
 
       statusPerkawinan: formData.statusPerkawinan || 'MENIKAH',
       namaIstri: formData.namaIstri || '',
+      pekerjaanIstri: formData.pekerjaanIstri || '',
       tempatLahirIstri: formData.tempatLahirIstri || '',
       tanggalLahirIstri: formData.tanggalLahirIstri || '',
       usiaIstri: Number(formData.usiaIstri) || 50,
@@ -1258,6 +1459,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       namaUsahaYayasan: formData.namaUsahaYayasan || '',
       peranUsahaYayasan: formData.peranUsahaYayasan || 'ANGGOTA PENYERTA MODAL',
       jenisUsaha: formData.jenisUsaha || '',
+      lokasiUsaha: formData.lokasiUsaha || '',
+      bidangKeahlianPensiun: formData.bidangKeahlianPensiun || '',
       statusUsaha: formData.statusUsaha || 'MASIH RENCANA',
       kebutuhanPembekalan: formData.kebutuhanPembekalan || ['PELATIHAN'],
       sumberPenghasilanPasca: formData.sumberPenghasilanPasca || ['DANA PENSIUN'],
@@ -1288,7 +1491,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   };
 
   // Per-Tab Partial Save
-  const handleSaveTab = (tabNum: 1 | 2 | 3 | 4, stayOpen: boolean) => {
+  const handleSaveTab = (tabNum: 1 | 2 | 3 | 4 | 5, stayOpen: boolean) => {
     if (!validateTab(tabNum)) return;
 
     const fullSnapshot = buildFullMemberFromForm(baselineMember);
@@ -1299,13 +1502,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     if (!baselineMember) {
       mergedMember = fullSnapshot;
     } else if (tabNum === 1) {
-      // Tab 1: Kedinasan, Kompi & Kontak
+      // Tab 1: Kedinasan, Identitas, Dikbang & Kontak
       mergedMember = {
         ...baselineMember,
         nrp: fullSnapshot.nrp,
         ...(fullSnapshot.oldNrp ? { oldNrp: fullSnapshot.oldNrp } : {}),
         namaLengkap: fullSnapshot.namaLengkap,
         pangkat: fullSnapshot.pangkat,
+        tmtPangkat: fullSnapshot.tmtPangkat,
         jabatanTerakhir: fullSnapshot.jabatanTerakhir,
         statusKedinasan: fullSnapshot.statusKedinasan,
         statusDinas: fullSnapshot.statusDinas,
@@ -1318,6 +1522,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         jenisAnggota: fullSnapshot.jenisAnggota,
         polda: fullSnapshot.polda,
         pendidikanTerakhir: fullSnapshot.pendidikanTerakhir,
+        dikbangPolri: fullSnapshot.dikbangPolri,
+        tandaKehormatan: fullSnapshot.tandaKehormatan,
+        agama: fullSnapshot.agama,
+        sukuBangsa: fullSnapshot.sukuBangsa,
         nomorKtp: fullSnapshot.nomorKtp,
         tempatLahir: fullSnapshot.tempatLahir,
         tanggalLahir: fullSnapshot.tanggalLahir,
@@ -1338,14 +1546,6 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         bio: fullSnapshot.bio,
         kompi: fullSnapshot.kompi,
         pleton: fullSnapshot.pleton,
-        golonganDarah: fullSnapshot.golonganDarah,
-        ukuranBaju: fullSnapshot.ukuranBaju,
-        ukuranCelana: fullSnapshot.ukuranCelana,
-        ukuranSepatu: fullSnapshot.ukuranSepatu,
-        alamatTempatTinggal: fullSnapshot.alamatTempatTinggal,
-        statusTempatTinggal: fullSnapshot.statusTempatTinggal,
-        biayaSewaTempatTinggal: fullSnapshot.biayaSewaTempatTinggal,
-        detailSewaTempatTinggal: fullSnapshot.detailSewaTempatTinggal,
         updatedAt: nowIso,
       };
     } else if (tabNum === 2) {
@@ -1353,11 +1553,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       mergedMember = {
         ...baselineMember,
         alamatTempatTinggal: fullSnapshot.alamatTempatTinggal,
+        kotaDomisili: fullSnapshot.kotaDomisili,
+        provinsiDomisili: fullSnapshot.provinsiDomisili,
         statusTempatTinggal: fullSnapshot.statusTempatTinggal,
         biayaSewaTempatTinggal: fullSnapshot.biayaSewaTempatTinggal,
         detailSewaTempatTinggal: fullSnapshot.detailSewaTempatTinggal,
         statusPerkawinan: fullSnapshot.statusPerkawinan,
         namaIstri: fullSnapshot.namaIstri,
+        pekerjaanIstri: fullSnapshot.pekerjaanIstri,
         tempatLahirIstri: fullSnapshot.tempatLahirIstri,
         tanggalLahirIstri: fullSnapshot.tanggalLahirIstri,
         usiaIstri: fullSnapshot.usiaIstri,
@@ -1385,6 +1588,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         namaUsahaYayasan: fullSnapshot.namaUsahaYayasan,
         peranUsahaYayasan: fullSnapshot.peranUsahaYayasan,
         jenisUsaha: fullSnapshot.jenisUsaha,
+        lokasiUsaha: fullSnapshot.lokasiUsaha,
+        bidangKeahlianPensiun: fullSnapshot.bidangKeahlianPensiun,
         statusUsaha: fullSnapshot.statusUsaha,
         kebutuhanPembekalan: fullSnapshot.kebutuhanPembekalan,
         sumberPenghasilanPasca: fullSnapshot.sumberPenghasilanPasca,
@@ -1394,11 +1599,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         dukunganKeluarga: fullSnapshot.dukunganKeluarga,
         updatedAt: nowIso,
       };
-    } else {
-      // Tab 4: Kesehatan, Asuransi & Lain-lain
+    } else if (tabNum === 4) {
+      // Tab 4: Kesehatan, Postur Fisik, Golongan Darah & Asuransi
       mergedMember = {
         ...baselineMember,
         golonganDarah: fullSnapshot.golonganDarah,
+        rhesusDarah: fullSnapshot.rhesusDarah,
+        tinggiBadan: fullSnapshot.tinggiBadan,
+        beratBadan: fullSnapshot.beratBadan,
+        kondisiMata: fullSnapshot.kondisiMata,
+        frekuensiOlahraga: fullSnapshot.frekuensiOlahraga,
+        olahragaFavorit: fullSnapshot.olahragaFavorit,
+        faskesRujukan: fullSnapshot.faskesRujukan,
+        alergiObatMakanan: fullSnapshot.alergiObatMakanan,
         adaPenyakitKronis: fullSnapshot.adaPenyakitKronis,
         kondisiKesehatan: fullSnapshot.kondisiKesehatan,
         daftarPenyakit: fullSnapshot.daftarPenyakit,
@@ -1413,6 +1626,18 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         harapanDukunganLeting: fullSnapshot.harapanDukunganLeting,
         kesehatanLainLain: fullSnapshot.kesehatanLainLain,
         catatanMedis: fullSnapshot.catatanMedis,
+        updatedAt: nowIso,
+      };
+    } else {
+      // Tab 5: Aparel & Perlengkapan
+      mergedMember = {
+        ...baselineMember,
+        ukuranBaju: fullSnapshot.ukuranBaju,
+        ukuranJaket: fullSnapshot.ukuranJaket,
+        ukuranCelana: fullSnapshot.ukuranCelana,
+        ukuranSepatu: fullSnapshot.ukuranSepatu,
+        ukuranTutupKepala: fullSnapshot.ukuranTutupKepala,
+        catatanAparel: fullSnapshot.catatanAparel,
         updatedAt: nowIso,
       };
     }
@@ -1529,9 +1754,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             kompi: mergedMember.kompi,
             pleton: mergedMember.pleton,
             golonganDarah: mergedMember.golonganDarah,
+            rhesusDarah: mergedMember.rhesusDarah,
+            tinggiBadan: mergedMember.tinggiBadan,
+            beratBadan: mergedMember.beratBadan,
             ukuranBaju: mergedMember.ukuranBaju,
+            ukuranJaket: mergedMember.ukuranJaket,
             ukuranCelana: mergedMember.ukuranCelana,
             ukuranSepatu: mergedMember.ukuranSepatu,
+            ukuranTutupKepala: mergedMember.ukuranTutupKepala,
           };
           localStorage.setItem('ws96_auth_user', JSON.stringify(updatedAuth));
           localStorage.setItem('ws96_active_user', JSON.stringify(updatedAuth));
@@ -1832,7 +2062,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 <Layers className="w-3.5 h-3.5 text-red-800" />
                 Kategori Data Diri
               </span>
-              <span className="text-[10px] font-bold text-slate-400">4 Kategori</span>
+              <span className="text-[10px] font-bold text-slate-400">5 Kategori</span>
             </div>
 
             <div className="space-y-1.5">
@@ -1935,7 +2165,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           <div className="bg-white p-3.5 sm:px-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-800 block">
-                Kategori {step} dari 4
+                Kategori {step} dari 5
               </span>
               <h3 className="text-sm sm:text-base font-black text-slate-900">
                 {step}. {currentTabMeta.title}
@@ -1960,7 +2190,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           </div>
 
           {/* =============================================================== */}
-          {/* KATEGORI 1: KEDINASAN, KOMPI & KONTAK (SUB-BAGIAN 1A s/d 1E)    */}
+          {/* KATEGORI 1: KEDINASAN & IDENTITAS (SUB-BAGIAN 1A s/d 1E)        */}
           {/* =============================================================== */}
           {step === 1 && (
             <div className="space-y-4">
@@ -2089,11 +2319,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 </div>
               )}
 
-              {/* SUB-BAGIAN 1B: STATUS KEDINASAN, PANGKAT, JABATAN & SATKER POLRI */}
+              {/* SUB-BAGIAN 1B: STATUS KEDINASAN, PANGKAT, TMT, JABATAN & SATKER POLRI */}
               {renderSubSectionCard(
                 '1B',
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Kategori Personel <span className="text-red-500">*</span>
@@ -2156,6 +2386,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        TMT Pangkat Terakhir
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: 01-01-2023 / KEP Kapolri..."
+                        value={formData.tmtPangkat || ''}
+                        onChange={(e) => handleInputChange('tmtPangkat', e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
                     </div>
                   </div>
 
@@ -2288,7 +2531,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 </div>
               )}
 
-              {/* SUB-BAGIAN 1C: KELOMPOK KOMPI, PLETON & IDENTITAS PRIBADI */}
+              {/* SUB-BAGIAN 1C: IDENTITAS PRIBADI, AGAMA, SUKU, KOMPI & PLETON BATALYON */}
               {renderSubSectionCard(
                 '1C',
                 <div className="space-y-4">
@@ -2333,48 +2576,48 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       />
                     </div>
 
-                    {/* Kelompok Kompi & Pleton Batalyon Wira Satya 96 */}
-                    <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
-                      <label className="block text-xs font-extrabold text-amber-950">
-                        Kompi Batalyon
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        NIK / Nomor KTP (Opsional)
                       </label>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {DAFTAR_KOMPI.map((k) => (
-                          <button
-                            key={k}
-                            type="button"
-                            onClick={() => handleInputChange('kompi', k)}
-                            className={`px-2.5 py-2 rounded-lg text-xs font-extrabold border transition-colors cursor-pointer ${
-                              (formData.kompi || 'KOMPI A') === k
-                                ? 'bg-red-800 text-white border-red-900 shadow-xs'
-                                : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100'
-                            }`}
-                          >
-                            {k}
-                          </button>
-                        ))}
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="16 digit NIK KTP..."
+                        value={formData.nomorKtp || ''}
+                        onChange={(e) => handleInputChange('nomorKtp', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-mono bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
                     </div>
 
-                    <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
-                      <label className="block text-xs font-extrabold text-amber-950">
-                        Pleton Batalyon
-                      </label>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {DAFTAR_PLETON.map((pl) => (
-                          <button
-                            key={pl}
-                            type="button"
-                            onClick={() => handleInputChange('pleton', pl)}
-                            className={`px-2.5 py-2 rounded-lg text-xs font-extrabold border transition-colors cursor-pointer ${
-                              (formData.pleton || 'PLETON 1') === pl
-                                ? 'bg-red-800 text-white border-red-900 shadow-xs'
-                                : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100'
-                            }`}
-                          >
-                            {pl}
-                          </button>
-                        ))}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Agama
+                        </label>
+                        <select
+                          value={formData.agama || 'ISLAM'}
+                          onChange={(e) => handleInputChange('agama', e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        >
+                          {DAFTAR_AGAMA.map((ag) => (
+                            <option key={ag} value={ag}>
+                              {ag}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Suku / Daerah Asal
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Contoh: Jawa, Sunda, Batak..."
+                          value={formData.sukuBangsa || ''}
+                          onChange={(e) => handleInputChange('sukuBangsa', e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        />
                       </div>
                     </div>
 
@@ -2411,92 +2654,123 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       </div>
                     </div>
 
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Pendidikan Terakhir
+                    {/* Kelompok Kompi & Pleton Batalyon Wira Satya 96 */}
+                    <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
+                      <label className="block text-xs font-extrabold text-amber-950">
+                        Kompi Batalyon Wira Satya 96
                       </label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: Akpol 1996 / S2 Hukum / Sespimti..."
-                        value={formData.pendidikanTerakhir || ''}
-                        onChange={(e) => handleInputChange('pendidikanTerakhir', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                      />
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        {DAFTAR_KOMPI.map((k) => (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => handleInputChange('kompi', k)}
+                            className={`px-2 py-2 rounded-lg text-[11px] font-extrabold border transition-colors cursor-pointer ${
+                              (formData.kompi || 'KOMPI A') === k
+                                ? 'bg-red-800 text-white border-red-900 shadow-xs'
+                                : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100'
+                            }`}
+                          >
+                            {k}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
+                      <label className="block text-xs font-extrabold text-amber-950">
+                        Pleton Batalyon Wira Satya 96
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        {DAFTAR_PLETON.map((pl) => (
+                          <button
+                            key={pl}
+                            type="button"
+                            onClick={() => handleInputChange('pleton', pl)}
+                            className={`px-2 py-2 rounded-lg text-[11px] font-extrabold border transition-colors cursor-pointer ${
+                              (formData.pleton || 'PLETON 1') === pl
+                                ? 'bg-red-800 text-white border-red-900 shadow-xs'
+                                : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100'
+                            }`}
+                          >
+                            {pl}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* SUB-BAGIAN 1D: UKURAN APAREL (BAJU, CELANA, SEPATU) & GOLONGAN DARAH */}
+              {/* SUB-BAGIAN 1D: PENDIDIKAN UMUM, DIKBANG POLRI & TANDA KEHORMATAN / BREVET */}
               {renderSubSectionCard(
                 '1D',
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Golongan Darah
-                    </label>
-                    <select
-                      value={formData.golonganDarah || 'O'}
-                      onChange={(e) => handleInputChange('golonganDarah', e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    >
-                      {DAFTAR_GOLONGAN_DARAH.map((gd) => (
-                        <option key={gd} value={gd}>
-                          Gol. {gd}
-                        </option>
-                      ))}
-                    </select>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Pendidikan Umum &amp; Akademik Terakhir
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Akpol 1996 / S2 Hukum / S3 Ilmu Kepolisian..."
+                        value={formData.pendidikanTerakhir || ''}
+                        onChange={(e) => handleInputChange('pendidikanTerakhir', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Dikbangti / Dikbangum Polri Terakhir
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: SESPIMTI POLRI / LEMHANNAS RI / SESPIMMEN..."
+                        value={formData.dikbangPolri || ''}
+                        onChange={(e) => handleInputChange('dikbangPolri', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
                   </div>
 
+                  {/* Quick-select pills untuk Dikbang Polri */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Ukuran Baju
-                    </label>
-                    <select
-                      value={formData.ukuranBaju || 'XL'}
-                      onChange={(e) => handleInputChange('ukuranBaju', e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    >
-                      {DAFTAR_UKURAN_BAJU.map((sz) => (
-                        <option key={sz} value={sz}>
-                          Ukuran {sz}
-                        </option>
-                      ))}
-                    </select>
+                    <span className="text-[11px] font-bold text-slate-500 block">
+                      Pilihan Cepat Dikbang Polri:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {DAFTAR_DIKBANG_POLRI.map((dk) => {
+                        const active = (formData.dikbangPolri || '').toUpperCase().includes(dk);
+                        return (
+                          <button
+                            key={dk}
+                            type="button"
+                            onClick={() => handleInputChange('dikbangPolri', dk)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
+                              active
+                                ? 'bg-polri-navy text-polri-gold border-polri-navy'
+                                : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            {dk}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Ukuran Celana
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Tanda Kehormatan &amp; Brevet Kualifikasi
                     </label>
-                    <select
-                      value={formData.ukuranCelana || '34'}
-                      onChange={(e) => handleInputChange('ukuranCelana', e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    >
-                      {DAFTAR_UKURAN_CELANA.map((cl) => (
-                        <option key={cl} value={cl}>
-                          No. {cl}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Ukuran Sepatu
-                    </label>
-                    <select
-                      value={formData.ukuranSepatu || '42'}
-                      onChange={(e) => handleInputChange('ukuranSepatu', e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    >
-                      {DAFTAR_UKURAN_SEPATU.map((sp) => (
-                        <option key={sp} value={sp}>
-                          No. {sp}
-                        </option>
-                      ))}
-                    </select>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Bintang Bhayangkara Nararya, SL Pengabdian 8/16/24 Thn, Brevet Penyidik..."
+                      value={formData.tandaKehormatan || ''}
+                      onChange={(e) => handleInputChange('tandaKehormatan', e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    />
                   </div>
                 </div>
               )}
@@ -2693,7 +2967,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           )}
 
           {/* =============================================================== */}
-          {/* KATEGORI 2: DOMISILI & DATA KELUARGA (SUB-BAGIAN 2A s/d 2C)     */}
+          {/* KATEGORI 2: DOMISILI & DATA KELUARGA (SUB-BAGIAN 2A s/d 2D)     */}
           {/* =============================================================== */}
           {step === 2 && (
             <div className="space-y-4">
@@ -2732,14 +3006,40 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         {formData.statusKedinasan === 'ALMARHUM'
-                          ? 'Alamat Domisili Keluarga'
-                          : 'Alamat / Kota Domisili'}
+                          ? 'Alamat Lengkap Domisili Keluarga'
+                          : 'Alamat Lengkap Domisili'}
                       </label>
                       <input
                         type="text"
-                        placeholder="Alamat atau kota domisili saat ini..."
+                        placeholder="Nama jalan, komplek, RT/RW..."
                         value={formData.alamatTempatTinggal || ''}
                         onChange={(e) => handleInputChange('alamatTempatTinggal', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Kota / Kabupaten Domisili
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Jakarta Selatan, Tangerang Selatan..."
+                        value={formData.kotaDomisili || ''}
+                        onChange={(e) => handleInputChange('kotaDomisili', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Provinsi Domisili
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: DKI Jakarta, Jawa Barat, Banten..."
+                        value={formData.provinsiDomisili || ''}
+                        onChange={(e) => handleInputChange('provinsiDomisili', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
@@ -2835,6 +3135,32 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       placeholder="Nama lengkap istri / pasangan..."
                       value={formData.namaIstri || ''}
                       onChange={(e) => handleInputChange('namaIstri', e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Pekerjaan / Aktivitas Istri
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Ibu Rumah Tangga / Bhayangkari / ASN / Wiraswasta..."
+                      value={formData.pekerjaanIstri || ''}
+                      onChange={(e) => handleInputChange('pekerjaanIstri', e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Tempat Lahir Istri
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Kota lahir istri..."
+                      value={formData.tempatLahirIstri || ''}
+                      onChange={(e) => handleInputChange('tempatLahirIstri', e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                     />
                   </div>
@@ -3000,6 +3326,75 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <span>Tambah</span>
                 </button>
               )}
+
+              {/* SUB-BAGIAN 2D: TANGGUNGAN KELUARGA LAIN (ORANG TUA / MERTUA / KERABAT) */}
+              {renderSubSectionCard(
+                '2D',
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Jumlah Tanggungan Lain
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={15}
+                      value={formData.tanggunganLain?.jumlah ?? 0}
+                      onChange={(e) =>
+                        handleInputChange('tanggunganLain', {
+                          jumlah: Math.max(0, Number(e.target.value) || 0),
+                          rincian: formData.tanggunganLain?.rincian || '',
+                          masaTanggunganTahun: formData.tanggunganLain?.masaTanggunganTahun || 0,
+                          kondisiKesehatan: formData.tanggunganLain?.kondisiKesehatan || 'SEHAT',
+                        })
+                      }
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Hubungan Keluarga / Rincian Tanggungan
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Ibu Kandung, Mertua, Adik Kuliah..."
+                      value={formData.tanggunganLain?.rincian || ''}
+                      onChange={(e) =>
+                        handleInputChange('tanggunganLain', {
+                          jumlah: formData.tanggunganLain?.jumlah ?? 1,
+                          rincian: e.target.value,
+                          masaTanggunganTahun: formData.tanggunganLain?.masaTanggunganTahun || 5,
+                          kondisiKesehatan: formData.tanggunganLain?.kondisiKesehatan || 'SEHAT',
+                        })
+                      }
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Kondisi Kesehatan Tanggungan
+                    </label>
+                    <select
+                      value={formData.tanggunganLain?.kondisiKesehatan || 'SEHAT'}
+                      onChange={(e) =>
+                        handleInputChange('tanggunganLain', {
+                          jumlah: formData.tanggunganLain?.jumlah ?? 0,
+                          rincian: formData.tanggunganLain?.rincian || '',
+                          masaTanggunganTahun: formData.tanggunganLain?.masaTanggunganTahun || 0,
+                          kondisiKesehatan: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    >
+                      <option value="SEHAT">SEHAT</option>
+                      <option value="PERLU PERAWATAN RUTIN">PERLU PERAWATAN RUTIN</option>
+                      <option value="LANSIA">LANSIA / PENDAMPINGAN</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -3061,7 +3456,21 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Status Pembekalan Purna Tugas
+                      </label>
+                      <select
+                        value={formData.sudahPembekalan || 'SUDAH'}
+                        onChange={(e) => handleInputChange('sudahPembekalan', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        <option value="SUDAH">SUDAH MENGIKUTI</option>
+                        <option value="BELUM">BELUM MENGIKUTI</option>
+                      </select>
+                    </div>
+
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Status Hunian Pensiun
@@ -3092,7 +3501,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
 
                     {formData.statusRumahPurnaTugas === 'SEWA/KONTRAK' && (
-                      <div className="sm:col-span-2 p-3.5 rounded-xl bg-amber-50/80 border border-amber-300 space-y-3">
+                      <div className="sm:col-span-3 p-3.5 rounded-xl bg-amber-50/80 border border-amber-300 space-y-3">
                         <div className="flex items-center justify-between gap-2 pb-2 border-b border-amber-200/80">
                           <span className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
                             <Home className="w-3.5 h-3.5 text-amber-700" />
@@ -3218,7 +3627,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       </select>
                     </div>
 
-                    <div className="sm:col-span-2">
+                    <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Nama Unit Usaha / Yayasan
                       </label>
@@ -3237,9 +3646,22 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       </label>
                       <input
                         type="text"
-                        placeholder="Contoh: Agribisnis, Logistik, Pendidikan..."
+                        placeholder="Contoh: Agribisnis, Logistik, Jasa Keamanan..."
                         value={formData.jenisUsaha || ''}
                         onChange={(e) => handleInputChange('jenisUsaha', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Lokasi / Kota Operasional Usaha
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Jabodetabek, Jawa Barat, Semarang..."
+                        value={formData.lokasiUsaha || ''}
+                        onChange={(e) => handleInputChange('lokasiUsaha', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       />
                     </div>
@@ -3258,6 +3680,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         <option value="MASIH RENCANA">MASIH RENCANA</option>
                       </select>
                     </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Bidang Kompetensi / Keahlian Pasca Dinas
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Konsultan Hukum, Manajemen Pengamanan, Komisaris, Dosen..."
+                        value={formData.bidangKeahlianPensiun || ''}
+                        onChange={(e) => handleInputChange('bidangKeahlianPensiun', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -3265,67 +3700,96 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               {/* SUB-BAGIAN 3C: KESIAPAN FINANSIAL & DUKUNGAN PURNA TUGAS */}
               {renderSubSectionCard(
                 '3C',
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Kecukupan Dana Pensiun
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Sumber Penghasilan Pasca Dinas
                     </label>
-                    <select
-                      value={formData.kecukupanDanaPensiun || 'CUKUP'}
-                      onChange={(e) => handleInputChange('kecukupanDanaPensiun', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    >
-                      <option value="SANGAT CUKUP">SANGAT CUKUP</option>
-                      <option value="CUKUP">CUKUP</option>
-                      <option value="KURANG">KURANG</option>
-                    </select>
+                    <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                      {(['DANA PENSIUN', 'USAHA', 'INVESTASI'] as const).map((src) => {
+                        const checked = (formData.sumberPenghasilanPasca || []).includes(src);
+                        return (
+                          <label
+                            key={src}
+                            className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer p-1"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => handleToggleSumberPenghasilan(src)}
+                              className="rounded text-polri-navy focus:ring-polri-navy"
+                            />
+                            <span className={checked ? 'font-extrabold text-polri-navy' : ''}>
+                              {src}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Dukungan Paguyuban / Yayasan
-                    </label>
-                    <select
-                      value={formData.kebutuhanPembekalan?.[0] || 'PELATIHAN'}
-                      onChange={(e) => handleInputChange('kebutuhanPembekalan', [e.target.value])}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    >
-                      <option value="MODAL">Akses Modal &amp; Kemitraan</option>
-                      <option value="PELATIHAN">Pelatihan &amp; Inkubasi Usaha</option>
-                      <option value="PENDAMPINGAN">Pendampingan Manajemen &amp; Hukum</option>
-                      <option value="TIDAK PERLU">Tidak Perlu</option>
-                    </select>
-                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Kecukupan Dana Pensiun
+                      </label>
+                      <select
+                        value={formData.kecukupanDanaPensiun || 'CUKUP'}
+                        onChange={(e) => handleInputChange('kecukupanDanaPensiun', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        <option value="SANGAT CUKUP">SANGAT CUKUP</option>
+                        <option value="CUKUP">CUKUP</option>
+                        <option value="KURANG">KURANG</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Kesiapan Purna Tugas
-                    </label>
-                    <select
-                      value={formData.perasaanPensiun || 'OPTIMIS'}
-                      onChange={(e) => handleInputChange('perasaanPensiun', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    >
-                      <option value="OPTIMIS">OPTIMIS</option>
-                      <option value="TENANG">TENANG</option>
-                      <option value="CEMAS">CEMAS</option>
-                      <option value="RAGU">RAGU</option>
-                    </select>
-                  </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Dukungan Paguyuban / Yayasan
+                      </label>
+                      <select
+                        value={formData.kebutuhanPembekalan?.[0] || 'PELATIHAN'}
+                        onChange={(e) => handleInputChange('kebutuhanPembekalan', [e.target.value])}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        <option value="MODAL">Akses Modal &amp; Kemitraan</option>
+                        <option value="PELATIHAN">Pelatihan &amp; Inkubasi Usaha</option>
+                        <option value="PENDAMPINGAN">Pendampingan Manajemen &amp; Hukum</option>
+                        <option value="TIDAK PERLU">Tidak Perlu</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Dukungan Keluarga
-                    </label>
-                    <select
-                      value={formData.dukunganKeluarga || 'SANGAT MENDUKUNG'}
-                      onChange={(e) => handleInputChange('dukunganKeluarga', e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    >
-                      <option value="SANGAT MENDUKUNG">SANGAT MENDUKUNG</option>
-                      <option value="MENDUKUNG">MENDUKUNG</option>
-                      <option value="KURANG MENDUKUNG">KURANG MENDUKUNG</option>
-                    </select>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Sikap Menghadapi Purna Tugas
+                      </label>
+                      <select
+                        value={formData.perasaanPensiun || 'OPTIMIS'}
+                        onChange={(e) => handleInputChange('perasaanPensiun', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        <option value="OPTIMIS">OPTIMIS</option>
+                        <option value="TENANG">TENANG</option>
+                        <option value="CEMAS">CEMAS</option>
+                        <option value="RAGU">RAGU</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Dukungan Keluarga
+                      </label>
+                      <select
+                        value={formData.dukunganKeluarga || 'SANGAT MENDUKUNG'}
+                        onChange={(e) => handleInputChange('dukunganKeluarga', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        <option value="SANGAT MENDUKUNG">SANGAT MENDUKUNG</option>
+                        <option value="MENDUKUNG">MENDUKUNG</option>
+                        <option value="KURANG MENDUKUNG">KURANG MENDUKUNG</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               )}
@@ -3333,23 +3797,23 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           )}
 
           {/* =============================================================== */}
-          {/* KATEGORI 4: KESEHATAN, ASURANSI & LAIN-LAIN (4A s/d 4C)         */}
+          {/* KATEGORI 4: KESEHATAN, FISIK & ASURANSI (4A s/d 4C)             */}
           {/* =============================================================== */}
           {step === 4 && (
             <div className="space-y-4">
-              {/* SUB-BAGIAN 4A: KONDISI KESEHATAN UMUM, GOLONGAN DARAH & RIWAYAT PENYAKIT */}
+              {/* SUB-BAGIAN 4A: POSTUR FISIK, TINGGI/BERAT BADAN, IMT & GOLONGAN DARAH */}
               {renderSubSectionCard(
                 '4A',
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Golongan Darah
+                        Golongan Darah <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={formData.golonganDarah || 'O'}
                         onChange={(e) => handleInputChange('golonganDarah', e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                       >
                         {DAFTAR_GOLONGAN_DARAH.map((gd) => (
                           <option key={gd} value={gd}>
@@ -3361,7 +3825,138 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Kondisi Kesehatan
+                        Rhesus Darah
+                      </label>
+                      <select
+                        value={formData.rhesusDarah || 'Rh+'}
+                        onChange={(e) => handleInputChange('rhesusDarah', e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        {DAFTAR_RHESUS_DARAH.map((rh) => (
+                          <option key={rh} value={rh}>
+                            {rh} ({rh === 'Rh+' ? 'Positif' : 'Negatif'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Tinggi Badan (cm)
+                      </label>
+                      <input
+                        type="number"
+                        min={140}
+                        max={220}
+                        placeholder="Contoh: 172"
+                        value={formData.tinggiBadan || ''}
+                        onChange={(e) =>
+                          handleInputChange(
+                            'tinggiBadan',
+                            e.target.value ? Number(e.target.value) : undefined
+                          )
+                        }
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Berat Badan (kg)
+                      </label>
+                      <input
+                        type="number"
+                        min={40}
+                        max={180}
+                        placeholder="Contoh: 74"
+                        value={formData.beratBadan || ''}
+                        onChange={(e) =>
+                          handleInputChange(
+                            'beratBadan',
+                            e.target.value ? Number(e.target.value) : undefined
+                          )
+                        }
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Kalkulasi Otomatis IMT / BMI */}
+                  {bmiInfo && (
+                    <div
+                      className={`p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 ${bmiInfo.colorClass}`}
+                    >
+                      <div className="flex items-center gap-2 text-xs font-bold">
+                        <Activity className="w-4 h-4 shrink-0" />
+                        <span>
+                          Indeks Massa Tubuh (IMT / BMI): <strong>{bmiInfo.value} kg/m&sup2;</strong>
+                        </span>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-white/80 border border-current/20">
+                        Kategori: {bmiInfo.label}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Kondisi Mata / Visus
+                      </label>
+                      <select
+                        value={formData.kondisiMata || 'Normal (Tanpa Kacamata)'}
+                        onChange={(e) => handleInputChange('kondisiMata', e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        {DAFTAR_KONDISI_MATA.map((km) => (
+                          <option key={km} value={km}>
+                            {km}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Frekuensi Olahraga
+                      </label>
+                      <select
+                        value={formData.frekuensiOlahraga || 'Rutin (3-5x Seminggu)'}
+                        onChange={(e) => handleInputChange('frekuensiOlahraga', e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        {DAFTAR_FREKUENSI_OLAHRAGA.map((fo) => (
+                          <option key={fo} value={fo}>
+                            {fo}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Olahraga Favorit / Kebugaran
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Jalan Pagi, Golf, Tenis, Sepeda..."
+                        value={formData.olahragaFavorit || ''}
+                        onChange={(e) => handleInputChange('olahragaFavorit', e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SUB-BAGIAN 4B: KONDISI MEDIS, RIWAYAT PENYAKIT & FASKES RUJUKAN */}
+              {renderSubSectionCard(
+                '4B',
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Kondisi Kesehatan Umum
                       </label>
                       <select
                         value={formData.kondisiKesehatan || 'BAIK'}
@@ -3378,7 +3973,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Penyakit Kronis
+                        Riwayat Penyakit Kronis
                       </label>
                       <select
                         value={formData.adaPenyakitKronis || 'TIDAK ADA'}
@@ -3388,6 +3983,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         <option value="TIDAK ADA">TIDAK ADA</option>
                         <option value="ADA">ADA</option>
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Faskes / RS Rujukan Utama
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: RS Polri Kramat Jati / RS Bhayangkara..."
+                        value={formData.faskesRujukan || ''}
+                        onChange={(e) => handleInputChange('faskesRujukan', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
                     </div>
                   </div>
 
@@ -3419,28 +4027,43 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
                   </div>
 
-                  {/* Opsi Diagnosa Lainnya */}
-                  <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/90 space-y-1.5">
-                    <label className="block text-xs font-bold text-amber-950">
-                      Diagnosa Lainnya (pisahkan koma):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Diagnosa lain jika ada..."
-                      value={penyakitLainnya}
-                      onChange={(e) => {
-                        if (errorMsg) setErrorMsg(null);
-                        setPenyakitLainnya(e.target.value);
-                      }}
-                      className="w-full px-3.5 py-2 rounded-lg border border-amber-300 text-xs font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white text-slate-800"
-                    />
+                  {/* Opsi Diagnosa Lainnya & Kondisi Terkini */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/90 space-y-1.5">
+                      <label className="block text-xs font-bold text-amber-950">
+                        Diagnosa Lainnya (pisahkan koma):
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Diagnosa lain jika ada..."
+                        value={penyakitLainnya}
+                        onChange={(e) => {
+                          if (errorMsg) setErrorMsg(null);
+                          setPenyakitLainnya(e.target.value);
+                        }}
+                        className="w-full px-3.5 py-2 rounded-lg border border-amber-300 text-xs font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white text-slate-800"
+                      />
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Kondisi &amp; Penanganan Terkini:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Kondisi kesehatan atau terapi rutin saat ini..."
+                        value={formData.kondisiSaatIni || ''}
+                        onChange={(e) => handleInputChange('kondisiSaatIni', e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* SUB-BAGIAN 4B: ASURANSI KESEHATAN & PEMERIKSAAN MEDIS BERKALA (MCU) */}
+              {/* SUB-BAGIAN 4C: ASURANSI KESEHATAN, MCU BERKALA, ALERGI & CATATAN LAINNYA */}
               {renderSubSectionCard(
-                '4B',
+                '4C',
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-800 mb-1.5">
@@ -3514,49 +4137,158 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       </select>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2 border-t border-slate-100">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        Riwayat Alergi Obat / Makanan
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Tidak ada / Alergi seafood / Antibiotik tertentu..."
+                        value={formData.alergiObatMakanan || ''}
+                        onChange={(e) => handleInputChange('alergiObatMakanan', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Harapan Dukungan Kesehatan Leting
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Saran atau harapan layanan kesehatan Paguyuban..."
+                        value={formData.harapanDukunganLeting || ''}
+                        onChange={(e) => handleInputChange('harapanDukunganLeting', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        Catatan Kesehatan Lainnya (Suplemen / Fisioterapi / Catatan Medis)
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="Catatan tambahan terkait kesehatan atau kebugaran..."
+                        value={formData.kesehatanLainLain || ''}
+                        onChange={(e) => handleInputChange('kesehatanLainLain', e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
+            </div>
+          )}
 
-              {/* SUB-BAGIAN 4C: KOLOM LAIN-LAIN KESEHATAN & HARAPAN DUKUNGAN MEDIS */}
+          {/* =============================================================== */}
+          {/* KATEGORI 5: APAREL & PERLENGKAPAN LETING (SUB-BAGIAN 5A)        */}
+          {/* =============================================================== */}
+          {step === 5 && (
+            <div className="space-y-4">
+              {/* SUB-BAGIAN 5A: UKURAN PAKAIAN, JAKET, CELANA, SEPATU & TUTUP KEPALA */}
               {renderSubSectionCard(
-                '4C',
-                <div className="space-y-3.5">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      Lain-lain Kesehatan (Alergi / Terapi / Catatan Khusus)
-                    </label>
-                    <textarea
-                      rows={2}
-                      placeholder="Alergi obat/makanan, terapi rutin, atau catatan khusus..."
-                      value={formData.kesehatanLainLain || ''}
-                      onChange={(e) => handleInputChange('kesehatanLainLain', e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    />
+                '5A',
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Ukuran Baju / Kemeja
+                      </label>
+                      <select
+                        value={formData.ukuranBaju || 'XL'}
+                        onChange={(e) => handleInputChange('ukuranBaju', e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        {DAFTAR_UKURAN_BAJU.map((sz) => (
+                          <option key={sz} value={sz}>
+                            Ukuran {sz}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Ukuran Jaket / Rompi
+                      </label>
+                      <select
+                        value={formData.ukuranJaket || formData.ukuranBaju || 'XL'}
+                        onChange={(e) => handleInputChange('ukuranJaket', e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        {DAFTAR_UKURAN_JAKET.map((jk) => (
+                          <option key={jk} value={jk}>
+                            Ukuran {jk}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Ukuran Celana
+                      </label>
+                      <select
+                        value={formData.ukuranCelana || '34'}
+                        onChange={(e) => handleInputChange('ukuranCelana', e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        {DAFTAR_UKURAN_CELANA.map((cl) => (
+                          <option key={cl} value={cl}>
+                            No. {cl}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Ukuran Sepatu
+                      </label>
+                      <select
+                        value={formData.ukuranSepatu || '42'}
+                        onChange={(e) => handleInputChange('ukuranSepatu', e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        {DAFTAR_UKURAN_SEPATU.map((sp) => (
+                          <option key={sp} value={sp}>
+                            No. {sp}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Tutup Kepala / Baret / Peci
+                      </label>
+                      <select
+                        value={formData.ukuranTutupKepala || '58'}
+                        onChange={(e) => handleInputChange('ukuranTutupKepala', e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        {DAFTAR_UKURAN_TUTUP_KEPALA.map((tk) => (
+                          <option key={tk} value={tk}>
+                            No. {tk}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Kondisi &amp; Penanganan Terkini
+                      Catatan Ukuran Khusus / Atribut Reuni Leting (Opsional)
                     </label>
-                    <textarea
-                      rows={2}
-                      placeholder="Kondisi kesehatan terkini atau penanganan medis..."
-                      value={formData.kondisiSaatIni || ''}
-                      onChange={(e) => handleInputChange('kondisiSaatIni', e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Harapan Dukungan Kesehatan Leting
-                    </label>
-                    <textarea
-                      rows={2}
-                      placeholder="Saran atau harapan dukungan kesehatan dari Paguyuban..."
-                      value={formData.harapanDukunganLeting || ''}
-                      onChange={(e) => handleInputChange('harapanDukunganLeting', e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                    <input
+                      type="text"
+                      placeholder="Contoh: Kemeja lengan panjang, cutting regular fit, kaos olahraga XXL..."
+                      value={formData.catatanAparel || ''}
+                      onChange={(e) => handleInputChange('catatanAparel', e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                     />
                   </div>
                 </div>
@@ -3564,7 +4296,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             </div>
           )}
 
-          {/* Unified Action Footer on ALL 4 Categories */}
+          {/* Unified Action Footer on ALL 5 Categories */}
           <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex items-center gap-2">
               <button
@@ -3579,7 +4311,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    setStep((step - 1) as 1 | 2 | 3 | 4);
+                    setStep((step - 1) as 1 | 2 | 3 | 4 | 5);
                     setErrorMsg(null);
                   }}
                   className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -3611,11 +4343,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 <span>Simpan &amp; Profil</span>
               </button>
 
-              {step < 4 && (
+              {step < 5 && (
                 <button
                   type="button"
                   onClick={() => {
-                    setStep((step + 1) as 1 | 2 | 3 | 4);
+                    setStep((step + 1) as 1 | 2 | 3 | 4 | 5);
                     setErrorMsg(null);
                   }}
                   className="inline-flex items-center justify-center gap-1 px-3.5 py-2 rounded-xl border border-polri-navy/30 bg-slate-50 hover:bg-slate-100 text-polri-navy text-xs font-bold transition-colors cursor-pointer"
