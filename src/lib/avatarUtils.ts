@@ -275,9 +275,26 @@ export function getOrBuildUserProfile(
   currentUser: AuthUser,
   members: AnggotaWiraSatya[]
 ): AnggotaWiraSatya {
-  const existing = members.find(
+  let existing = members.find(
     (m) => m.nrp === currentUser.nrp || (currentUser.oldNrp && m.nrp === currentUser.oldNrp) || (m.oldNrp && m.oldNrp === currentUser.nrp)
   );
+  if (!existing && typeof window !== 'undefined') {
+    try {
+      const rawOv = localStorage.getItem('ws96_member_overrides_v1');
+      if (rawOv) {
+        const parsedOv = JSON.parse(rawOv) || {};
+        existing =
+          parsedOv[currentUser.nrp] ||
+          (currentUser.oldNrp ? parsedOv[currentUser.oldNrp] : undefined) ||
+          parsedOv['98010710'];
+        if (existing && existing.nrp !== currentUser.nrp && existing.oldNrp !== currentUser.nrp && currentUser.role !== 'SUPERADMIN') {
+          existing = undefined;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
   if (existing) {
     const userTime = currentUser.updatedAt ? new Date(currentUser.updatedAt).getTime() : 0;
     const memberTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
@@ -665,23 +682,73 @@ export function recordAdcActivityToAuditLog(params: {
 }
 
 /**
- * Returns true if the given NRP or role belongs to a behind-the-scenes Superadmin account
- * (e.g. NRP 98010710 / role SUPERADMIN). Superadmin accounts can log in, post on the feed,
- * comment, and administer the platform, but are NEVER counted as Akpol 1996 alumni in
- * directories, statistics, recaps (Hunian, Kesehatan, Usaha, Wilayah), or iuran lists.
+ * Returns true if the given NRP, role, or record metadata belongs to a behind-the-scenes
+ * Superadmin account (e.g. NRP 98010710 / Eko Agung / role SUPERADMIN).
+ * Superadmin accounts can log in, post on the feed, comment, and administer the platform,
+ * but are NEVER counted or detected as active users/alumni in directories, Menu User,
+ * statistics, recaps (Hunian, Kesehatan, Usaha, Wilayah), Tour of Duty, or iuran lists.
  */
-export function isSuperadminAccount(nrp?: string | null, role?: string | null): boolean {
+export function isSuperadminAccount(
+  nrp?: string | null,
+  role?: string | null,
+  extra?: {
+    oldNrp?: string | null;
+    id?: string | null;
+    profileId?: string | null;
+    nama?: string | null;
+  }
+): boolean {
   const cleanNrp = (nrp || '').trim();
   const cleanRole = (role || '').trim().toUpperCase();
-  if (cleanNrp === '98010710' || cleanRole === 'SUPERADMIN') {
+  const cleanOldNrp = (extra?.oldNrp || '').trim();
+  const cleanId = (extra?.id || '').trim();
+  const cleanProfileId = (extra?.profileId || '').trim();
+  const cleanNama = (extra?.nama || '').trim().toLowerCase();
+
+  if (
+    cleanNrp === '98010710' ||
+    cleanRole === 'SUPERADMIN' ||
+    cleanOldNrp === '98010710' ||
+    cleanId === 'ws-98010710' ||
+    cleanId === 'u-98010710' ||
+    cleanId === 'reg-98010710' ||
+    cleanProfileId === 'ws-98010710' ||
+    cleanNama.includes('eko agung')
+  ) {
     return true;
   }
+
   if (typeof window !== 'undefined' && cleanNrp) {
     try {
       const roleMapRaw = localStorage.getItem('ws96_role_map');
       if (roleMapRaw) {
         const parsed = JSON.parse(roleMapRaw);
-        if (parsed && parsed[cleanNrp] === 'SUPERADMIN') {
+        if (
+          parsed &&
+          (parsed[cleanNrp] === 'SUPERADMIN' || (cleanOldNrp && parsed[cleanOldNrp] === 'SUPERADMIN'))
+        ) {
+          return true;
+        }
+      }
+      const rawAuth = localStorage.getItem('ws96_auth_user');
+      if (rawAuth) {
+        const authObj = JSON.parse(rawAuth);
+        if (
+          authObj &&
+          (authObj.role === 'SUPERADMIN' || authObj.nrp === '98010710' || authObj.oldNrp === '98010710') &&
+          (authObj.nrp === cleanNrp || authObj.oldNrp === cleanNrp)
+        ) {
+          return true;
+        }
+      }
+      const rawImp = localStorage.getItem('ws96_impersonator_user');
+      if (rawImp) {
+        const impObj = JSON.parse(rawImp);
+        if (
+          impObj &&
+          (impObj.role === 'SUPERADMIN' || impObj.nrp === '98010710' || impObj.oldNrp === '98010710') &&
+          (impObj.nrp === cleanNrp || impObj.oldNrp === cleanNrp)
+        ) {
           return true;
         }
       }
@@ -690,6 +757,27 @@ export function isSuperadminAccount(nrp?: string | null, role?: string | null): 
     }
   }
   return false;
+}
+
+export function isSuperadminObject(obj?: unknown): boolean {
+  if (!obj || typeof obj !== 'object') return false;
+  const rec = obj as Record<string, unknown>;
+  const nrp = typeof rec.nrp === 'string' ? rec.nrp : typeof rec.perwiraNrp === 'string' ? rec.perwiraNrp : undefined;
+  const role = typeof rec.role === 'string' ? rec.role : undefined;
+  const oldNrp = typeof rec.oldNrp === 'string' ? rec.oldNrp : undefined;
+  const id = typeof rec.id === 'string' ? rec.id : undefined;
+  const profileId = typeof rec.profileId === 'string' ? rec.profileId : undefined;
+  const nama =
+    typeof rec.namaLengkap === 'string'
+      ? rec.namaLengkap
+      : typeof rec.nama === 'string'
+      ? rec.nama
+      : typeof rec.name === 'string'
+      ? rec.name
+      : typeof rec.namaPerwira === 'string'
+      ? rec.namaPerwira
+      : undefined;
+  return isSuperadminAccount(nrp, role, { oldNrp, id, profileId, nama });
 }
 
 

@@ -34,6 +34,7 @@ import {
   getRoleRankOrder,
   detectStatusKedinasan,
   getStatusKedinasanOrder,
+  isSuperadminObject,
 } from '@/lib/avatarUtils';
 import { 
   ShieldCheck, 
@@ -795,6 +796,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
 
         Object.values(parsedOverrides).forEach((ov) => {
           if (!ov || !ov.nrp || !ov.nama) return;
+          if (isSuperadminObject(ov as unknown as Record<string, unknown>)) return;
           const cleanOvNrp = ov.nrp.trim();
           const cleanOvOld = (ov.oldNrp || '').trim();
           const bName = getBasePersonName(ov.nama);
@@ -2078,7 +2080,12 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
   );
 
   const visibleUsers = useMemo(
-    () => users.filter((u) => u.role !== 'SUPERADMIN' && u.nrp !== '98010710'),
+    () =>
+      users.filter(
+        (u) =>
+          u.role !== 'SUPERADMIN' &&
+          !isSuperadminObject(u as unknown as Record<string, unknown>)
+      ),
     [users]
   );
 
@@ -2299,7 +2306,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
   const filteredRegistrations = useMemo(() => {
     const q = regSearch.toLowerCase();
     return registrations.filter((r) => {
-      if (r.nrp === '98010710') return false;
+      if (isSuperadminObject(r as unknown as Record<string, unknown>)) return false;
       const matchesSearch =
         !q ||
         r.nama.toLowerCase().includes(q) ||
@@ -2314,7 +2321,9 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
   const pendingCount = useMemo(
     () =>
       registrations.filter(
-        (r) => r.nrp !== '98010710' && r.status === 'PENDING_VERIFIKASI'
+        (r) =>
+          !isSuperadminObject(r as unknown as Record<string, unknown>) &&
+          r.status === 'PENDING_VERIFIKASI'
       ).length,
     [registrations]
   );
@@ -2807,7 +2816,6 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 className="px-2.5 sm:px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-800 shrink-0"
               >
                 <option value="ALL">Semua Role ({visibleUsers.length})</option>
-                {canImpersonate && <option value="SUPERADMIN">Superadmin</option>}
                 <option value="KETUA">Ketua Paguyuban</option>
                 <option value="SEKRETARIAT">Sekretaris</option>
                 <option value="BENDAHARA">Bendahara</option>

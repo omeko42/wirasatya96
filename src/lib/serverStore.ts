@@ -201,27 +201,37 @@ type GlobalStore = Omit<LocalDatabaseSchema, 'auditLogs'> & {
 const INITIAL_MESSAGES: ChatMessage[] = [];
 
 const INITIAL_REGISTRATIONS: PendingRegistration[] = [
-  {
-    id: 'reg-98010710',
-    nrp: '98010710',
-    nama: 'Eko Agung',
-    pangkat: 'Briptu',
-    satker: 'Bareskrim Polri',
-    polda: 'MABES POLRI',
-    noHp: '081200000000',
-    email: '98010710@polri.go.id',
-    secondaryEmail: 'superadmin@example.com',
-    alasanDaftar: 'Personel Bareskrim Polri (S1 Teknik Informatika) — Lead Developer & Superadmin Sistem Informasi Portal Wira Satya 96.',
-    password: 'WS96@98010710',
-    status: 'AKTIF',
-    createdAt: new Date().toISOString(),
-    verifiedAt: new Date().toISOString(),
-    verifiedBy: 'Sistem Otentikasi Bareskrim Polri (Dev Lead)',
-  },
   ...AKPOL_1996_REGISTRATIONS,
 ];
 
 const PURGED_DUMMY_NRPS = new Set(['980107102', '980107103', '980107104', '980107105', '980107106']);
+
+function isSuperadminItem(item?: {
+  id?: string;
+  nrp?: string;
+  oldNrp?: string;
+  role?: string;
+  nama?: string;
+  namaLengkap?: string;
+  profileId?: string;
+} | null): boolean {
+  if (!item) return false;
+  const nrp = (item.nrp || '').trim();
+  const oldNrp = (item.oldNrp || '').trim();
+  const id = (item.id || '').trim();
+  const profileId = (item.profileId || '').trim();
+  const rawName = (item.namaLengkap || item.nama || '').toLowerCase();
+  return (
+    nrp === '98010710' ||
+    oldNrp === '98010710' ||
+    id === 'ws-98010710' ||
+    id === 'u-98010710' ||
+    id === 'reg-98010710' ||
+    profileId === 'ws-98010710' ||
+    item.role === 'SUPERADMIN' ||
+    rawName.includes('eko agung')
+  );
+}
 
 const LOCAL_DB_PATH = path.join(process.cwd(), '.data', 'local_db.json');
 const TMP_DB_PATH = '/tmp/ws96_local_db.json';
@@ -360,7 +370,10 @@ export function readDb(): GlobalStore {
       const rawMembersSource =
         Array.isArray(parsed.members) && parsed.members.length >= 10 ? parsed.members : defaultStore.members;
       const loadedMembers = rawMembersSource.filter(
-        (m) => !isDeletedItem(m.nrp, m.oldNrp) && !isPurgedNon1996(m.namaLengkap)
+        (m) =>
+          !isDeletedItem(m.nrp, m.oldNrp) &&
+          !isPurgedNon1996(m.namaLengkap) &&
+          !isSuperadminItem(m as { id?: string; nrp?: string; oldNrp?: string; role?: string; namaLengkap?: string })
       );
 
       const rawUsersSource =
@@ -378,7 +391,7 @@ export function readDb(): GlobalStore {
         (i) =>
           !isDeletedItem(i.nrp) &&
           !isPurgedNon1996(i.namaLengkap) &&
-          i.nrp !== '98010710' &&
+          !isSuperadminItem(i) &&
           !PURGED_DUMMY_NRPS.has(i.nrp)
       );
       const rawRegsSource =
@@ -386,7 +399,7 @@ export function readDb(): GlobalStore {
           ? parsed.registrations
           : defaultStore.registrations;
       const loadedRegs = rawRegsSource.filter(
-        (r) => !isDeletedItem(r.nrp) && !isPurgedNon1996(r.nama)
+        (r) => !isDeletedItem(r.nrp) && !isPurgedNon1996(r.nama) && !isSuperadminItem(r)
       );
 
       // Build reference lookup for all 275 AKPOL 1996 alumni (by nrp, oldNrp, id, and stripped base name)
@@ -473,12 +486,13 @@ export function readDb(): GlobalStore {
         if (!u.password || u.password === 'WiraSatya96!') {
           u.password = `WS96@${u.nrp}`;
         }
-        if (u.nrp === '98010710') {
+        if (isSuperadminItem(u)) {
+          u.role = 'SUPERADMIN';
           if (!u.nama || u.nama === 'Eko Agung') u.nama = 'Eko Agung';
           u.pangkat = u.pangkat || 'Briptu';
           if (!u.satker || u.satker.includes('Tim IT Developer')) u.satker = 'Bareskrim Polri';
           u.polda = u.polda || 'MABES POLRI';
-          u.email = '98010710@polri.go.id';
+          u.email = u.email || '98010710@polri.go.id';
           u.secondaryEmail = u.secondaryEmail || 'superadmin@example.com';
           u.status = 'AKTIF';
           if (!u.bio) {
@@ -1257,10 +1271,12 @@ async function syncFromSupabaseCloud(
             const incomingRegs = r.payload as PendingRegistration[];
             const regByNrp = new Map<string, PendingRegistration>();
             (globalStore.registrations || []).forEach((reg) => {
-              if (reg?.nrp) regByNrp.set(reg.nrp, reg);
+              if (reg?.nrp && !isSuperadminItem(reg)) regByNrp.set(reg.nrp, reg);
             });
             incomingRegs.forEach((reg) => {
-              if (reg?.nrp) regByNrp.set(reg.nrp, { ...(regByNrp.get(reg.nrp) || {}), ...reg });
+              if (reg?.nrp && !isSuperadminItem(reg)) {
+                regByNrp.set(reg.nrp, { ...(regByNrp.get(reg.nrp) || {}), ...reg });
+              }
             });
             globalStore.registrations = Array.from(regByNrp.values());
           }
@@ -1290,10 +1306,17 @@ async function syncFromSupabaseCloud(
       if (cloudMembers.length > 0) {
         const byNrp = new Map<string, AnggotaWiraSatya>();
         globalStore.members.forEach((m) => {
-          if (!deletedSet.has(m.nrp)) byNrp.set(m.nrp, m);
+          if (!deletedSet.has(m.nrp) && !isSuperadminItem(m as { id?: string; nrp?: string; oldNrp?: string; role?: string; namaLengkap?: string })) {
+            byNrp.set(m.nrp, m);
+          }
         });
         cloudMembers.forEach((cm) => {
-          if (cm && cm.nrp && !deletedSet.has(cm.nrp)) {
+          if (
+            cm &&
+            cm.nrp &&
+            !deletedSet.has(cm.nrp) &&
+            !isSuperadminItem(cm as { id?: string; nrp?: string; oldNrp?: string; role?: string; namaLengkap?: string })
+          ) {
             const oldKey = cm.oldNrp && cm.oldNrp !== cm.nrp ? cm.oldNrp : undefined;
             const prevEntry = byNrp.get(cm.nrp) || (oldKey ? byNrp.get(oldKey) : undefined);
             if (oldKey && byNrp.has(oldKey)) {
@@ -1317,8 +1340,9 @@ async function syncFromSupabaseCloud(
             if (oldKey && byNrp.has(oldKey)) {
               byNrp.delete(oldKey);
             }
-            const resolvedRole =
-              cu.role && cu.role !== 'ANGGOTA'
+            const resolvedRole = isSuperadminItem(cu) || isSuperadminItem(prevEntry)
+              ? 'SUPERADMIN'
+              : cu.role && cu.role !== 'ANGGOTA'
                 ? cu.role
                 : prevEntry?.role && prevEntry.role !== 'ANGGOTA'
                   ? prevEntry.role
@@ -1360,10 +1384,10 @@ async function syncFromSupabaseCloud(
       if (cloudIuran.length > 0) {
         const byNrp = new Map<string, IuranAnggota>();
         globalStore.iuranList.forEach((i) => {
-          if (!deletedSet.has(i.nrp)) byNrp.set(i.nrp, i);
+          if (!deletedSet.has(i.nrp) && !isSuperadminItem(i)) byNrp.set(i.nrp, i);
         });
         cloudIuran.forEach((ci) => {
-          if (ci && ci.nrp && !deletedSet.has(ci.nrp)) {
+          if (ci && ci.nrp && !deletedSet.has(ci.nrp) && !isSuperadminItem(ci)) {
             byNrp.set(ci.nrp, { ...(byNrp.get(ci.nrp) || {}), ...ci });
           }
         });
@@ -1526,6 +1550,7 @@ export const serverStore = {
       const cleanOldNrp = (m.oldNrp || '').trim();
       if (
         !cleanNrp ||
+        isSuperadminItem(m as { id?: string; nrp?: string; oldNrp?: string; role?: string; namaLengkap?: string }) ||
         deletedSet.has(cleanNrp) ||
         PURGED_DUMMY_NRPS.has(cleanNrp) ||
         (cleanOldNrp && (deletedSet.has(cleanOldNrp) || PURGED_DUMMY_NRPS.has(cleanOldNrp)))
@@ -1578,6 +1603,56 @@ export const serverStore = {
     const annualTagihan = (globalStore.financeConfig?.iuranWajibPerBulan || 250000) * 12;
     const cleanNewNrp = (member.nrp || '').trim();
     const cleanOrigNrp = (member.oldNrp || '').trim();
+    if (isSuperadminItem(member as { id?: string; nrp?: string; oldNrp?: string; role?: string; namaLengkap?: string })) {
+      globalStore.members = globalStore.members.filter(
+        (m) => !isSuperadminItem(m as { id?: string; nrp?: string; oldNrp?: string; role?: string; namaLengkap?: string })
+      );
+      globalStore.registrations = (globalStore.registrations || []).filter((r) => !isSuperadminItem(r));
+      globalStore.iuranList = (globalStore.iuranList || []).filter((i) => !isSuperadminItem(i));
+      const uIdx = globalStore.users.findIndex(
+        (u) =>
+          isSuperadminItem(u) ||
+          u.nrp === cleanNewNrp ||
+          (cleanOrigNrp && (u.nrp === cleanOrigNrp || u.oldNrp === cleanOrigNrp))
+      );
+      const calc58Super = calculateRetirement58(member.tanggalLahir, cleanNewNrp);
+      if (uIdx >= 0) {
+        const prevUser = globalStore.users[uIdx];
+        const syncedFotoUrl = resolveBestFotoUrl(member.fotoUrl, prevUser.fotoUrl);
+        const syncedCoverUrl = member.coverUrl ?? prevUser.coverUrl;
+        globalStore.users[uIdx] = {
+          ...prevUser,
+          nrp: cleanNewNrp || prevUser.nrp,
+          ...(cleanOrigNrp ? { oldNrp: cleanOrigNrp } : {}),
+          nama: member.namaLengkap || prevUser.nama,
+          pangkat: member.pangkat || prevUser.pangkat,
+          satker: cleanSatkerRoleSuffix(member.satuanKerja || prevUser.satker, cleanNewNrp || prevUser.nrp),
+          polda: member.polda || prevUser.polda,
+          jabatanTerakhir: member.jabatanTerakhir || prevUser.jabatanTerakhir,
+          statusKedinasan: member.statusKedinasan || member.statusDinas || prevUser.statusKedinasan || 'AKTIF',
+          tanggalLahir: calc58Super.tanggalLahir,
+          tempatLahir: member.tempatLahir || prevUser.tempatLahir,
+          ...(member.noHp !== undefined ? { noHp: member.noHp } : {}),
+          ...(member.email ? { email: member.email } : {}),
+          ...(member.secondaryEmail !== undefined ? { secondaryEmail: member.secondaryEmail } : {}),
+          fotoUrl: syncedFotoUrl,
+          ...(syncedCoverUrl !== undefined ? { coverUrl: syncedCoverUrl } : {}),
+          ...(member.bio !== undefined ? { bio: member.bio } : {}),
+          role: 'SUPERADMIN',
+          status: 'AKTIF',
+          updatedAt: new Date().toISOString(),
+        };
+        if (globalStore.activeSession && isSuperadminItem(globalStore.activeSession)) {
+          globalStore.activeSession = {
+            ...globalStore.activeSession,
+            ...globalStore.users[uIdx],
+            role: 'SUPERADMIN',
+          };
+        }
+      }
+      persistLocalStore(globalStore);
+      return member;
+    }
     const deletedSet = new Set(globalStore.deletedNrps || []);
     if (options?.isNewCreate) {
       deletedSet.delete(cleanNewNrp);
@@ -1932,6 +2007,9 @@ export const serverStore = {
     const memberByNrp = new Map(globalStore.members.map((m) => [m.nrp, m]));
     const memberById = new Map(globalStore.members.map((m) => [m.id, m]));
     globalStore.users.forEach((u) => {
+      if (isSuperadminItem(u)) {
+        u.role = 'SUPERADMIN';
+      }
       u.satker = cleanSatkerRoleSuffix(u.satker, u.nrp);
       if (!u.password) u.password = `WS96@${u.nrp}`;
       if (!u.status || u.status === 'DISETUJUI_BELUM_PASSWORD') u.status = 'AKTIF';
@@ -2007,6 +2085,23 @@ export const serverStore = {
           });
         }
       }
+    }
+
+    if (isSuperadminItem(user)) {
+      user.role = 'SUPERADMIN';
+      const existingIdx = globalStore.users.findIndex((u) => isSuperadminItem(u) || u.nrp === user.nrp);
+      if (existingIdx >= 0) {
+        globalStore.users[existingIdx] = { ...globalStore.users[existingIdx], ...user, role: 'SUPERADMIN' };
+      } else {
+        globalStore.users.unshift({ ...user, role: 'SUPERADMIN' });
+      }
+      globalStore.members = globalStore.members.filter(
+        (m) => !isSuperadminItem(m as { id?: string; nrp?: string; oldNrp?: string; role?: string; namaLengkap?: string })
+      );
+      globalStore.registrations = (globalStore.registrations || []).filter((r) => !isSuperadminItem(r));
+      globalStore.iuranList = (globalStore.iuranList || []).filter((i) => !isSuperadminItem(i));
+      persistLocalStore(globalStore);
+      return user;
     }
 
     const existingIdx = globalStore.users.findIndex((u) => u.nrp === user.nrp);
@@ -2310,7 +2405,27 @@ export const serverStore = {
     if (updates.role) {
       globalStore.users[idx].role = updates.role;
     }
+    if (isSuperadminItem(globalStore.users[idx]) || isSuperadminItem(existingUserAtIdx)) {
+      globalStore.users[idx].role = 'SUPERADMIN';
+    }
     const updatedUser = globalStore.users[idx];
+
+    if (isSuperadminItem(updatedUser)) {
+      globalStore.members = globalStore.members.filter(
+        (m) => !isSuperadminItem(m as { id?: string; nrp?: string; oldNrp?: string; role?: string; namaLengkap?: string })
+      );
+      globalStore.registrations = (globalStore.registrations || []).filter((r) => !isSuperadminItem(r));
+      globalStore.iuranList = (globalStore.iuranList || []).filter((i) => !isSuperadminItem(i));
+      if (globalStore.activeSession && isSuperadminItem(globalStore.activeSession)) {
+        globalStore.activeSession = {
+          ...globalStore.activeSession,
+          ...updatedUser,
+          role: 'SUPERADMIN',
+        };
+      }
+      persistLocalStore(globalStore);
+      return updatedUser;
+    }
 
     // Sync member nrp/name/pangkat/satker/jabatan/statusKedinasan/tanggalLahir/noHp/emails if changed (for non-ADC users)
     let mIdx = updatedUser.isAdcAccount
@@ -2720,7 +2835,7 @@ export const serverStore = {
     const deletedSet = new Set(globalStore.deletedNrps || []);
     globalStore.registrations = (globalStore.registrations || []).filter((r) => {
       const cleanNrp = (r.nrp || '').trim();
-      if (!cleanNrp || deletedSet.has(cleanNrp) || PURGED_DUMMY_NRPS.has(cleanNrp)) return false;
+      if (!cleanNrp || isSuperadminItem(r) || deletedSet.has(cleanNrp) || PURGED_DUMMY_NRPS.has(cleanNrp)) return false;
       const bName = (stripRankFromName(r.nama || '') || r.nama || '')
         .split(',')[0]
         .trim()

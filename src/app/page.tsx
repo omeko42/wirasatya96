@@ -32,9 +32,10 @@ import {
   getActiveAdcSessionFromStorage,
   recordAdcActivityToAuditLog,
   isSuperadminAccount,
+  isSuperadminObject,
 } from '@/lib/avatarUtils';
 
-const STORAGE_VERSION = 'ws96_akpol96_real_v21';
+const STORAGE_VERSION = 'ws96_akpol96_real_v22';
 const MAX_SESSION_DURATION_MS = 4 * 60 * 60 * 1000; // 4 jam batas sesi maksimal
 const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 jam tanpa aktivitas otomatis logout
 
@@ -283,8 +284,11 @@ export default function Home() {
               .trim()
               .toLowerCase();
 
-          // Filter out tombstoned members & purged non-1996 names
+          // Filter out tombstoned members, Superadmin account, & purged non-1996 names
           const activeServerList = (list as AnggotaWiraSatya[]).filter((m) => {
+            if (isSuperadminObject(m as unknown as Record<string, unknown>)) {
+              return false;
+            }
             const bName = getBasePersonName(m.namaLengkap);
             if (bName && PURGED_NON_1996_BASE_NAMES.has(bName)) {
               return false;
@@ -511,6 +515,7 @@ export default function Home() {
 
           Object.values(memberOverrides).forEach((mOv) => {
             if (!mOv || !mOv.nrp || !mOv.namaLengkap) return;
+            if (isSuperadminObject(mOv as unknown as Record<string, unknown>)) return;
             const cleanNrp = mOv.nrp.trim();
             const cleanOld = (mOv.oldNrp || '').trim();
             const bName = getBasePersonName(mOv.namaLengkap);
@@ -674,6 +679,9 @@ export default function Home() {
               );
               if (presetMatch && presetMatch.role !== 'ANGGOTA' && parsedUOv[k]?.role === 'ANGGOTA') {
                 parsedUOv[k].role = presetMatch.role;
+              }
+              if (isSuperadminObject(parsedUOv[k])) {
+                parsedUOv[k].role = 'SUPERADMIN';
               }
             }
           });
@@ -869,6 +877,7 @@ export default function Home() {
         if (Array.isArray(parsed) && parsed.length >= 10) {
           const sanitizedMembers = parsed
             .filter((m: AnggotaWiraSatya) => {
+              if (isSuperadminObject(m as unknown as Record<string, unknown>)) return false;
               const bName = (stripRankFromName(m.namaLengkap || '') || m.namaLengkap || '')
                 .split(',')[0]
                 .trim()
@@ -1394,8 +1403,16 @@ export default function Home() {
         existingUOv.password ||
         (currentUser.nrp === normalizedMember.nrp ? currentUser.password : undefined);
 
+      const isTargetSuperadmin =
+        isSuperadminObject(normalizedMember as unknown as Record<string, unknown>) ||
+        isSuperadminObject(existingUOv) ||
+        (currentUser.role === 'SUPERADMIN' &&
+          (normalizedMember.nrp === currentUser.nrp ||
+            normalizedMember.oldNrp === currentUser.nrp));
+
       userMap[normalizedMember.nrp] = {
         ...existingUOv,
+        ...(isTargetSuperadmin ? { role: 'SUPERADMIN' } : {}),
         oldNrp: existingUOv.oldNrp || normalizedMember.oldNrp || normalizedMember.nrp,
         nrp: normalizedMember.nrp,
         nama: normalizedMember.namaLengkap,
@@ -1612,6 +1629,12 @@ export default function Home() {
       fotoUrl: getAvatarUrl(newMember.fotoUrl),
       updatedAt: nowIso,
     };
+    const isSavingSuperadminSelf =
+      isSuperadminObject(cleanMember as unknown as Record<string, unknown>) ||
+      (currentUser.role === 'SUPERADMIN' &&
+        (cleanMember.nrp === currentUser.nrp ||
+          (preservedOldNrp && preservedOldNrp === currentUser.nrp)));
+
     const existingIndex = members.findIndex(
       (m) =>
         m.nrp === cleanMember.nrp ||
@@ -1620,7 +1643,16 @@ export default function Home() {
     );
     let savedMemberRecord: AnggotaWiraSatya;
     let updatedList: AnggotaWiraSatya[];
-    if (existingIndex >= 0) {
+    if (isSavingSuperadminSelf) {
+      savedMemberRecord = {
+        ...(existingIndex >= 0 ? members[existingIndex] : {}),
+        ...cleanMember,
+        id: cleanMember.id || `ws-${cleanMember.nrp}`,
+      };
+      updatedList = members.filter(
+        (m) => !isSuperadminObject(m as unknown as Record<string, unknown>)
+      );
+    } else if (existingIndex >= 0) {
       savedMemberRecord = {
         ...members[existingIndex],
         ...cleanMember,
