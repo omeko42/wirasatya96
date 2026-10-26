@@ -30,6 +30,21 @@ import {
   NON_AKTIF_IURAN_NRPS,
   PURGED_NON_1996_BASE_NAMES,
 } from '@/data/akpol1996Alumni';
+import {
+  DUMMY_ASSETS,
+  DUMMY_FINANCE_SUMMARY,
+  DUMMY_IURAN_LIST,
+  DUMMY_MEMBERS,
+  DUMMY_MESSAGES,
+  DUMMY_NRPS,
+  DUMMY_NRP_SET,
+  DUMMY_POSTS,
+  DUMMY_REGISTRATIONS,
+  DUMMY_TRANSACTIONS,
+  DUMMY_USERS,
+  ZERO_FINANCE_SUMMARY,
+  isDummySimulationRecord,
+} from '@/data/dummySimulationData';
 import { calculateRetirement58, stripRankFromName } from '@/lib/avatarUtils';
 import {
   SupabaseRecordRow,
@@ -198,9 +213,10 @@ type GlobalStore = Omit<LocalDatabaseSchema, 'auditLogs'> & {
   auditLogs?: UserAuditLog[];
 };
 
-const INITIAL_MESSAGES: ChatMessage[] = [];
+const INITIAL_MESSAGES: ChatMessage[] = [...DUMMY_MESSAGES];
 
 const INITIAL_REGISTRATIONS: PendingRegistration[] = [
+  ...DUMMY_REGISTRATIONS,
   ...AKPOL_1996_REGISTRATIONS,
 ];
 
@@ -1493,6 +1509,273 @@ export const serverStore = {
   },
 
   getDeletedNrps: (): string[] => globalStore.deletedNrps || [],
+
+  getDummyDataStatus: () => {
+    const deletedSet = new Set(globalStore.deletedNrps || []);
+    const activeDummyMembers = (globalStore.members || []).filter(
+      (m) => isDummySimulationRecord({ id: m.id, nrp: m.nrp, namaLengkap: m.namaLengkap }) && !deletedSet.has(m.nrp)
+    );
+    const activeDummyUsers = (globalStore.users || []).filter(
+      (u) => isDummySimulationRecord({ id: u.id, nrp: u.nrp, nama: u.nama }) && !deletedSet.has(u.nrp)
+    );
+    const activeDummyPosts = (globalStore.posts || []).filter((p) =>
+      isDummySimulationRecord({ id: p.id, authorNrp: p.authorNrp, authorName: p.authorName })
+    );
+    const activeDummyTransactions = (globalStore.transactions || []).filter((t) =>
+      isDummySimulationRecord({
+        id: t.id,
+        nrpTerkait: t.nrpTerkait,
+        nomorReferensi: t.nomorReferensi,
+        pihakTerkait: t.pihakTerkait,
+      })
+    );
+    const activeDummyAssets = (globalStore.assets || []).filter((a) =>
+      isDummySimulationRecord({ id: a.id, namaAset: a.namaAset })
+    );
+    const activeDummyMessages = (globalStore.messages || []).filter((m) =>
+      isDummySimulationRecord({
+        id: m.id,
+        senderNrp: m.senderNrp,
+        receiverNrp: m.receiverNrp,
+        senderName: m.senderName,
+      })
+    );
+    return {
+      isActive:
+        activeDummyMembers.length > 0 ||
+        activeDummyPosts.length > 0 ||
+        activeDummyTransactions.length > 0 ||
+        activeDummyAssets.length > 0,
+      dummyMembersCount: activeDummyMembers.length,
+      dummyUsersCount: activeDummyUsers.length,
+      dummyPostsCount: activeDummyPosts.length,
+      dummyTransactionsCount: activeDummyTransactions.length,
+      dummyAssetsCount: activeDummyAssets.length,
+      dummyMessagesCount: activeDummyMessages.length,
+    };
+  },
+
+  clearDummySimulationData: (actor?: {
+    actorName?: string;
+    actorNrp?: string;
+    actorRole?: UserRole;
+  }) => {
+    const tombstones = new Set<string>(globalStore.deletedNrps || []);
+    DUMMY_NRPS.forEach((nrp) => tombstones.add(nrp));
+    tombstones.delete('98010710');
+    globalStore.deletedNrps = Array.from(tombstones);
+
+    const prevMembers = (globalStore.members || []).length;
+    globalStore.members = (globalStore.members || []).filter(
+      (m) => !isDummySimulationRecord({ id: m.id, nrp: m.nrp, namaLengkap: m.namaLengkap })
+    );
+    const purgedMembers = Math.max(0, prevMembers - globalStore.members.length);
+
+    const prevUsers = (globalStore.users || []).length;
+    globalStore.users = (globalStore.users || []).filter(
+      (u) => !isDummySimulationRecord({ id: u.id, nrp: u.nrp, nama: u.nama })
+    );
+    const purgedUsers = Math.max(0, prevUsers - globalStore.users.length);
+
+    globalStore.registrations = (globalStore.registrations || []).filter(
+      (r) => !isDummySimulationRecord({ id: r.id, nrp: r.nrp, nama: r.nama })
+    );
+
+    globalStore.iuranList = (globalStore.iuranList || []).filter(
+      (i) => !isDummySimulationRecord({ id: i.id, nrp: i.nrp, namaLengkap: i.namaLengkap })
+    );
+
+    const prevPosts = (globalStore.posts || []).length;
+    globalStore.posts = (globalStore.posts || [])
+      .filter((p) => !isDummySimulationRecord({ id: p.id, authorNrp: p.authorNrp, authorName: p.authorName }))
+      .map((p) => ({
+        ...p,
+        likedBy: (p.likedBy || []).filter((n) => !DUMMY_NRP_SET.has(n)),
+        repostedBy: (p.repostedBy || []).filter((n) => !DUMMY_NRP_SET.has(n)),
+        comments: (p.comments || []).filter(
+          (c) => !isDummySimulationRecord({ id: c.id, authorNrp: c.authorNrp, authorName: c.authorName })
+        ),
+      }));
+    const purgedPosts = Math.max(0, prevPosts - globalStore.posts.length);
+
+    const prevTransactions = (globalStore.transactions || []).length;
+    globalStore.transactions = (globalStore.transactions || []).filter(
+      (t) =>
+        !isDummySimulationRecord({
+          id: t.id,
+          nrpTerkait: t.nrpTerkait,
+          nomorReferensi: t.nomorReferensi,
+          pihakTerkait: t.pihakTerkait,
+        })
+    );
+    const purgedTransactions = Math.max(0, prevTransactions - globalStore.transactions.length);
+
+    const prevAssets = (globalStore.assets || []).length;
+    globalStore.assets = (globalStore.assets || []).filter(
+      (a) => !isDummySimulationRecord({ id: a.id, namaAset: a.namaAset })
+    );
+    const purgedAssets = Math.max(0, prevAssets - globalStore.assets.length);
+
+    const prevMessages = (globalStore.messages || []).length;
+    globalStore.messages = (globalStore.messages || []).filter(
+      (m) =>
+        !isDummySimulationRecord({
+          id: m.id,
+          senderNrp: m.senderNrp,
+          receiverNrp: m.receiverNrp,
+          senderName: m.senderName,
+        })
+    );
+    const purgedMessages = Math.max(0, prevMessages - globalStore.messages.length);
+
+    globalStore.auditLogs = (globalStore.auditLogs || []).filter(
+      (l) => !DUMMY_NRP_SET.has((l.targetNrp || '').trim())
+    );
+
+    if (globalStore.transactions.length === 0 && globalStore.assets.length === 0) {
+      globalStore.financeSummary = { ...ZERO_FINANCE_SUMMARY };
+    }
+    const updatedFinanceSummary = serverStore.getFinanceSummary();
+
+    serverStore.addAuditLog({
+      action: 'HAPUS_USER',
+      actorName: actor?.actorName || 'Superadmin',
+      actorNrp: actor?.actorNrp || '98010710',
+      actorRole: actor?.actorRole || 'SUPERADMIN',
+      targetNrp: 'DUMMY_1..DUMMY_5',
+      targetNama: 'Clearance Otomatis Akun & Data Dummy Simulasi',
+      targetPangkat: 'Sistem',
+      targetRole: 'ANGGOTA',
+      reason: 'Clearance otomatis seluruh akun dummy_1 s/d dummy_5 beserta postingan, kas, aset, dan pesan simulasi',
+      details: `Dibersihkan: ${purgedMembers} profil dummy, ${purgedPosts} postingan, ${purgedTransactions} transaksi, ${purgedAssets} aset, ${purgedMessages} pesan. 261 anggota asli tetap utuh.`,
+    });
+
+    persistLocalStore(globalStore);
+    return {
+      success: true,
+      purgedMembers,
+      purgedUsers,
+      purgedPosts,
+      purgedTransactions,
+      purgedAssets,
+      purgedMessages,
+      deletedNrps: globalStore.deletedNrps,
+      financeSummary: updatedFinanceSummary,
+      status: serverStore.getDummyDataStatus(),
+    };
+  },
+
+  seedDummySimulationData: (actor?: {
+    actorName?: string;
+    actorNrp?: string;
+    actorRole?: UserRole;
+  }) => {
+    const tombstones = new Set<string>(globalStore.deletedNrps || []);
+    DUMMY_NRPS.forEach((nrp) => tombstones.delete(nrp));
+    globalStore.deletedNrps = Array.from(tombstones);
+
+    // Remove existing dummy entries first to avoid duplicates, then prepend fresh clones
+    globalStore.members = [
+      ...DUMMY_MEMBERS.map((m) => ({ ...m })),
+      ...(globalStore.members || []).filter(
+        (m) => !isDummySimulationRecord({ id: m.id, nrp: m.nrp, namaLengkap: m.namaLengkap })
+      ),
+    ];
+
+    const nonDummyUsers = (globalStore.users || []).filter(
+      (u) => !isDummySimulationRecord({ id: u.id, nrp: u.nrp, nama: u.nama })
+    );
+    const superadminUsers = nonDummyUsers.filter((u) => isSuperadminItem(u));
+    const otherRealUsers = nonDummyUsers.filter((u) => !isSuperadminItem(u));
+    globalStore.users = [
+      ...superadminUsers,
+      ...DUMMY_USERS.map((u) => ({ ...u })),
+      ...otherRealUsers,
+    ];
+
+    globalStore.registrations = [
+      ...DUMMY_REGISTRATIONS.map((r) => ({ ...r })),
+      ...(globalStore.registrations || []).filter(
+        (r) => !isDummySimulationRecord({ id: r.id, nrp: r.nrp, nama: r.nama })
+      ),
+    ];
+
+    globalStore.iuranList = [
+      ...DUMMY_IURAN_LIST.map((i) => ({ ...i })),
+      ...(globalStore.iuranList || []).filter(
+        (i) => !isDummySimulationRecord({ id: i.id, nrp: i.nrp, namaLengkap: i.namaLengkap })
+      ),
+    ];
+
+    globalStore.posts = [
+      ...DUMMY_POSTS.map((p) => ({
+        ...p,
+        comments: (p.comments || []).map((c) => ({ ...c })),
+      })),
+      ...(globalStore.posts || []).filter(
+        (p) => !isDummySimulationRecord({ id: p.id, authorNrp: p.authorNrp, authorName: p.authorName })
+      ),
+    ];
+
+    globalStore.transactions = [
+      ...DUMMY_TRANSACTIONS.map((t) => ({ ...t })),
+      ...(globalStore.transactions || []).filter(
+        (t) =>
+          !isDummySimulationRecord({
+            id: t.id,
+            nrpTerkait: t.nrpTerkait,
+            nomorReferensi: t.nomorReferensi,
+            pihakTerkait: t.pihakTerkait,
+          })
+      ),
+    ];
+
+    globalStore.assets = [
+      ...DUMMY_ASSETS.map((a) => ({ ...a })),
+      ...(globalStore.assets || []).filter(
+        (a) => !isDummySimulationRecord({ id: a.id, namaAset: a.namaAset })
+      ),
+    ];
+
+    globalStore.messages = [
+      ...DUMMY_MESSAGES.map((m) => ({ ...m })),
+      ...(globalStore.messages || []).filter(
+        (m) =>
+          !isDummySimulationRecord({
+            id: m.id,
+            senderNrp: m.senderNrp,
+            receiverNrp: m.receiverNrp,
+            senderName: m.senderName,
+          })
+      ),
+    ];
+
+    globalStore.financeSummary = {
+      ...DUMMY_FINANCE_SUMMARY,
+    };
+    const updatedFinanceSummary = serverStore.getFinanceSummary();
+
+    serverStore.addAuditLog({
+      action: 'TAMBAH_USER',
+      actorName: actor?.actorName || 'Superadmin',
+      actorNrp: actor?.actorNrp || '98010710',
+      actorRole: actor?.actorRole || 'SUPERADMIN',
+      targetNrp: 'DUMMY_1..DUMMY_5',
+      targetNama: 'Injeksi Paket Data Dummy Simulasi (dummy_1 s/d dummy_5)',
+      targetPangkat: 'Sistem',
+      targetRole: 'ANGGOTA',
+      reason: 'Pemasangan data simulasi menggunakan akun dummy_1 s/d dummy_5 agar tidak menyentuh figur asli',
+      details: `Dimuat: ${DUMMY_MEMBERS.length} akun dummy, ${DUMMY_POSTS.length} postingan, ${DUMMY_TRANSACTIONS.length} transaksi, ${DUMMY_ASSETS.length} aset, ${DUMMY_MESSAGES.length} pesan.`,
+    });
+
+    persistLocalStore(globalStore);
+    return {
+      success: true,
+      deletedNrps: globalStore.deletedNrps,
+      financeSummary: updatedFinanceSummary,
+      status: serverStore.getDummyDataStatus(),
+    };
+  },
 
   getAuditLogs: (): UserAuditLog[] => {
     if (!Array.isArray(globalStore.auditLogs)) {

@@ -14,6 +14,7 @@ import {
 } from '@/types';
 import { ROLE_PERMISSIONS, PRESET_USERS } from '@/data/mockUsers';
 import { PURGED_NON_1996_BASE_NAMES, AKPOL_1996_MEMBERS } from '@/data/akpol1996Alumni';
+import { DUMMY_NRPS, DUMMY_NRP_SET, isDummySimulationRecord } from '@/data/dummySimulationData';
 import { SatkerBerjenjangModal, SatkerSelectionResult } from './SatkerBerjenjangModal';
 import { SortModalPopup, SortTriggerBar, UnifiedSortKey } from './SortModalPopup';
 import { MetaVerifiedBadge, setDynamicRoleMap, updateDynamicUserRole } from './MetaVerifiedBadge';
@@ -124,7 +125,22 @@ function getInitialInstantUsers(): AuthUser[] {
   if (cachedUsersInMemory && cachedUsersInMemory.length > 0) {
     return cachedUsersInMemory;
   }
+  let deletedSet = new Set<string>();
+  if (typeof window !== 'undefined') {
+    try {
+      const rawDel = localStorage.getItem('ws96_deleted_nrps_v1');
+      if (rawDel) {
+        const arr = JSON.parse(rawDel);
+        if (Array.isArray(arr)) {
+          deletedSet = new Set(arr.map((n: unknown) => String(n).trim()));
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
   const initial = PRESET_USERS.filter((u) => {
+    if (deletedSet.has((u.nrp || '').trim())) return false;
     const bName = getFastBasePersonName(u.nama);
     return !bName || !PURGED_NON_1996_BASE_NAMES.has(bName);
   });
@@ -241,6 +257,107 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
     effectiveActorRole === 'SUPERADMIN' ||
     currentUserNrp === '98010710' ||
     adminName.toLowerCase().includes('eko agung');
+
+  const [dummyActionLoading, setDummyActionLoading] = useState<'CLEAR_DUMMY' | 'SEED_DUMMY' | null>(null);
+
+  const dummyUsersCount = useMemo(
+    () =>
+      users.filter((u) =>
+        isDummySimulationRecord({ id: u.id, nrp: u.nrp, nama: u.nama })
+      ).length,
+    [users]
+  );
+
+  const handleDummySimulationAction = async (action: 'CLEAR_DUMMY' | 'SEED_DUMMY') => {
+    if (!canImpersonate || dummyActionLoading) return;
+    setDummyActionLoading(action);
+    try {
+      const res = await fetch('/api/admin/dummy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          actorName: adminName || 'Eko Agung',
+          actorNrp: currentUserNrp || '98010710',
+          actorRole: 'SUPERADMIN',
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const payload = json.data;
+        if (typeof window !== 'undefined') {
+          try {
+            if (Array.isArray(payload.deletedNrps)) {
+              localStorage.setItem('ws96_deleted_nrps_v1', JSON.stringify(payload.deletedNrps));
+            }
+            if (Array.isArray(payload.members)) {
+              localStorage.setItem('wirasatya96_members', JSON.stringify(payload.members));
+            }
+            if (Array.isArray(payload.posts)) {
+              localStorage.setItem('wirasatya96_feed_posts', JSON.stringify(payload.posts));
+            }
+            if (payload.finance) {
+              localStorage.setItem(
+                'wirasatya96_finance',
+                JSON.stringify({
+                  summary: payload.finance.summary,
+                  transactions: payload.finance.transactions,
+                  assets: payload.finance.assets,
+                })
+              );
+              if (Array.isArray(payload.finance.iuranList)) {
+                localStorage.setItem('wirasatya96_iuran', JSON.stringify(payload.finance.iuranList));
+              }
+            }
+            if (Array.isArray(payload.auditLogs)) {
+              localStorage.setItem('ws96_audit_logs_v1', JSON.stringify(payload.auditLogs));
+            }
+            if (Array.isArray(payload.messages)) {
+              localStorage.setItem('ws96_messages_cache', JSON.stringify(payload.messages));
+            } else {
+              localStorage.removeItem('ws96_messages_cache');
+            }
+            // Strip any dummy overrides from localStorage
+            const rawMOv = localStorage.getItem('ws96_member_overrides_v1');
+            if (rawMOv) {
+              const parsedMOv = JSON.parse(rawMOv) || {};
+              DUMMY_NRPS.forEach((n) => delete parsedMOv[n]);
+              localStorage.setItem('ws96_member_overrides_v1', JSON.stringify(parsedMOv));
+            }
+            const rawUOv = localStorage.getItem('ws96_user_overrides_v1');
+            if (rawUOv) {
+              const parsedUOv = JSON.parse(rawUOv) || {};
+              DUMMY_NRPS.forEach((n) => delete parsedUOv[n]);
+              localStorage.setItem('ws96_user_overrides_v1', JSON.stringify(parsedUOv));
+            }
+          } catch {
+            // ignore storage errors
+          }
+          window.dispatchEvent(new CustomEvent('ws96_dummy_data_changed', { detail: payload }));
+          window.dispatchEvent(new Event('ws96_messages_updated'));
+        }
+
+        if (Array.isArray(payload.users)) {
+          cachedUsersInMemory = payload.users;
+          setUsers(payload.users);
+        }
+        if (Array.isArray(payload.registrations)) {
+          setRegistrations(payload.registrations);
+        }
+        if (Array.isArray(payload.auditLogs)) {
+          setAuditLogs(payload.auditLogs);
+        }
+        if (onVerificationUpdate) onVerificationUpdate();
+        showToast(json.message || 'Operasi data dummy berhasil dijalankan.', 'success');
+      } else {
+        showToast(json.message || 'Gagal memproses data dummy.', 'error');
+      }
+    } catch {
+      showToast('Gagal menghubungi server untuk proses data dummy.', 'error');
+    } finally {
+      setDummyActionLoading(null);
+    }
+  };
 
   // Role Authority Matrix for User Deletion:
   // - SUPERADMIN: can delete anyone except primary Superadmin 98010710
@@ -2782,6 +2899,69 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
         }`}>
           {toastMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
           <span>{toastMessage.text}</span>
+        </div>
+      )}
+
+      {/* Panel Kontrol Data Dummy Simulasi (Khusus Superadmin) */}
+      {canImpersonate && (
+        <div className="px-4 py-3 bg-gradient-to-r from-amber-50 via-red-50/60 to-amber-50 border-b border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2 py-0.5 rounded-md bg-red-900 text-amber-300 text-[10px] font-extrabold uppercase tracking-wider">
+                Superadmin Control
+              </span>
+              <span className="text-xs font-extrabold text-slate-900">
+                Simulasi Akun Dummy (<code className="text-red-800">dummy_1</code> s/d <code className="text-red-800">dummy_5</code>)
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                  dummyUsersCount > 0
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'bg-slate-200 text-slate-700 border-slate-300'
+                }`}
+              >
+                {dummyUsersCount > 0
+                  ? `Aktif: ${dummyUsersCount} Akun Dummy + Postingan, Anev, Kas & Chat`
+                  : 'Status: Bersih (Hanya 261 Anggota Existing)'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-600 mt-0.5">
+              Seluruh data contoh pada Linimasa, Anev (Kesehatan, Kontrak Rumah, Usaha Bersama &amp; Open Lowongan Kerja), Dansos, dan Chat diisi oleh <span className="font-semibold text-slate-800">dummy_1..dummy_5</span> tanpa menyentuh figur asli di DB.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {dummyUsersCount > 0 ? (
+              <button
+                type="button"
+                disabled={Boolean(dummyActionLoading)}
+                onClick={() => handleDummySimulationAction('CLEAR_DUMMY')}
+                className="px-3 py-1.5 rounded-lg bg-red-800 hover:bg-red-900 text-white text-[11px] font-extrabold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>
+                  {dummyActionLoading === 'CLEAR_DUMMY'
+                    ? 'Membersihkan Dummy...'
+                    : 'Clearance Semua Data Dummy (Otomatis)'}
+                </span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              disabled={Boolean(dummyActionLoading)}
+              onClick={() => handleDummySimulationAction('SEED_DUMMY')}
+              className="px-3 py-1.5 rounded-lg bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-extrabold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${dummyActionLoading === 'SEED_DUMMY' ? 'animate-spin' : ''}`} />
+              <span>
+                {dummyActionLoading === 'SEED_DUMMY'
+                  ? 'Memuat Dummy...'
+                  : dummyUsersCount > 0
+                  ? 'Reset / Muat Ulang Dummy'
+                  : 'Pasang Data Dummy (dummy_1 - dummy_5)'}
+              </span>
+            </button>
+          </div>
         </div>
       )}
 

@@ -1,5 +1,6 @@
 import { AuthUser, UserRole } from '@/types';
 import { AKPOL_1996_USERS } from './akpol1996Alumni';
+import { DUMMY_USERS } from './dummySimulationData';
 
 export const PRESET_USERS: AuthUser[] = [
   {
@@ -22,6 +23,7 @@ export const PRESET_USERS: AuthUser[] = [
     password: 'WS96@98010710',
     status: 'AKTIF',
   },
+  ...DUMMY_USERS,
   ...AKPOL_1996_USERS,
 ];
 

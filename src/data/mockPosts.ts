@@ -1,4 +1,5 @@
 import { FeedPost } from '@/types';
+import { DUMMY_POSTS } from './dummySimulationData';
 
 export const PRESET_POST_IMAGES = [
   {
@@ -13,4 +14,4 @@ export const PRESET_POST_IMAGES = [
   }
 ];
 
-export const INITIAL_FEED_POSTS: FeedPost[] = [];
+export const INITIAL_FEED_POSTS: FeedPost[] = [...DUMMY_POSTS];

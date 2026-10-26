@@ -35,7 +35,7 @@ import {
   isSuperadminObject,
 } from '@/lib/avatarUtils';
 
-const STORAGE_VERSION = 'ws96_akpol96_real_v23';
+const STORAGE_VERSION = 'ws96_akpol96_real_v24_dummy_clean';
 const MAX_SESSION_DURATION_MS = 4 * 60 * 60 * 1000; // 4 jam batas sesi maksimal
 const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 jam tanpa aktivitas otomatis logout
 
@@ -567,8 +567,10 @@ export default function Home() {
             }
           }
           const serverTrx: KasTransaction[] = Array.isArray(res.data.transactions) ? res.data.transactions : [];
-          const localTrx: KasTransaction[] = Array.isArray(localFin?.transactions) ? localFin.transactions : [];
-          // If server cold-started with 0 transactions while local browser has saved transactions, keep local & re-sync
+          const localTrx: KasTransaction[] = Array.isArray(localFin?.transactions)
+            ? localFin.transactions.filter((t: KasTransaction) => !String(t?.id || '').startsWith('trx-dummy-'))
+            : [];
+          // If server cold-started with 0 transactions while local browser has saved real transactions, keep local & re-sync
           if (serverTrx.length === 0 && localTrx.length > 0) {
             setTransactions(localTrx);
             if (localFin?.summary) setFinanceSummary(localFin.summary);
@@ -578,7 +580,9 @@ export default function Home() {
           }
 
           const serverAssets: AssetPortfolioItem[] = Array.isArray(res.data.assets) ? res.data.assets : [];
-          const localAssets: AssetPortfolioItem[] = Array.isArray(localFin?.assets) ? localFin.assets : [];
+          const localAssets: AssetPortfolioItem[] = Array.isArray(localFin?.assets)
+            ? localFin.assets.filter((a: AssetPortfolioItem) => !String(a?.id || '').startsWith('ast-dummy-'))
+            : [];
           if (serverAssets.length === 0 && localAssets.length > 0) {
             setAssets(localAssets);
           } else if (Array.isArray(res.data.assets)) {
@@ -656,6 +660,12 @@ export default function Home() {
     if (currentVersion !== STORAGE_VERSION) {
       localStorage.removeItem('wirasatya96_members');
       localStorage.removeItem('wirasatya96_finance');
+      localStorage.removeItem('wirasatya96_feed_posts');
+      localStorage.removeItem('ws96_messages_cache');
+      localStorage.removeItem('ws96_member_overrides_v1');
+      localStorage.removeItem('ws96_user_overrides_v1');
+      localStorage.removeItem('ws96_audit_logs_v1');
+      localStorage.removeItem('ws96_deleted_nrps_v1');
       try {
         const rawDel = localStorage.getItem('ws96_deleted_nrps_v1');
         if (rawDel) {
@@ -960,15 +970,16 @@ export default function Home() {
     fetch('/api/posts')
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && Array.isArray(data.posts) && data.posts.length > 0) {
+        if (data.success && Array.isArray(data.posts)) {
           const serverPosts = (data.posts as FeedPost[]).filter(
             (p) => p && p.id && !deletedPostIds.has(p.id)
           );
           const byId = new Map<string, FeedPost>();
           serverPosts.forEach((p) => byId.set(p.id, p));
-          // Preserve locally created/edited posts if serverless instance cold-started
+          // Preserve locally created/edited posts if serverless instance cold-started (unless dummy was cleared)
           localFeedPosts.forEach((lp) => {
             if (deletedPostIds.has(lp.id)) return;
+            if (deletedOnMount.has((lp.authorNrp || '').trim()) || lp.id.startsWith('post-dummy-')) return;
             const sp = byId.get(lp.id);
             if (!sp) {
               byId.set(lp.id, lp);
@@ -1133,13 +1144,52 @@ export default function Home() {
       );
     };
 
+    const handleDummyDataChanged = (evt: Event) => {
+      const customEvt = evt as CustomEvent<{
+        members?: AnggotaWiraSatya[];
+        posts?: FeedPost[];
+        finance?: {
+          summary?: FinanceSummary;
+          transactions?: KasTransaction[];
+          assets?: AssetPortfolioItem[];
+          iuranList?: IuranAnggota[];
+        };
+        messages?: ChatMessage[];
+      }>;
+      const detail = customEvt.detail;
+      if (detail) {
+        if (Array.isArray(detail.members)) {
+          setMembers(
+            detail.members.filter(
+              (m) => !isSuperadminObject(m as unknown as Record<string, unknown>)
+            )
+          );
+        }
+        if (Array.isArray(detail.posts)) {
+          setPosts(detail.posts);
+        }
+        if (detail.finance) {
+          if (detail.finance.summary) setFinanceSummary(detail.finance.summary);
+          if (Array.isArray(detail.finance.transactions)) setTransactions(detail.finance.transactions);
+          if (Array.isArray(detail.finance.assets)) setAssets(detail.finance.assets);
+          if (Array.isArray(detail.finance.iuranList)) setIuranList(detail.finance.iuranList);
+        }
+        if (Array.isArray(detail.messages)) {
+          setMessages(detail.messages);
+        }
+      }
+      fetchPendingVerificationCount();
+    };
+
     window.addEventListener('ws96_messages_updated', refreshMessages);
     window.addEventListener('ws96_user_updated', handleUserUpdatedEvent);
     window.addEventListener('ws96_user_deleted', handleUserDeletedEvent);
+    window.addEventListener('ws96_dummy_data_changed', handleDummyDataChanged);
     return () => {
       window.removeEventListener('ws96_messages_updated', refreshMessages);
       window.removeEventListener('ws96_user_updated', handleUserUpdatedEvent);
       window.removeEventListener('ws96_user_deleted', handleUserDeletedEvent);
+      window.removeEventListener('ws96_dummy_data_changed', handleDummyDataChanged);
     };
   }, [fetchPendingVerificationCount, router]);
 

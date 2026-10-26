@@ -1,21 +1,24 @@
 import { KasTransaction, IuranAnggota, FinanceSummary, AssetPortfolioItem } from '@/types';
 import { AKPOL_1996_IURAN } from './akpol1996Alumni';
+import {
+  DUMMY_ASSETS,
+  DUMMY_FINANCE_SUMMARY,
+  DUMMY_IURAN_LIST,
+  DUMMY_TRANSACTIONS,
+} from './dummySimulationData';
 
 export const INITIAL_FINANCE_SUMMARY: FinanceSummary = {
-  saldoUtama: 0,
-  kasSosialKesehatan: 0,
-  kasDukaCita: 0,
-  danaAbadiInvestasi: 0,
-  totalValuasiAset: 0,
-  totalPemasukanBulanIni: 0,
-  totalPengeluaranBulanIni: 0,
-  persentaseIuranTerkumpul: 0,
+  ...DUMMY_FINANCE_SUMMARY,
 };
 
-export const INITIAL_TRANSACTIONS: KasTransaction[] = [];
+export const INITIAL_TRANSACTIONS: KasTransaction[] = [...DUMMY_TRANSACTIONS];
 
-export const INITIAL_ASSETS: AssetPortfolioItem[] = [];
+export const INITIAL_ASSETS: AssetPortfolioItem[] = [...DUMMY_ASSETS];
 
 
-export const INITIAL_IURAN_LIST: IuranAnggota[] = [...AKPOL_1996_IURAN];
+export const INITIAL_IURAN_LIST: IuranAnggota[] = [
+  ...DUMMY_IURAN_LIST,
+  ...AKPOL_1996_IURAN,
+];
+
 
