@@ -1421,8 +1421,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '1A',
         tab: 1,
-        title: 'Foto, Sampul & Bio',
-        shortTitle: 'Foto & Bio Singkat',
+        title: 'Foto & Bio',
+        shortTitle: 'Foto & Bio',
         existingDetail: `${hasCustomFoto ? 'Foto Terpasang' : 'Foto Standar'} • ${
           hasBio ? `Bio: "${formData.bio!.trim().slice(0, 36)}..."` : 'Bio kosong'
         }`,
@@ -1431,7 +1431,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '1B',
         tab: 1,
-        title: 'Jabatan & Satker Polri',
+        title: 'Jabatan & Satker',
         shortTitle: 'Jabatan & Satker',
         existingDetail: `${formData.pangkat || 'Kombes Pol'} • ${formatJabatanWithSatker(
           formData.jabatanTerakhir?.trim() || 'Belum diisi',
@@ -1444,7 +1444,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '1C',
         tab: 1,
-        title: 'Identitas Pribadi & Batalyon',
+        title: 'Identitas & Kompi',
         shortTitle: 'Identitas & Kompi',
         existingDetail: `${formData.kompi || 'KOMPI A'} • ${formData.pleton || 'PLETON 1'} • ${
           retirementCalc.formattedTanggalLahir
@@ -1460,8 +1460,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '1D',
         tab: 1,
-        title: 'Pendidikan, Dikbang & Tanda Kehormatan',
-        shortTitle: 'Dikbang & Brevet',
+        title: 'Pendidikan & Dikbang',
+        shortTitle: 'Pendidikan & Dikbang',
         existingDetail: `${formData.pendidikanTerakhir?.trim() || 'Akpol 1996'} • ${
           formData.dikbangPolri?.trim() || 'SESPIMTI POLRI'
         }`,
@@ -1472,18 +1472,18 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '1E',
         tab: 1,
-        title: 'Kontak & Ajudan (ADC)',
-        shortTitle: 'Kontak & ADC',
+        title: 'Kontak & Ajudan',
+        shortTitle: 'Kontak & Ajudan',
         existingDetail: `HP: ${formData.noHp?.trim() || '-'} • ${
           formData.daftarAdc?.length || 0
-        } ADC`,
+        } Ajudan`,
         isComplete: Boolean(formData.noHp?.trim() && formData.email?.trim()),
       },
       {
         id: '2A',
         tab: 2,
-        title: 'Domisili & Biaya Sewa',
-        shortTitle: 'Domisili & Sewa',
+        title: 'Domisili & Hunian',
+        shortTitle: 'Domisili & Hunian',
         existingDetail: `${formatHumanEnum(formData.statusTempatTinggal || 'MILIK PRIBADI')} • ${
           formData.alamatTempatTinggal?.trim() || 'Belum diisi'
         }${
@@ -1502,9 +1502,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         tab: 2,
         title:
           formData.statusKedinasan === 'ALMARHUM'
-            ? 'Data Istri / Ahli Waris'
-            : 'Data Istri / Pasangan',
-        shortTitle: 'Data Istri',
+            ? 'Data Ahli Waris'
+            : 'Data Pasangan',
+        shortTitle: 'Data Pasangan',
         existingDetail: `${formatHumanEnum(formData.statusPerkawinan || 'MENIKAH')} • ${
           formData.namaIstri?.trim() ? formData.namaIstri : 'Belum diisi'
         } • HP: ${formData.kontakIstri?.trim() || '-'}`,
@@ -1515,8 +1515,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '2C',
         tab: 2,
-        title: 'Putra-Putri (Anak 1 Garis Keturunan)',
-        shortTitle: 'Putra-Putri (Anak)',
+        title: 'Data Anak',
+        shortTitle: 'Data Anak',
         existingDetail: `${formData.daftarAnak?.length || 0} Anak${
           anakNames.length > 0 ? ` (${anakNames.join(', ')})` : ''
         }`,
@@ -1527,7 +1527,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '3A',
         tab: 3,
-        title: `Purna Tugas (${RETIREMENT_AGE_POLRI} Thn) & Hunian`,
+        title: 'Purna Tugas & Hunian',
         shortTitle: 'Purna Tugas & Hunian',
         existingDetail: `Pensiun ${retirementCalc.tahunPurnaTugas} • Hunian: ${formatHumanEnum(
           formData.statusRumahPurnaTugas || 'MILIK PRIBADI'
@@ -1545,7 +1545,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '3B',
         tab: 3,
-        title: 'Usaha (Pribadi / Bersama) & Open Lowongan Kerja',
+        title: 'Usaha & Lowongan',
         shortTitle: 'Usaha & Lowongan',
         existingDetail: `${formatHumanEnum(
           formData.kategoriUsaha || 'USAHA PRIBADI / MANDIRI'
@@ -1566,7 +1566,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '3C',
         tab: 3,
-        title: 'Kesiapan Finansial Pensiun',
+        title: 'Kesiapan Finansial',
         shortTitle: 'Kesiapan Finansial',
         existingDetail: `Dana: ${formatHumanEnum(
           formData.kecukupanDanaPensiun || 'CUKUP'
@@ -1576,7 +1576,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '4A',
         tab: 4,
-        title: 'Postur Fisik & Golongan Darah',
+        title: 'Fisik & Golongan Darah',
         shortTitle: 'Fisik & Gol. Darah',
         existingDetail: `Gol. Darah: ${formData.golonganDarah || 'O'} (${
           formData.rhesusDarah || 'Rh+'
@@ -1590,8 +1590,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '4B',
         tab: 4,
-        title: 'Kondisi Medis & Riwayat Penyakit',
-        shortTitle: 'Riwayat Penyakit',
+        title: 'Riwayat Kesehatan',
+        shortTitle: 'Riwayat Kesehatan',
         existingDetail: `Kondisi: ${formatHumanEnum(
           formData.kondisiKesehatan || 'BAIK'
         )} • Kronis: ${formatHumanEnum(formData.adaPenyakitKronis || 'TIDAK ADA')}${
@@ -1602,8 +1602,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '4C',
         tab: 4,
-        title: 'Asuransi, MCU & Alergi / Catatan',
-        shortTitle: 'Asuransi, MCU & Alergi',
+        title: 'Asuransi & MCU',
+        shortTitle: 'Asuransi & MCU',
         existingDetail: `${(formData.asuransiAktif || ['BPJS']).join(', ')} • MCU: ${
           formData.rutinMcu || 'YA'
         }${formData.alergiObatMakanan?.trim() ? ` • Alergi: ${formData.alergiObatMakanan}` : ''}`,
@@ -1612,8 +1612,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '5A',
         tab: 5,
-        title: 'Ukuran Pakaian, Sepatu & Atribut',
-        shortTitle: 'Ukuran Aparel',
+        title: 'Ukuran Pakaian & Sepatu',
+        shortTitle: 'Ukuran Pakaian',
         existingDetail: `Baju: ${formData.ukuranBaju || '-'} • Jaket: ${
           formData.ukuranJaket || formData.ukuranBaju || '-'
         } • Celana: ${formData.ukuranCelana || '-'} • Sepatu: ${
@@ -2288,15 +2288,6 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         >
           <div className="space-y-0.5 min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span
-                className={`px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider ${
-                  isExpanded
-                    ? 'bg-amber-400 text-slate-950'
-                    : 'bg-polri-navy text-polri-gold'
-                }`}
-              >
-                {meta.id}
-              </span>
               <h4
                 className={`text-xs sm:text-sm font-extrabold truncate ${
                   isExpanded ? 'text-white' : 'text-slate-900'
@@ -2366,18 +2357,15 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             {children}
 
             {/* Per-Sub-Section Save Action Bar */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-              <span className="text-[11px] text-slate-400">
-                Bagian <strong>{meta.id}</strong> &bull; Tersinkron otomatis ke Profil
-              </span>
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
               <button
                 type="button"
                 disabled={!hasEditPermission}
                 onClick={() => handleSaveTab(step, true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-red-800 hover:bg-red-900 disabled:opacity-50 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-red-800 hover:bg-red-900 disabled:opacity-50 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5 text-amber-300" />
-                <span>Simpan Data</span>
+                <span>Simpan</span>
               </button>
             </div>
           </div>
@@ -2492,26 +2480,16 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               </div>
             </div>
 
-            {/* Compact Actions: Lihat Profil & Simpan */}
-            <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2">
+            {/* Compact Action: Lihat Profil */}
+            <div className="pt-2 border-t border-slate-100">
               <button
                 type="button"
                 onClick={onCancel}
-                className="py-1.5 px-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 hover:text-red-900 text-xs font-extrabold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="w-full py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 hover:text-red-900 text-xs font-extrabold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 title="Buka tampilan Lihat Profil"
               >
                 <Eye className="w-3.5 h-3.5 text-red-800 shrink-0" />
                 <span>Lihat Profil</span>
-              </button>
-              <button
-                type="button"
-                disabled={!hasEditPermission}
-                onClick={() => handleSaveTab(step, false)}
-                className="py-1.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                title="Simpan perubahan dan buka profil"
-              >
-                <Save className="w-3.5 h-3.5 shrink-0" />
-                <span>Simpan &amp; Lihat</span>
               </button>
             </div>
           </div>
@@ -5062,18 +5040,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             </div>
           )}
 
-          {/* Unified Action Footer on ALL 5 Categories */}
-          <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onCancel}
-                className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                Kembali
-              </button>
-
-              {step > 1 && (
+          {/* Unified Navigation Footer on ALL 5 Categories */}
+          <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-2.5">
+            <div>
+              {step > 1 ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -5085,41 +5055,39 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <ChevronLeft className="w-4 h-4" />
                   <span>Sebelumnya</span>
                 </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Lihat Profil
+                </button>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <button
-                type="button"
-                disabled={!hasEditPermission}
-                onClick={() => handleSaveTab(step, true)}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-polri-navy hover:bg-polri-navyLight disabled:opacity-50 text-polri-gold text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>Simpan Kategori {step}</span>
-              </button>
-
-              <button
-                type="button"
-                disabled={!hasEditPermission}
-                onClick={() => handleSaveTab(step, false)}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span>Simpan &amp; Lihat Profil</span>
-              </button>
-
-              {step < 5 && (
+            <div>
+              {step < 5 ? (
                 <button
                   type="button"
                   onClick={() => {
                     setStep((step + 1) as 1 | 2 | 3 | 4 | 5);
                     setErrorMsg(null);
                   }}
-                  className="inline-flex items-center justify-center gap-1 px-3.5 py-2 rounded-xl border border-polri-navy/30 bg-slate-50 hover:bg-slate-100 text-polri-navy text-xs font-bold transition-colors cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1 px-4 py-2 rounded-xl bg-red-800 hover:bg-red-900 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
                 >
                   <span>Berikutnya</span>
                   <ChevronRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={!hasEditPermission}
+                  onClick={() => handleSaveTab(step, false)}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Selesai</span>
                 </button>
               )}
             </div>

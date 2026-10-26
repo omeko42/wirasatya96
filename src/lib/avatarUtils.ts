@@ -115,10 +115,11 @@ export function cleanJabatanOnly(jabatan?: string | null): string {
  */
 export function formatJabatanWithSatker(
   jabatan?: string | null,
-  satker?: string | null
+  satker?: string | null,
+  polda?: string | null
 ): string {
   const cleanJab = cleanJabatanOnly(jabatan);
-  const cleanSat = (satker || '').split(' / ')[0].trim();
+  const cleanSat = (satker || polda || '').split(' / ')[0].trim();
   if (!cleanJab && !cleanSat) return 'Mabes Polri';
   if (!cleanJab) return cleanSat;
   if (!cleanSat) return cleanJab;

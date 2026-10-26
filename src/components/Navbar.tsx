@@ -153,11 +153,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const roleDisplayLabels: Record<UserRole, string> = {
-    SUPERADMIN: 'SUPERADMIN',
-    KETUA: 'KETUA',
+    SUPERADMIN: 'Superadmin',
+    KETUA: 'Ketua',
     SEKRETARIAT: 'Sekretaris',
-    BENDAHARA: 'BENDAHARA',
-    ANGGOTA: 'ANGGOTA',
+    BENDAHARA: 'Bendahara',
+    ANGGOTA: 'Anggota',
   };
 
   const quickSearchResults = React.useMemo(() => {
@@ -201,7 +201,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {impersonatorUser && (
           <div className="bg-amber-500 text-slate-950 px-3 sm:px-4 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold flex items-center justify-between gap-2 flex-wrap leading-snug">
             <span className="truncate max-w-full">
-              🎭 Mode Impersonate: {cleanDisplayName} ({myPangkat} &bull; {roleDisplayLabels[currentUser.role] || currentUser.role})
+              🎭 Masuk sebagai: {cleanDisplayName} ({myPangkat})
             </span>
             {onStopImpersonating && (
               <button
@@ -209,7 +209,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={onStopImpersonating}
                 className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-slate-950 hover:bg-slate-800 text-amber-300 text-[10px] sm:text-[11px] font-extrabold transition-colors shadow-xs shrink-0"
               >
-                Kembali ke {impersonatorUser.nama}
+                Kembali
               </button>
             )}
           </div>
@@ -591,109 +591,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </button>
                     </div>
 
-                    {/* Section: Akun */}
-                    <div className="py-2 border-b border-slate-100">
-                      <div className="px-4 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        Akun
-                      </div>
-                      
-                      {/* Data Diri / Pengkinian Data Mandiri */}
-                      <button
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          setActiveTab('form');
-                        }}
-                        className="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center justify-between text-slate-700"
-                      >
-                        <span className="flex items-center gap-2">
-                          <User className="w-3.5 h-3.5 text-red-800" />
-                          <span className="font-semibold text-slate-900">Data Diri &amp; Pengkinian Profil</span>
-                        </span>
-                      </button>
-
-                      {/* Pengaturan & Privasi (Opens Settings Page) */}
+                    {/* Quick Access Menu (Ringkas & Ramah HP) */}
+                    <div className="py-1.5">
                       <button
                         onClick={() => {
                           setIsUserMenuOpen(false);
                           setActiveTab('pengaturan');
                         }}
-                        className="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center justify-between text-slate-700"
+                        className="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center gap-2.5 text-slate-700"
                       >
-                        <span className="flex items-center gap-2">
-                          <Settings className="w-3.5 h-3.5 text-red-800" />
-                          <span className="font-semibold text-slate-900">Pengaturan</span>
-                        </span>
+                        <Settings className="w-4 h-4 text-red-800 shrink-0" />
+                        <span className="font-semibold text-slate-900">Pengaturan</span>
                       </button>
 
-                      {/* User (Tersedia untuk semua akun, mode Kelola/Lihat sesuai Role) */}
-                      <button
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          setActiveTab('users');
-                        }}
-                        className="w-full px-4 py-2 text-left hover:bg-red-50/80 flex items-center justify-between text-slate-700 transition-colors"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Users className="w-3.5 h-3.5 text-red-800" />
-                          <span className="font-semibold text-red-950">User</span>
-                        </span>
-                        {pendingVerificationCount > 0 &&
-                        (effectiveRole === 'SUPERADMIN' ||
-                          effectiveRole === 'SEKRETARIAT' ||
-                          effectiveRole === 'KETUA') ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-700 text-white animate-pulse">
-                            {pendingVerificationCount} Antrean
-                          </span>
-                        ) : effectiveRole === 'SUPERADMIN' ||
-                          effectiveRole === 'SEKRETARIAT' ||
-                          effectiveRole === 'KETUA' ? (
-                          <span className="text-[10px] font-semibold text-red-800">Kelola</span>
-                        ) : (
-                          <span className="text-[10px] font-semibold text-slate-500">Direktori</span>
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Section: Kelola */}
-                    <div className="py-2 border-b border-slate-100">
-                      <div className="px-4 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        Menu
-                      </div>
-                      <button
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          setActiveTab('bendahara');
-                        }}
-                        className="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-700"
-                      >
-                        <Wallet className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Dana Sosial &amp; Investasi</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          setActiveTab('dashboard');
-                        }}
-                        className="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-700"
-                      >
-                        <BarChart3 className="w-3.5 h-3.5 text-amber-700" />
-                        <span>Anev &amp; Statistik</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          setActiveTab('purnaTugas');
-                        }}
-                        className="w-full px-4 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-700"
-                      >
-                        <Briefcase className="w-3.5 h-3.5 text-red-800" />
-                        <span>ToD (Tour of Duty)</span>
-                      </button>
-                    </div>
-
-                    {/* Section: Logout */}
-                    {onLogout && (
-                      <div className="pt-2 px-2">
+                      {onLogout && (
                         <button
                           onClick={() => {
                             setIsUserMenuOpen(false);
@@ -702,13 +613,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                             }
                             onLogout();
                           }}
-                          className="w-full px-3 py-2 text-left hover:bg-red-50 text-red-700 rounded-lg flex items-center gap-2 font-semibold transition-colors"
+                          className="w-full px-4 py-2 text-left hover:bg-red-50 text-red-700 flex items-center gap-2.5 font-semibold transition-colors"
                         >
-                          <LogOut className="w-3.5 h-3.5" />
-                          <span>Logout (Keluar)</span>
+                          <LogOut className="w-4 h-4 shrink-0" />
+                          <span>Keluar</span>
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                   </div>
                 )}

@@ -125,7 +125,7 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
         timeAgo: 'Menunggu',
         isRead: readSet.has(id),
         avatarUrl: '/default-avatar.png',
-        actionLabel: 'Manajemen User',
+        actionLabel: 'Kelola User',
         openVerification: true,
       });
     }
@@ -141,12 +141,12 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
       items.push({
         id,
         type: 'SOCIAL',
-        title: `Pesan Masuk dari ${msg.senderName}`,
+        title: `Pesan dari ${msg.senderName}`,
         description: `"${stripTechNoise(msg.text)}"`,
         timeAgo: formatHumanTimestamp(msg.createdAt || msg.timestamp),
         isRead: Boolean(msg.isRead) || readSet.has(id),
         avatarUrl: getAvatarUrl(msg.senderAvatar),
-        actionLabel: 'Balas di Menu Pesan',
+        actionLabel: 'Buka Pesan',
         targetTab: 'pesan',
       });
     });
@@ -172,12 +172,12 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
       items.push({
         id,
         type: 'HEALTH',
-        title: `${isUrgent ? '🚨 Info Peduli Kesehatan:' : '❤️ Pemantauan Kesehatan:'} ${m.pangkat ? m.pangkat + ' ' : ''}${m.namaLengkap}`,
+        title: `${isUrgent ? '🚨 Info Kesehatan:' : '❤️ Kesehatan:'} ${m.pangkat ? m.pangkat + ' ' : ''}${m.namaLengkap}`,
         description: `${diagnosa}${m.kondisiSaatIni ? ` — ${stripTechNoise(m.kondisiSaatIni)}` : ''}.`,
-        timeAgo: 'Info Kesehatan Leting',
+        timeAgo: 'Kesehatan',
         isRead: readSet.has(id),
         avatarUrl: getAvatarUrl(m.fotoUrl),
-        actionLabel: 'Lihat Profil & Rekam Medis',
+        actionLabel: 'Lihat Profil',
         memberNrp: m.nrp,
       });
     });
@@ -190,12 +190,12 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
       items.push({
         id,
         type: 'TREASURY',
-        title: `${isMasuk ? '💰 Dana Sosial Masuk' : '🤝 Penyaluran Dana Sosial'}: ${formatRupiah(trx.nominal)}`,
+        title: `${isMasuk ? '💰 Dana Masuk' : '🤝 Penyaluran Dana'}: ${formatRupiah(trx.nominal)}`,
         description: `${cleanKet}.`,
         timeAgo: formatHumanTimestamp(trx.tanggal),
         isRead: readSet.has(id),
         avatarUrl: '/default-avatar.png',
-        actionLabel: 'Buka Dana Sosial & Investasi',
+        actionLabel: 'Lihat Dana Sosial',
         targetTab: 'bendahara',
       });
     });
@@ -206,12 +206,12 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
       items.push({
         id,
         type: 'TREASURY',
-        title: `💎 Aset Bersama WS96: ${cleanNama}`,
-        description: `${ast.keterangan ? stripTechNoise(ast.keterangan) : cleanNama} (Valuasi ${formatRupiah(ast.estimasiNilaiIdr)}).`,
+        title: `💎 Aset WS96: ${cleanNama}`,
+        description: `${ast.keterangan ? stripTechNoise(ast.keterangan) : cleanNama} (${formatRupiah(ast.estimasiNilaiIdr)}).`,
         timeAgo: formatHumanTimestamp(ast.tanggalPerolehan || ast.updatedAt?.split('T')[0]),
         isRead: readSet.has(id),
         avatarUrl: '/default-avatar.png',
-        actionLabel: 'Lihat Portofolio Aset',
+        actionLabel: 'Lihat Aset',
         targetTab: 'bendahara',
       });
     });
@@ -229,7 +229,7 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
         timeAgo: formatHumanTimestamp(post.createdAt),
         isRead: readSet.has(id),
         avatarUrl: getAvatarUrl(post.authorAvatar),
-        actionLabel: 'Lihat di Linimasa',
+        actionLabel: 'Buka Beranda',
         targetTab: 'direktori',
       });
     });

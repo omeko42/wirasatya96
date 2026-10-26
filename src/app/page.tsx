@@ -2748,6 +2748,12 @@ export default function Home() {
                     handleStartEditMember(found, 1);
                   }
                 }}
+                onViewMemberByNrp={(nrp) => {
+                  const found = members.find((m) => m.nrp === nrp);
+                  if (found) {
+                    setViewingMember(found);
+                  }
+                }}
                 onMemberSynced={(synced) => {
                   const target = members.find(
                     (m) =>
@@ -2790,6 +2796,13 @@ export default function Home() {
             const found = members.find((m) => m.nrp === nrp);
             if (found) {
               handleStartEditMember(found, 1);
+            }
+          }}
+          onViewMemberByNrp={(nrp) => {
+            const found = members.find((m) => m.nrp === nrp);
+            if (found) {
+              setIsVerificationModalOpen(false);
+              setViewingMember(found);
             }
           }}
           onMemberSynced={(synced) => {
