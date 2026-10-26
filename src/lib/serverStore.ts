@@ -946,6 +946,9 @@ let isInitialBoot = true;
 let lastSupabaseSyncAt = 0;
 let lastSupabaseSyncIso: string | undefined = undefined;
 const SUPABASE_SYNC_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes cooldown to prevent Supabase Egress bloat
+// Default ke Mode Lokalan JSON Mandiri (.data/local_db.json) agar 100% bebas limit kuota Egress 5 GB Supabase.
+// Jika ingin mengaktifkan auto-sync ke Cloud baru, cukup set NEXT_PUBLIC_CLOUD_SYNC_AUTO=true di .env
+const LOCAL_JSON_PRIMARY_MODE = process.env.NEXT_PUBLIC_CLOUD_SYNC_AUTO !== 'true';
 let activeSyncPromise: Promise<{ synced: boolean; seeded?: boolean; rowCount?: number }> | null = null;
 const lastCloudSnapshotMap = new Map<string, string>();
 const pendingCloudPromises: Promise<unknown>[] = [];
@@ -1059,6 +1062,10 @@ function writeDiskSnapshotOnly(store: GlobalStore) {
 function persistLocalStore(store: GlobalStore) {
   writeDiskSnapshotOnly(store);
 
+  if (LOCAL_JSON_PRIMARY_MODE) {
+    return;
+  }
+
   const currentMap = buildCloudSnapshotMap(store);
   if (isInitialBoot) {
     currentMap.forEach((val, key) => {
@@ -1119,6 +1126,10 @@ async function flushCloudWrites(): Promise<void> {
 async function syncFromSupabaseCloud(
   force = false
 ): Promise<{ synced: boolean; seeded?: boolean; rowCount?: number }> {
+  if (LOCAL_JSON_PRIMARY_MODE && !force) {
+    return { synced: true, rowCount: (globalStore.members || []).length };
+  }
+
   await flushCloudWrites();
 
   if (!force && lastSupabaseSyncAt > 0 && Date.now() - lastSupabaseSyncAt < SUPABASE_SYNC_COOLDOWN_MS) {
