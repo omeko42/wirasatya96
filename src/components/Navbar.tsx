@@ -733,29 +733,66 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <div>
                       <h4 className="font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-1.5 text-[11px]">
                         <ShieldCheck className="w-3.5 h-3.5 text-red-800" />
-                        <span>Dukungan</span>
+                        <span>Layanan &amp; Dukungan WS96</span>
                       </h4>
                       <div className="space-y-1.5 pt-2 text-[11px]">
-                        <div
-                          className="p-2 rounded-lg bg-slate-50 flex items-center gap-2"
-                          title="Pendampingan medis personel dan keluarga"
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAppsMenuOpen(false);
+                            if (typeof window !== 'undefined') {
+                              sessionStorage.setItem('ws96_anev_target_subtab', 'loker');
+                              window.dispatchEvent(
+                                new CustomEvent('ws96_open_anev_subtab', { detail: 'loker' })
+                              );
+                            }
+                            setActiveTab('dashboard');
+                          }}
+                          className="w-full p-2 rounded-lg bg-emerald-50/70 hover:bg-emerald-100/80 border border-emerald-100 flex items-center gap-2 text-left transition-colors cursor-pointer"
+                          title="Bursa lowongan kerja bagi putra-putri keluarga besar Wira Satya 96"
+                        >
+                          <Briefcase className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
+                          <div className="truncate">
+                            <span className="font-bold text-slate-800">Bursa Loker Keluarga: </span>
+                            <span className="text-slate-600">Lowongan putra-putri WS96</span>
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAppsMenuOpen(false);
+                            if (typeof window !== 'undefined') {
+                              sessionStorage.setItem('ws96_anev_target_subtab', 'kesehatan');
+                              window.dispatchEvent(
+                                new CustomEvent('ws96_open_anev_subtab', { detail: 'kesehatan' })
+                              );
+                            }
+                            setActiveTab('dashboard');
+                          }}
+                          className="w-full p-2 rounded-lg bg-rose-50/70 hover:bg-rose-100/80 border border-rose-100 flex items-center gap-2 text-left transition-colors cursor-pointer"
+                          title="Layanan kesehatan gratis, rujukan faskes, dan MCU personel"
                         >
                           <Heart className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
                           <div className="truncate">
-                            <span className="font-semibold text-slate-800">Satgas Kesehatan: </span>
-                            <span className="text-slate-500">Pendampingan medis</span>
+                            <span className="font-bold text-slate-800">Kesehatan Gratis &amp; MCU: </span>
+                            <span className="text-slate-600">Rujukan faskes &amp; medis</span>
                           </div>
-                        </div>
-                        <div
-                          className="p-2 rounded-lg bg-slate-50 flex items-center gap-2"
-                          title="Advokasi dan konsultasi hukum personel"
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAppsMenuOpen(false);
+                            setActiveTab('bendahara');
+                          }}
+                          className="w-full p-2 rounded-lg bg-amber-50/70 hover:bg-amber-100/80 border border-amber-100 flex items-center gap-2 text-left transition-colors cursor-pointer"
+                          title="Program santunan keluarga, tali asih, dan beasiswa pendidikan"
                         >
-                          <Scale className="w-3.5 h-3.5 text-amber-700 flex-shrink-0" />
+                          <Wallet className="w-3.5 h-3.5 text-amber-700 flex-shrink-0" />
                           <div className="truncate">
-                            <span className="font-semibold text-slate-800">Bantuan Hukum: </span>
-                            <span className="text-slate-500">Advokasi &amp; konsultasi</span>
+                            <span className="font-bold text-slate-800">Santunan &amp; Beasiswa: </span>
+                            <span className="text-slate-600">Dana sosial keluarga</span>
                           </div>
-                        </div>
+                        </button>
                       </div>
                     </div>
                   </div>

@@ -3782,29 +3782,28 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           {/* =============================================================== */}
           {step === 2 && (
             <div className="space-y-4">
-              {/* Compact Banner: Kriteria Calon Penerima Manfaat = Keluarga Inti 1 Garis Keturunan */}
-              <div className="px-3.5 py-2.5 rounded-xl bg-slate-900 text-white border border-polri-gold/40 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
-                <div className="flex items-center gap-2 text-xs font-bold">
+              {/* Compact Banner: Cakupan Keluarga Inti 1 Garis Keturunan */}
+              <div className="relative px-3.5 py-2.5 rounded-xl bg-slate-900 text-white border border-polri-gold/40 flex items-center justify-between gap-2 shadow-2xs group">
+                <div className="flex items-center gap-2 text-xs font-bold min-w-0">
                   <Users className="w-4 h-4 text-polri-gold shrink-0" />
-                  <span>
+                  <span className="leading-snug">
                     Cakupan Keluarga Inti:{' '}
                     <strong className="text-polri-gold">
                       Ayah/Suami, Ibu/Istri &amp; Anak (1 Garis Keturunan)
                     </strong>
                   </span>
-                  <span
-                    className="relative group inline-flex items-center cursor-help"
-                    tabIndex={0}
-                  >
-                    <Info className="w-3.5 h-3.5 text-slate-300 hover:text-polri-gold" />
-                    <span className="pointer-events-none opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-150 absolute top-full left-0 mt-1.5 w-64 sm:w-72 p-2.5 rounded-lg bg-slate-950 text-slate-100 text-[10px] font-normal leading-relaxed shadow-xl z-50 border border-polri-gold/40">
-                      Sesuai ketentuan Paguyuban Wira Satya 96, kriteria calon penerima manfaat hanya mencakup <strong>Keluarga Inti 1 Garis Keturunan (Ayah, Ibu, dan Anak)</strong>. Tanggungan lain di luar garis keturunan langsung tidak termasuk kriteria penerima manfaat.
-                    </span>
-                  </span>
                 </div>
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-polri-gold/20 text-polri-gold border border-polri-gold/40">
-                  Kriteria Penerima Manfaat
-                </span>
+                <button
+                  type="button"
+                  tabIndex={0}
+                  className="text-slate-300 hover:text-polri-gold focus:text-polri-gold p-1 shrink-0 cursor-help focus:outline-none"
+                  title="Ketentuan Cakupan Keluarga Inti"
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+                <div className="pointer-events-none opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150 absolute top-full left-2 right-2 sm:left-auto sm:right-2 mt-1.5 sm:w-80 p-2.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-normal leading-relaxed shadow-xl z-50 border border-polri-gold/40">
+                  Sesuai ketentuan Paguyuban Wira Satya 96, pendataan keluarga inti mencakup <strong>Ayah/Suami, Ibu/Istri, dan Anak (1 Garis Keturunan)</strong>.
+                </div>
               </div>
 
               {formData.statusKedinasan === 'ALMARHUM' && (

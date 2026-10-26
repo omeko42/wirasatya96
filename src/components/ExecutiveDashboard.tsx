@@ -56,9 +56,44 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
 
   const [activeSubTab, setActiveSubTab] = useState<'kesehatan' | 'hunian' | 'usaha' | 'pemetaan' | 'keuangan' | 'almarhum'>(getInitialSubTab());
   const [showAnevInfo, setShowAnevInfo] = useState<boolean>(false);
+  const [showSubTabInfo, setShowSubTabInfo] = useState<Record<string, boolean>>({});
   const [selectedKompi, setSelectedKompi] = useState<string>('SEMUA');
   const [selectedPleton, setSelectedPleton] = useState<string>('SEMUA');
   const [usahaFilter, setUsahaFilter] = useState<'SEMUA' | 'PRIBADI' | 'BERSAMA' | 'LOWONGAN'>('SEMUA');
+
+  React.useEffect(() => {
+    const applyTargetSubTab = (rawTarget?: string | null) => {
+      if (!rawTarget) return;
+      if (rawTarget === 'loker') {
+        setActiveSubTab('usaha');
+        setUsahaFilter('LOWONGAN');
+      } else if (
+        rawTarget === 'kesehatan' ||
+        rawTarget === 'hunian' ||
+        rawTarget === 'usaha' ||
+        rawTarget === 'pemetaan' ||
+        rawTarget === 'keuangan' ||
+        rawTarget === 'almarhum'
+      ) {
+        setActiveSubTab(rawTarget);
+        if (rawTarget === 'usaha') setUsahaFilter('SEMUA');
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      const pending = sessionStorage.getItem('ws96_anev_target_subtab');
+      if (pending) {
+        sessionStorage.removeItem('ws96_anev_target_subtab');
+        applyTargetSubTab(pending);
+      }
+      const handleCustomEvent = (e: Event) => {
+        const detail = (e as CustomEvent<string>).detail;
+        applyTargetSubTab(detail);
+      };
+      window.addEventListener('ws96_open_anev_subtab', handleCustomEvent);
+      return () => window.removeEventListener('ws96_open_anev_subtab', handleCustomEvent);
+    }
+  }, []);
   const [showQuickUsahaModal, setShowQuickUsahaModal] = useState<boolean>(false);
   const [quickTargetNrp, setQuickTargetNrp] = useState<string>('');
   const [quickKategoriUsaha, setQuickKategoriUsaha] = useState<string>('USAHA PRIBADI / MANDIRI');
@@ -651,8 +686,29 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         {/* Tab 1: ATENSI KESEHATAN */}
         {activeSubTab === 'kesehatan' && (
           <div className="p-5 sm:p-6 space-y-4">
-            <div className="p-3.5 rounded-xl bg-red-50/70 border border-red-200 text-red-900 text-xs">
-              <span className="font-bold">📌 Atensi Kesehatan:</span> Daftar personel dalam masa pengobatan atau memerlukan perhatian medis khusus, dilengkapi Kompi/Pleton, Golongan Darah, Ukuran Aparel, dan Keterangan Kesehatan Lain-lain.
+            <div className="relative px-3.5 py-2.5 rounded-xl bg-red-50/80 border border-red-200 text-red-900 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-extrabold">
+                <Heart className="w-4 h-4 text-red-600 shrink-0" />
+                <span>Atensi Kesehatan Personel</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowSubTabInfo((prev) => ({ ...prev, kesehatan: !prev.kesehatan }))
+                  }
+                  className="text-red-500 hover:text-red-800 p-0.5 cursor-pointer"
+                  title="Informasi Atensi Kesehatan"
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <span className="text-[11px] font-bold text-red-800">
+                {needHealthAttention.length} Personel
+              </span>
+              {showSubTabInfo.kesehatan && (
+                <div className="col-span-full mt-1.5 pt-1.5 border-t border-red-200/70 text-[11px] text-red-800 leading-relaxed">
+                  Daftar personel dalam masa pengobatan atau memerlukan perhatian medis khusus, dilengkapi Golongan Darah dan riwayat diagnosa.
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -722,8 +778,29 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         {/* Tab 2: HUNIAN PURNA TUGAS */}
         {activeSubTab === 'hunian' && (
           <div className="p-5 sm:p-6 space-y-4">
-            <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-900 text-xs">
-              <span className="font-bold">📌 Rekap Program Hunian Purna Tugas (BUP {RETIREMENT_AGE_POLRI} Thn):</span> Rekapitulasi kesiapan tempat tinggal pasca dinas seluruh alumni ({total} personel) serta rincian biaya sewa/kontrak personel yang masih berstatus sewa/kontrak.
+            <div className="px-3.5 py-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-extrabold">
+                <Home className="w-4 h-4 text-amber-700 shrink-0" />
+                <span>Hunian Purna Tugas (BUP {RETIREMENT_AGE_POLRI} Thn)</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowSubTabInfo((prev) => ({ ...prev, hunian: !prev.hunian }))
+                  }
+                  className="text-amber-600 hover:text-amber-900 p-0.5 cursor-pointer"
+                  title="Informasi Hunian Purna Tugas"
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <span className="text-[11px] font-bold text-amber-800">
+                {stillRenting.length} Sewa / Kontrak
+              </span>
+              {showSubTabInfo.hunian && (
+                <div className="w-full pt-1.5 mt-1 border-t border-amber-200/70 text-[11px] text-amber-800 leading-relaxed">
+                  Rekapitulasi kesiapan tempat tinggal pasca dinas seluruh alumni ({total} personel) serta rincian biaya sewa/kontrak personel.
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -824,14 +901,20 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         {activeSubTab === 'usaha' && (
           <div className="p-5 sm:p-6 space-y-5">
             {/* Banner & Quick Action Buttons */}
-            <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="text-xs text-emerald-950 space-y-0.5">
-                <div className="font-extrabold text-sm text-emerald-900">
-                  📌 Katalog Usaha (Pribadi &amp; Bersama Leting) &amp; Bursa Lowongan Kerja Putra-Putri WS96
-                </div>
-                <p className="text-emerald-800">
-                  Direktori unit bisnis milik pribadi anggota maupun usaha bersama leting, dilengkapi pembukaan lowongan kerja (seperti posisi <b>Sekretaris</b>, <b>Direktur</b>, <b>Manajer</b>, atau <b>Staf</b>) bagi putra-putri leting / almarhum yang membutuhkan pekerjaan.
-                </p>
+            <div className="px-3.5 py-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-900">
+                <Briefcase className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span>Katalog Usaha &amp; Bursa Lowongan WS96</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowSubTabInfo((prev) => ({ ...prev, usaha: !prev.usaha }))
+                  }
+                  className="text-emerald-600 hover:text-emerald-900 p-0.5 cursor-pointer"
+                  title="Informasi Katalog Usaha & Lowongan"
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -890,6 +973,11 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                   </button>
                 )}
               </div>
+              {showSubTabInfo.usaha && (
+                <div className="w-full pt-1.5 mt-1 border-t border-emerald-200/70 text-[11px] text-emerald-800 leading-relaxed">
+                  Direktori unit bisnis pribadi maupun usaha bersama leting, dilengkapi bursa lowongan kerja bagi putra-putri keluarga besar Wira Satya 96.
+                </div>
+              )}
             </div>
 
             {/* 4 Summary Cards + Filter Tabs */}
@@ -1710,8 +1798,29 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         {/* Tab 5: ANALISIS KEUANGAN & BEBAN PENDIDIKAN */}
         {activeSubTab === 'keuangan' && (
           <div className="p-5 sm:p-6 space-y-5">
-            <div className="p-3.5 rounded-xl bg-purple-50/80 border border-purple-200 text-purple-900 text-xs">
-              <span className="font-bold">💰 Pendidikan &amp; Pensiun:</span> Data agregat tanggungan pendidikan anak dan kesiapan dana purna tugas.
+            <div className="px-3.5 py-2.5 rounded-xl bg-purple-50/80 border border-purple-200 text-purple-900 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-extrabold">
+                <GraduationCap className="w-4 h-4 text-purple-700 shrink-0" />
+                <span>Pendidikan &amp; Kesiapan Pensiun</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowSubTabInfo((prev) => ({ ...prev, keuangan: !prev.keuangan }))
+                  }
+                  className="text-purple-600 hover:text-purple-900 p-0.5 cursor-pointer"
+                  title="Informasi Pendidikan & Pensiun"
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <span className="text-[11px] font-bold text-purple-800">
+                {financialStats.collegeCount} Pelajar/Mahasiswa
+              </span>
+              {showSubTabInfo.keuangan && (
+                <div className="w-full pt-1.5 mt-1 border-t border-purple-200/70 text-[11px] text-purple-800 leading-relaxed">
+                  Data agregat tanggungan pendidikan anak dan kesiapan dana purna tugas personel Wira Satya 96.
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1776,21 +1885,29 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
 
         {/* Tab 6: KELUARGA ALMARHUM (IN MEMORIAM & PENDATAAN ANAK/ISTRI) */}
         {activeSubTab === 'almarhum' && (
-          <div className="p-5 sm:p-6 space-y-5">
-            <div className="p-4 rounded-xl bg-slate-900 text-white border border-amber-400/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm sm:text-base font-extrabold text-amber-300 flex items-center gap-2">
-                  <span>🕊️ In Memoriam (Almarhum) &amp; Pendataan Keluarga Besar Wira Satya 96</span>
-                </h3>
-                <p className="text-xs text-slate-300 mt-1">
+          <div className="p-5 sm:p-6 space-y-4">
+            <div className="px-3.5 py-2.5 rounded-xl bg-slate-900 text-white border border-amber-400/40 shadow-xs flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-amber-300">
+                <span>🕊️ In Memoriam &amp; Keluarga Almarhum</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowSubTabInfo((prev) => ({ ...prev, almarhum: !prev.almarhum }))
+                  }
+                  className="text-slate-300 hover:text-amber-300 p-0.5 cursor-pointer"
+                  title="Daftar rekan leting Almarhum beserta pendataan Istri / Ahli Waris dan Putra-Putri untuk program silaturahmi, santunan, dan beasiswa pendidikan WS96."
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <span className="text-[11px] font-bold text-amber-300">
+                {almarhumMembers.length} Almarhum • {totalAnakAlmarhum} Putra-Putri
+              </span>
+              {showSubTabInfo.almarhum && (
+                <div className="w-full pt-1.5 mt-1 border-t border-white/15 text-[11px] text-slate-300 leading-relaxed">
                   Daftar khusus {almarhumMembers.length} rekan leting Almarhum beserta pendataan Istri / Ahli Waris dan {totalAnakAlmarhum} Putra-Putri untuk program silaturahmi, santunan, dan beasiswa pendidikan WS96.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="px-3 py-1.5 rounded-lg bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold">
-                  {almarhumMembers.length} Almarhum • {totalAnakAlmarhum} Putra-Putri
-                </span>
-              </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

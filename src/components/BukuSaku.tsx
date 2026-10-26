@@ -1073,9 +1073,6 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[10px] font-bold text-red-800 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
-                  Profil
-                </span>
                 {mobileOpenProfile ? (
                   <ChevronUp className="w-4 h-4 text-slate-400" />
                 ) : (
@@ -1225,7 +1222,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                 </button>
               </span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold text-red-800 bg-red-50 px-2 py-0.5 rounded-full">
+                <span className="text-[11px] font-bold text-slate-600">
                   {publicMembers.length} Personel
                 </span>
                 <span className="lg:hidden text-slate-400">
@@ -1294,7 +1291,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                 <span>Atensi Kesehatan</span>
               </span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-extrabold border border-red-200">
+                <span className="text-[11px] font-extrabold text-red-700">
                   {healthAttentionMembers.filter(
                     (m) => m.kondisiKesehatan === 'PERLU PERHATIAN KHUSUS' || m.kondisiKesehatan === 'SAKIT'
                   ).length || healthAttentionMembers.length}{' '}
@@ -1412,9 +1409,6 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                 </button>
               </span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
-                  Sukarela
-                </span>
                 <span className="lg:hidden text-slate-400">
                   {mobileOpenDana ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </span>
