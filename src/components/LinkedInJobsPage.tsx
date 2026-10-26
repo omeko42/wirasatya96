@@ -649,107 +649,82 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
         {/* ============================================================ */}
         {/* LEFT RAIL (lg:col-span-4): PROFIL & STATISTIK PENUGASAN     */}
         {/* ============================================================ */}
-        <div className="lg:col-span-4 space-y-3 sm:space-y-4">
-          {/* User Career Card (Collapsible Header di HP) */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            {/* Mobile Compact Header */}
-            <div
-              onClick={() => setMobileOpenProfile((prev) => !prev)}
-              className="lg:hidden flex items-center justify-between gap-2.5 p-3.5 cursor-pointer select-none hover:bg-slate-50 transition-colors"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={myAvatarUrl}
-                  alt={myProfile.namaLengkap || currentUser.nama}
-                  className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0 bg-white"
-                />
-                <div className="min-w-0 text-left">
-                  <div className="text-xs font-bold text-slate-900 flex items-center gap-1 truncate">
-                    <span className="truncate">
-                      {(myProfile.namaLengkap || currentUser.nama).replace(/\(.*?\)/g, '').trim()}
-                    </span>
+        <div className="hidden lg:block lg:col-span-4 space-y-3 sm:space-y-4">
+          {/* User Career Card (Sembunyikan profil jika akun Superadmin di balik layar) */}
+          {!isSuperadminAccount(currentUser.nrp, currentUser.role) ? (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="text-center">
+                <div className="h-16 bg-gradient-to-r from-red-950 via-slate-900 to-red-900 relative overflow-hidden">
+                  {(myProfile.coverUrl || currentUser.coverUrl) !== 'none' && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={myProfile.coverUrl || currentUser.coverUrl || '/default-cover.jpg'}
+                      alt="Sampul Polri"
+                      className="w-full h-full object-cover object-center"
+                    />
+                  )}
+                </div>
+
+                <div className="px-5 relative">
+                  <div
+                    onClick={() => onSelectMember && onSelectMember(myProfile)}
+                    className="w-16 h-16 rounded-full border-2 border-white shadow-md mx-auto -mt-8 overflow-hidden bg-white cursor-pointer"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={myAvatarUrl}
+                      alt={myProfile.namaLengkap || currentUser.nama}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <h3
+                    onClick={() => onSelectMember && onSelectMember(myProfile)}
+                    className="text-sm font-bold text-slate-900 hover:text-red-900 cursor-pointer mt-2 leading-tight flex items-center justify-center gap-1"
+                  >
+                    <span className="truncate">{(myProfile.namaLengkap || currentUser.nama).replace(/\(.*?\)/g, '').trim()}</span>
                     <MetaVerifiedBadge role={currentUser.role} nrp={currentUser.nrp} size="sm" />
-                  </div>
-                  <div className="text-[10px] text-slate-500 truncate">
-                    {myProfile.pangkat || currentUser.pangkat} &bull; {myProfile.polda || 'MABES POLRI'}
-                  </div>
+                  </h3>
+                  <p
+                    className="text-xs font-semibold text-red-800 mt-0.5 truncate"
+                    title={`${myProfile.pangkat || currentUser.pangkat} • ${formatJabatanWithSatker(myProfile.jabatanTerakhir, myProfile.satuanKerja || currentUser.satker)}`}
+                  >
+                    {myProfile.pangkat || currentUser.pangkat} &bull; {formatJabatanWithSatker(myProfile.jabatanTerakhir, myProfile.satuanKerja || currentUser.satker)}
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                    {myProfile.polda || 'MABES POLRI'}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[10px] font-bold text-red-800 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
-                  Karier
-                </span>
-                {mobileOpenProfile ? (
-                  <ChevronUp className="w-4 h-4 text-slate-400" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                )}
+
+              <div className="px-5 pb-5 pt-0">
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="w-full mt-4 py-2 px-3 rounded-lg bg-red-800 hover:bg-red-900 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Tambah Jabatan</span>
+                </button>
+
+                <button
+                  onClick={onOpenFormWizard}
+                  className="w-full mt-2 py-1.5 px-3 rounded-lg border border-red-800/40 text-red-900 hover:bg-red-50 font-bold text-xs transition-colors"
+                >
+                  Data Diri
+                </button>
               </div>
             </div>
-
-            {/* Desktop Cover & Avatar */}
-            <div className="hidden lg:block text-center">
-              <div className="h-16 bg-gradient-to-r from-red-950 via-slate-900 to-red-900 relative overflow-hidden">
-                {(myProfile.coverUrl || currentUser.coverUrl) !== 'none' && (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={myProfile.coverUrl || currentUser.coverUrl || '/default-cover.jpg'}
-                    alt="Sampul Polri"
-                    className="w-full h-full object-cover object-center"
-                  />
-                )}
-              </div>
-
-              <div className="px-5 relative">
-                <div
-                  onClick={() => onSelectMember && onSelectMember(myProfile)}
-                  className="w-16 h-16 rounded-full border-2 border-white shadow-md mx-auto -mt-8 overflow-hidden bg-white cursor-pointer"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={myAvatarUrl}
-                    alt={myProfile.namaLengkap || currentUser.nama}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-
-                <h3
-                  onClick={() => onSelectMember && onSelectMember(myProfile)}
-                  className="text-sm font-bold text-slate-900 hover:text-red-900 cursor-pointer mt-2 leading-tight flex items-center justify-center gap-1"
-                >
-                  <span className="truncate">{(myProfile.namaLengkap || currentUser.nama).replace(/\(.*?\)/g, '').trim()}</span>
-                  <MetaVerifiedBadge role={currentUser.role} nrp={currentUser.nrp} size="sm" />
-                </h3>
-                <p
-                  className="text-xs font-semibold text-red-800 mt-0.5 truncate"
-                  title={`${myProfile.pangkat || currentUser.pangkat} • ${formatJabatanWithSatker(myProfile.jabatanTerakhir, myProfile.satuanKerja || currentUser.satker)}`}
-                >
-                  {myProfile.pangkat || currentUser.pangkat} &bull; {formatJabatanWithSatker(myProfile.jabatanTerakhir, myProfile.satuanKerja || currentUser.satker)}
-                </p>
-                <p className="text-[11px] text-slate-500 mt-0.5 truncate">
-                  {myProfile.polda || 'MABES POLRI'}
-                </p>
-              </div>
-            </div>
-
-            <div className={`${mobileOpenProfile ? 'block' : 'hidden'} lg:block px-4 lg:px-5 pb-4 lg:pb-5 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100`}>
+          ) : (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
               <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="w-full lg:mt-4 py-2 px-3 rounded-lg bg-red-800 hover:bg-red-900 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                className="w-full py-2 px-3 rounded-lg bg-red-800 hover:bg-red-900 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>Tambah Jabatan</span>
               </button>
-
-              <button
-                onClick={onOpenFormWizard}
-                className="w-full mt-2 py-1.5 px-3 rounded-lg border border-red-800/40 text-red-900 hover:bg-red-50 font-bold text-xs transition-colors"
-              >
-                Data Diri
-              </button>
             </div>
-          </div>
+          )}
 
           {/* Statistik Tour of Duty (Collapsible Header di HP) */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5 sm:p-4">
@@ -1009,36 +984,63 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
               </div>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-wrap">
-                <SortTriggerBar
-                  sortBy={sortBy}
-                  sortDesc={sortDesc}
-                  onOpenModal={() => setIsSortModalOpen(true)}
-                  onToggleDirection={() => setSortDesc((prev) => !prev)}
-                  compact
-                />
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <SortTriggerBar
+                    sortBy={sortBy}
+                    sortDesc={sortDesc}
+                    onOpenModal={() => setIsSortModalOpen(true)}
+                    onToggleDirection={() => setSortDesc((prev) => !prev)}
+                    compact
+                  />
 
-                <SortModalPopup
-                  isOpen={isSortModalOpen}
-                  onClose={() => setIsSortModalOpen(false)}
-                  sortBy={sortBy}
-                  sortDesc={sortDesc}
-                  onSelectSort={(newKey, newDesc) => {
-                    setSortBy(newKey);
-                    setSortDesc(newDesc);
-                  }}
-                  contextTitle="Urutkan Jabatan"
-                />
+                  <SortModalPopup
+                    isOpen={isSortModalOpen}
+                    onClose={() => setIsSortModalOpen(false)}
+                    sortBy={sortBy}
+                    sortDesc={sortDesc}
+                    onSelectSort={(newKey, newDesc) => {
+                      setSortBy(newKey);
+                      setSortDesc(newDesc);
+                    }}
+                    contextTitle="Urutkan Jabatan"
+                  />
 
-                <select
-                  value={selectedPolda}
-                  onChange={(e) => setSelectedPolda(e.target.value)}
-                  className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold border border-slate-200 rounded-lg bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-800/30"
-                >
-                  <option value="SEMUA">Semua Wilayah</option>
-                  {DAFTAR_38_POLDA.map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
+                  <select
+                    value={selectedPolda}
+                    onChange={(e) => setSelectedPolda(e.target.value)}
+                    className="px-2.5 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-800/30"
+                  >
+                    <option value="SEMUA">Semua Wilayah</option>
+                    {DAFTAR_38_POLDA.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedFungsi}
+                    onChange={(e) => setSelectedFungsi(e.target.value)}
+                    className="px-2.5 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-800/30"
+                  >
+                    <option value="SEMUA">Semua Fungsi</option>
+                    {DAFTAR_FUNGSI_POLRI.map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedKompi}
+                    onChange={(e) => setSelectedKompi(e.target.value)}
+                    className="px-2.5 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-800/30"
+                  >
+                    <option value="SEMUA">Semua Kompi</option>
+                    <option value="KOMPI A">Kompi A ({kompiCounts['KOMPI A'] || 0})</option>
+                    <option value="KOMPI B">Kompi B ({kompiCounts['KOMPI B'] || 0})</option>
+                    <option value="KOMPI C">Kompi C ({kompiCounts['KOMPI C'] || 0})</option>
+                    <option value="KOMPI D">Kompi D ({kompiCounts['KOMPI D'] || 0})</option>
+                  </select>
+                </div>
 
                 <div className="relative flex-1 min-w-[180px] sm:min-w-[200px]">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -1054,7 +1056,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
             </div>
 
             {/* Filter Tab Status Kedinasan & Grup Khusus Almarhum */}
-            <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-semibold pt-1 pb-1 border-t border-slate-100">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold pt-1 border-t border-slate-100">
               {[
                 { key: 'ALL' as const, label: `Semua (${statusCounts.ALL})` },
                 { key: 'AKTIF' as const, label: `Aktif (${statusCounts.AKTIF})` },
@@ -1066,7 +1068,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                   key={stTab.key}
                   type="button"
                   onClick={() => setSelectedStatusFilter(stTab.key)}
-                  className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
                     selectedStatusFilter === stTab.key
                       ? stTab.key === 'ALMARHUM'
                         ? 'bg-slate-800 text-amber-300 font-bold shadow-sm border border-amber-400/50'
@@ -1077,26 +1079,6 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                   }`}
                 >
                   {stTab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Filter Pills based on Police Functions */}
-            <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-semibold pt-1 pb-1">
-              {[
-                { key: 'SEMUA', label: 'Semua' },
-                ...DAFTAR_FUNGSI_POLRI.map((f) => ({ key: f.key, label: f.label })),
-              ].map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => setSelectedFungsi(f.key)}
-                  className={`px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
-                    selectedFungsi === f.key
-                      ? 'bg-red-800 text-white font-bold shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {f.label}
                 </button>
               ))}
             </div>
@@ -1136,9 +1118,9 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                   return (
                     <div
                       key={item.id}
-                      className="bg-white rounded-xl border border-slate-200 shadow-2xs p-3.5 sm:p-4 hover:border-red-800/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                      className="bg-white rounded-xl border border-slate-200 shadow-2xs p-3.5 sm:p-4 hover:border-red-800/40 transition-all flex flex-col xl:flex-row xl:items-center justify-between gap-2.5"
                     >
-                      <div className="flex items-start gap-3 min-w-0">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
                         {/* Avatar */}
                         <div
                           onClick={() => matchedMember && onSelectMember && onSelectMember(matchedMember)}
@@ -1153,8 +1135,8 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                           />
                         </div>
 
-                        <div className="min-w-0">
-                          {/* Baris 1: Nama (Klik -> Detail) + Pangkat + Kompi + Status */}
+                        <div className="min-w-0 flex-1">
+                          {/* Baris 1: Nama (Klik -> Detail) + MetaVerifiedBadge + Pangkat + Status */}
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <button
                               type="button"
@@ -1167,9 +1149,6 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                             <MetaVerifiedBadge nrp={item.perwiraNrp} size="xs" />
                             <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[10px] border border-slate-200">
                               {item.pangkat}
-                            </span>
-                            <span className="px-2 py-0.5 rounded bg-red-50 text-red-900 font-bold text-[10px] border border-red-200">
-                              {matchedMember?.kompi || 'KOMPI A'}
                             </span>
                             {jabatanAngkatanBadge && (
                               <span
@@ -1193,35 +1172,26 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                             )}
                           </div>
 
-                          {/* Baris 2: Jabatan Terakhir di Bawah Nama + NRP */}
+                          {/* Baris 2 (Tepat di bawah nama, lebar penuh): Jabatan Terakhir + Satker/Polda */}
                           <p className="text-xs font-semibold text-red-900 mt-0.5 leading-snug">
                             {cleanJabatan}
                             {showSatkerSuffix ? (
                               <span className="text-slate-600 font-medium"> &bull; {cleanSatkerPolda}</span>
                             ) : null}
                           </p>
+
+                          {/* Baris 3 tipis: NRP + Kompi */}
                           <p className="text-[11px] text-slate-500 mt-0.5">
-                            NRP {item.perwiraNrp} &bull; {matchedMember?.pleton || 'PLETON 1'}
+                            NRP {item.perwiraNrp} &bull; {matchedMember?.kompi || 'KOMPI A'}
                           </p>
                         </div>
                       </div>
 
-                      {/* Kanan: Badge Fungsi & Aksi Ringkas */}
-                      <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap shrink-0 self-end sm:self-center">
+                      {/* Kanan/Bawah: Badge Fungsi & Aksi Ringkas */}
+                      <div className="flex items-center gap-1.5 flex-wrap shrink-0 self-end xl:self-center">
                         <span className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${badge.bg}`}>
                           {badge.label}
                         </span>
-                        {matchedMember && (
-                          <button
-                            type="button"
-                            onClick={() => onSelectMember && onSelectMember(matchedMember)}
-                            className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
-                            title="Lihat Detail Profil"
-                          >
-                            <span>Detail</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </button>
-                        )}
                         {matchedMember && onOpenChat && (
                           <button
                             type="button"
@@ -1274,6 +1244,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
 
               <div className="space-y-2.5">
                 {almarhumJabatan.map((item) => {
+                  const badge = getFungsiBadge(item.fungsiPolri);
                   const matchedMember = members.find((m) => m.nrp === item.perwiraNrp);
                   const daftarAnak = matchedMember?.daftarAnak || [];
                   const kontakKeluarga = matchedMember?.kontakIstri || matchedMember?.noHp || '';
@@ -1288,8 +1259,8 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                       key={item.id}
                       className="bg-white rounded-xl border border-slate-300 shadow-2xs p-3.5 sm:p-4 hover:border-slate-500 transition-all space-y-2.5"
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
+                      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
                           <div
                             onClick={() => matchedMember && onSelectMember && onSelectMember(matchedMember)}
                             className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border border-slate-400 flex-shrink-0 cursor-pointer mt-0.5"
@@ -1303,7 +1274,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                             />
                           </div>
 
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <button
                                 type="button"
@@ -1313,11 +1284,9 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                               >
                                 Alm. {stripRankFromName(item.namaPerwira) || item.namaPerwira}
                               </button>
+                              <MetaVerifiedBadge nrp={item.perwiraNrp} size="xs" />
                               <span className="px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-bold text-[10px]">
                                 {item.pangkat}
-                              </span>
-                              <span className="px-2 py-0.5 rounded bg-red-50 text-red-900 font-bold text-[10px] border border-red-200">
-                                {matchedMember?.kompi || 'KOMPI A'}
                               </span>
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-amber-300">
                                 Almarhum
@@ -1325,13 +1294,13 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                             </div>
 
                             <p className="text-xs font-semibold text-slate-700 mt-0.5 leading-snug">
-                              Jabatan Terakhir: {rawJabatanFormatted}
+                              {rawJabatanFormatted}
                               {showSatkerSuffix ? (
                                 <span className="text-slate-500 font-medium"> &bull; {cleanSatkerPolda}</span>
                               ) : null}
                             </p>
                             <p className="text-[11px] text-slate-500 mt-0.5">
-                              NRP {item.perwiraNrp} &bull; Istri/Waris:{' '}
+                              NRP {item.perwiraNrp} &bull; {matchedMember?.kompi || 'KOMPI A'} &bull; Istri/Waris:{' '}
                               <span className="font-semibold text-slate-700">
                                 {matchedMember?.namaIstri?.trim() || 'Belum diisi'}
                               </span>
@@ -1340,17 +1309,10 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
-                          {matchedMember && (
-                            <button
-                              type="button"
-                              onClick={() => onSelectMember && onSelectMember(matchedMember)}
-                              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-amber-300 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
-                            >
-                              <span>Detail</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                        <div className="flex items-center gap-1.5 flex-wrap shrink-0 self-end xl:self-center">
+                          <span className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${badge.bg}`}>
+                            {badge.label}
+                          </span>
                           {kontakKeluarga && (
                             <a
                               href={`https://wa.me/${kontakKeluarga.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=Assalamualaikum%20Keluarga%20Almarhum%20${encodeURIComponent(item.namaPerwira)}%2C%20kami%20dari%20Paguyuban%20Wira%20Satya%2096`}

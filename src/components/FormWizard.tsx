@@ -26,6 +26,7 @@ import {
   recordAdcActivityToAuditLog,
   formatHumanEnum,
   formatJabatanWithSatker,
+  isSuperadminAccount,
 } from '@/lib/avatarUtils';
 import { SatkerBerjenjangModal } from '@/components/SatkerBerjenjangModal';
 import {
@@ -1075,6 +1076,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     [formData.tanggalLahir, formData.nrp]
   );
 
+  const isEditingSuperadmin = isSuperadminAccount(
+    formData.nrp,
+    isEditingSelf ? activeUser.role : undefined,
+    { nama: formData.namaLengkap }
+  );
+
   // Memoize Jabatan groups & active selection so typing in text fields is smooth
   const jabatanSelectConfig = React.useMemo(() => {
     const groups = getJabatanGroupsForPangkat(formData.pangkat, formData.nrp);
@@ -1444,16 +1451,17 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '1C',
         tab: 1,
-        title: 'Identitas & Kompi',
-        shortTitle: 'Identitas & Kompi',
-        existingDetail: `${formData.kompi || 'KOMPI A'} • ${formData.pleton || 'PLETON 1'} • ${
-          retirementCalc.formattedTanggalLahir
-        } (${retirementCalc.usiaTahun} Thn)`,
+        title: isEditingSuperadmin ? 'Identitas Pribadi' : 'Identitas & Kompi',
+        shortTitle: isEditingSuperadmin ? 'Identitas Pribadi' : 'Identitas & Kompi',
+        existingDetail: isEditingSuperadmin
+          ? `${retirementCalc.formattedTanggalLahir} (${retirementCalc.usiaTahun} Thn)`
+          : `${formData.kompi || 'KOMPI A'} • ${formData.pleton || 'PLETON 1'} • ${
+              retirementCalc.formattedTanggalLahir
+            } (${retirementCalc.usiaTahun} Thn)`,
         isComplete: Boolean(
           formData.namaLengkap?.trim() &&
             formData.nrp?.trim() &&
-            formData.kompi &&
-            formData.pleton &&
+            (isEditingSuperadmin || (formData.kompi && formData.pleton)) &&
             formData.tanggalLahir
         ),
       },
@@ -1626,7 +1634,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     ];
 
     return list;
-  }, [formData, retirementCalc, bmiInfo]);
+  }, [formData, retirementCalc, bmiInfo, isEditingSuperadmin]);
 
   const getSubMeta = (id: SubSectionId) =>
     subSectionMetaList.find((m) => m.id === id) || subSectionMetaList[0];
@@ -2446,9 +2454,15 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   {formData.namaLengkap?.trim() || 'Personel Baru'}
                 </h3>
                 <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                  <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-extrabold">
-                    🎖️ {formData.kompi || 'KOMPI A'} &bull; {formData.pleton || 'PLETON 1'}
-                  </span>
+                  {isEditingSuperadmin ? (
+                    <span className="px-2 py-0.5 rounded-md bg-slate-800 text-amber-300 text-[10px] font-extrabold">
+                      Admin Sistem
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-extrabold">
+                      🎖️ {formData.kompi || 'KOMPI A'} &bull; {formData.pleton || 'PLETON 1'}
+                    </span>
+                  )}
                   <span
                     className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${
                       formData.statusKedinasan === 'ALMARHUM'
@@ -3070,49 +3084,53 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
 
                     {/* Kelompok Kompi & Pleton Batalyon Wira Satya 96 */}
-                    <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
-                      <label className="block text-xs font-extrabold text-amber-950">
-                        Kompi Batalyon Wira Satya 96
-                      </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                        {DAFTAR_KOMPI.map((k) => (
-                          <button
-                            key={k}
-                            type="button"
-                            onClick={() => handleInputChange('kompi', k)}
-                            className={`px-2 py-2 rounded-lg text-[11px] font-extrabold border transition-colors cursor-pointer ${
-                              (formData.kompi || 'KOMPI A') === k
-                                ? 'bg-red-800 text-white border-red-900 shadow-xs'
-                                : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100'
-                            }`}
-                          >
-                            {k}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    {!isEditingSuperadmin && (
+                      <>
+                        <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
+                          <label className="block text-xs font-extrabold text-amber-950">
+                            Kompi Batalyon Wira Satya 96
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            {DAFTAR_KOMPI.map((k) => (
+                              <button
+                                key={k}
+                                type="button"
+                                onClick={() => handleInputChange('kompi', k)}
+                                className={`px-2 py-2 rounded-lg text-[11px] font-extrabold border transition-colors cursor-pointer ${
+                                  (formData.kompi || 'KOMPI A') === k
+                                    ? 'bg-red-800 text-white border-red-900 shadow-xs'
+                                    : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100'
+                                }`}
+                              >
+                                {k}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
-                    <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
-                      <label className="block text-xs font-extrabold text-amber-950">
-                        Pleton Batalyon Wira Satya 96
-                      </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                        {DAFTAR_PLETON.map((pl) => (
-                          <button
-                            key={pl}
-                            type="button"
-                            onClick={() => handleInputChange('pleton', pl)}
-                            className={`px-2 py-2 rounded-lg text-[11px] font-extrabold border transition-colors cursor-pointer ${
-                              (formData.pleton || 'PLETON 1') === pl
-                                ? 'bg-red-800 text-white border-red-900 shadow-xs'
-                                : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100'
-                            }`}
-                          >
-                            {pl}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                        <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
+                          <label className="block text-xs font-extrabold text-amber-950">
+                            Pleton Batalyon Wira Satya 96
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            {DAFTAR_PLETON.map((pl) => (
+                              <button
+                                key={pl}
+                                type="button"
+                                onClick={() => handleInputChange('pleton', pl)}
+                                className={`px-2 py-2 rounded-lg text-[11px] font-extrabold border transition-colors cursor-pointer ${
+                                  (formData.pleton || 'PLETON 1') === pl
+                                    ? 'bg-red-800 text-white border-red-900 shadow-xs'
+                                    : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100'
+                                }`}
+                              >
+                                {pl}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

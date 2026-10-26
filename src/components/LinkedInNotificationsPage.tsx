@@ -279,6 +279,7 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const isSuperadmin = isSuperadminAccount(currentUser.nrp, currentUser.role);
 
   return (
     <div className="w-full py-2 font-sans text-slate-900 pb-20">
@@ -287,82 +288,81 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
         {/* ============================================================ */}
         {/* LEFT RAIL (lg:col-span-4 xl:col-span-3): USER PROFILE CARD   */}
         {/* ============================================================ */}
-        <div className="lg:col-span-4 xl:col-span-3 space-y-4 lg:sticky lg:top-[96px]">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden text-center">
-            <div className="h-16 relative overflow-hidden bg-slate-900">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/default-cover.jpg"
-                alt="Sampul"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="px-4 pb-4 relative">
-              <div
-                onClick={() => onViewMyProfile && onViewMyProfile()}
-                className="w-16 h-16 rounded-full border-2 border-white shadow mx-auto -mt-8 overflow-hidden bg-white cursor-pointer"
-              >
+        {!isSuperadmin && (
+          <div className="hidden lg:block lg:col-span-4 xl:col-span-3 space-y-4 lg:sticky lg:top-[96px]">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden text-center">
+              <div className="h-16 relative overflow-hidden bg-slate-900">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={getAvatarUrl(currentUser.fotoUrl)}
-                  alt={currentUser.nama}
+                  src="/default-cover.jpg"
+                  alt="Sampul"
                   className="w-full h-full object-cover"
                 />
               </div>
+              <div className="px-4 pb-4 relative">
+                <div
+                  onClick={() => onViewMyProfile && onViewMyProfile()}
+                  className="w-16 h-16 rounded-full border-2 border-white shadow mx-auto -mt-8 overflow-hidden bg-white cursor-pointer"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={getAvatarUrl(currentUser.fotoUrl)}
+                    alt={currentUser.nama}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
 
-              <h3
-                onClick={() => onViewMyProfile && onViewMyProfile()}
-                className="text-sm font-bold text-slate-900 hover:text-red-900 cursor-pointer mt-2 inline-flex items-center justify-center gap-1"
-              >
-                <span>{currentUser.nama.split('(')[0].trim()}</span>
-                <MetaVerifiedBadge role={currentUser.role} nrp={currentUser.nrp} size="sm" />
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                {currentUser.pangkat} &bull; {currentUser.satker || 'Mabes Polri'}
-              </p>
+                <h3
+                  onClick={() => onViewMyProfile && onViewMyProfile()}
+                  className="text-sm font-bold text-slate-900 hover:text-red-900 cursor-pointer mt-2 inline-flex items-center justify-center gap-1"
+                >
+                  <span>{currentUser.nama.split('(')[0].trim()}</span>
+                  <MetaVerifiedBadge role={currentUser.role} nrp={currentUser.nrp} size="sm" />
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  {currentUser.pangkat} &bull; {currentUser.satker || 'Mabes Polri'}
+                </p>
+              </div>
             </div>
           </div>
-
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <h4 className="font-bold text-slate-900">Notifikasi</h4>
-              <span className="text-[11px] text-slate-500">{unreadCount} belum dibaca</span>
-            </div>
-            <button
-              onClick={markAllAsRead}
-              className="text-red-900 font-bold hover:underline pt-1 flex items-center gap-1.5"
-            >
-              <CheckCheck className="w-3.5 h-3.5" />
-              <span>Tandai semua dibaca</span>
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* ============================================================ */}
-        {/* CENTER / MAIN CONTENT (lg:col-span-8 xl:col-span-9): ITEMS  */}
+        {/* CENTER / MAIN CONTENT: NOTIFICATIONS STREAM                  */}
         {/* ============================================================ */}
-        <div className="lg:col-span-8 xl:col-span-9 space-y-4">
+        <div className={`${isSuperadmin ? 'lg:col-span-12' : 'lg:col-span-8 xl:col-span-9'} space-y-4`}>
           {/* Header & Filter Pills */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Bell className="w-5 h-5 text-red-700" />
-                Notifikasi
-              </h2>
-              {unreadCount > 0 ? (
-                <span className="text-xs text-white bg-red-600 px-3 py-1 rounded-full font-extrabold shadow-[0_0_10px_rgba(220,38,38,0.45)] flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-300 animate-ping" />
-                  <span>{unreadCount} Baru</span>
-                </span>
-              ) : (
-                <span className="text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full font-semibold border border-slate-200">
-                  0 Baru
-                </span>
-              )}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-red-700" />
+                  <span>Notifikasi</span>
+                </h2>
+                {unreadCount > 0 ? (
+                  <span className="text-xs text-white bg-red-600 px-2.5 py-0.5 rounded-full font-extrabold shadow-[0_0_10px_rgba(220,38,38,0.45)] flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-300 animate-ping" />
+                    <span>{unreadCount} Baru</span>
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full font-semibold border border-slate-200">
+                    0 Baru
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                className="text-xs text-red-900 hover:text-red-700 font-bold hover:underline flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+              >
+                <CheckCheck className="w-4 h-4" />
+                <span>Tandai semua dibaca</span>
+              </button>
             </div>
 
             {/* Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-bold pt-1">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold pt-2 border-t border-slate-100">
               {[
                 { key: 'semua', label: `Semua (${countByType.semua})` },
                 { key: 'health', label: `❤️ Kesehatan (${countByType.health})` },
@@ -371,10 +371,11 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
               ].map((f) => (
                 <button
                   key={f.key}
+                  type="button"
                   onClick={() =>
                     setActiveFilter(f.key as 'semua' | 'health' | 'treasury' | 'social')
                   }
-                  className={`px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
                     activeFilter === f.key
                       ? 'bg-red-800 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'

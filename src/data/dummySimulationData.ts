@@ -673,7 +673,7 @@ export const DUMMY_POSTS: FeedPost[] = [
     category: 'REUNI',
     content:
       'Salam silaturahmi dari Surabaya untuk seluruh keluarga besar Batalyon Wira Satya 96. Unit Koperasi & Agribisnis Wira Satya Jawa Timur terus berjalan dan membuka ruang kolaborasi serta lowongan pengelola bagi putra-putri leting di wilayah Jawa Timur. #SolidaritasWS96 #KeluargaBesar96',
-    imageUrl: '/lambang-ws96.png',
+    imageUrl: '/default-cover.jpg',
     tags: ['#SolidaritasWS96', '#KeluargaBesar96'],
     createdAt: '2026-10-25T14:20:00.000Z',
     likesCount: 2,

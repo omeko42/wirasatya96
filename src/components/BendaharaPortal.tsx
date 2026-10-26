@@ -143,14 +143,14 @@ export const DEFAULT_CAMPAIGNS: FundraisingCampaign[] = [
   },
   {
     id: 'cmp-event-baksos',
-    title: 'Milestone Baksos & Kegiatan Silaturahmi Leting WS96',
+    title: 'Baksos & Kegiatan Silaturahmi Leting WS96',
     category: 'EVENT_BAKSOS',
     targetAmount: 150000000,
     collectedAmount: 0,
     disbursedAmount: 0,
     donorCount: 0,
     description:
-      'Penggalangan dana sukarela (milestone event) untuk kegiatan Bakti Sosial, Reuni, dan acara kebersamaan Batalyon Wira Satya 96.',
+      'Penggalangan dana sukarela untuk kegiatan Bakti Sosial, Reuni, dan acara kebersamaan Batalyon Wira Satya 96.',
     status: 'AKTIF',
     deadline: '2026-12-31',
     updatedAt: new Date().toISOString(),
@@ -164,7 +164,7 @@ const DEFAULT_FINANCE_CONFIG: FinanceConfig = {
     { code: 'DANA_SOSIAL_YATIM', label: 'Donasi Sosial: Santunan Anak Yatim' },
     { code: 'DANA_SOSIAL_SAKIT', label: 'Donasi Sosial: Bantuan Anggota Sakit' },
     { code: 'DANA_SOSIAL_MD', label: 'Donasi Sosial: Dana Duka' },
-    { code: 'DONASI_MILESTONE_EVENT', label: 'Penggalangan Dana Event / Milestone Baksos' },
+    { code: 'DONASI_MILESTONE_EVENT', label: 'Penggalangan Dana Event & Baksos' },
     { code: 'SUMBANGAN_SUKARELA', label: 'Kas Sukarela Leting' },
     { code: 'DANA_INVESTASI_ANGGOTA', label: 'Penyertaan Dana Investasi' },
     { code: 'PENCAIRAN_ASET_INVESTASI', label: 'Bagi Hasil / Pencairan Investasi' },
@@ -308,6 +308,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
   const [showReadOnlyInfo, setShowReadOnlyInfo] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   const [campaignFilter, setCampaignFilter] = useState<'SEMUA' | CampaignCategory>('SEMUA');
+  const [expandedCampaignId, setExpandedCampaignId] = useState<string | null>(null);
 
   const filterOutSuperadminIuran = (list: IuranAnggota[]) => {
     const nonAktifMemberNrps = new Set<string>(NON_AKTIF_IURAN_NRPS);
@@ -338,16 +339,22 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
     Array.isArray(financeConfig.campaigns) && financeConfig.campaigns.length > 0
       ? financeConfig.campaigns
       : DEFAULT_CAMPAIGNS;
-  const baseCampaigns: FundraisingCampaign[] = rawCampaigns.map((c) =>
-    c.id === 'cmp-anggota-md' && c.title.includes('Anggota yang MD')
-      ? {
-          ...c,
-          title: 'Dana Duka & Tali Asih Keluarga Besar WS96',
-          description:
-            'Dana duka kehormatan untuk tali asih, karangan bunga, dan santunan keluarga rekan Wira Satya 96 yang berpulang.',
-        }
-      : c
-  );
+  const baseCampaigns: FundraisingCampaign[] = rawCampaigns.map((c) => {
+    const normalized =
+      c.id === 'cmp-anggota-md' && c.title.includes('Anggota yang MD')
+        ? {
+            ...c,
+            title: 'Dana Duka & Tali Asih Keluarga Besar WS96',
+            description:
+              'Dana duka kehormatan untuk tali asih, karangan bunga, dan santunan keluarga rekan Wira Satya 96 yang berpulang.',
+          }
+        : c;
+    return {
+      ...normalized,
+      title: (normalized.title || '').replace(/^Milestone\s+/i, ''),
+      description: (normalized.description || '').replace(/\(milestone event\)\s*/gi, ''),
+    };
+  });
   const campaigns: FundraisingCampaign[] = syncCampaignsWithTransactions(
     baseCampaigns,
     localTransactions.length > 0 ? localTransactions : transactions
@@ -979,9 +986,9 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
   const getCategoryLabel = (code: string) => {
     const foundMasuk = financeConfig.subKategoriMasuk.find((c) => c.code === code);
-    if (foundMasuk) return foundMasuk.label;
+    if (foundMasuk) return foundMasuk.label.replace(/\/\s*Milestone\s+/i, '& ').replace(/Milestone\s+/gi, '');
     const foundKeluar = financeConfig.subKategoriKeluar.find((c) => c.code === code);
-    if (foundKeluar) return foundKeluar.label;
+    if (foundKeluar) return foundKeluar.label.replace(/Milestone\s+/gi, '');
     return code.replace(/_/g, ' ');
   };
 
@@ -1514,15 +1521,15 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                     </button>
                   </div>
                   <ul className="space-y-1 text-slate-200">
-                    <li>&bull; <b>1. Dana Sosial:</b> Milestone sukarela (Anak Yatim, Anggota Sakit, Dana Duka, Event).</li>
-                    <li>&bull; <b>2. Dana Investasi:</b> Penempatan Rupiah pada instrumen investasi/aset.</li>
+                    <li>&bull; <b>Dana Sosial:</b> Program sukarela (Anak Yatim, Anggota Sakit, Dana Duka, Event &amp; Baksos).</li>
+                    <li>&bull; <b>Dana Investasi:</b> Penempatan Rupiah pada instrumen investasi/aset.</li>
                     <li>&bull; <b>Buku Kas:</b> Terbagi 2 (Kas Dana Sosial &amp; Kas Dana Investasi).</li>
                   </ul>
                 </div>
               )}
             </div>
             <p className="text-[11px] text-emerald-200/80 truncate">
-              Milestone Sosial &bull; Dana Investasi &bull; Buku Kas
+              Program Sosial &bull; Dana Investasi &bull; Buku Kas
             </p>
           </div>
         </div>
@@ -1533,10 +1540,10 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <button
                 onClick={() => handleOpenCreateCampaign('EVENT_BAKSOS')}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs shadow-md transition-all whitespace-nowrap cursor-pointer"
-                title="Buat Program / Milestone Dana Sosial Baru"
+                title="Buat Program Dana Sosial Baru"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
-                Milestone
+                Program
               </button>
               <button
                 onClick={() => setIsAssetModalOpen(true)}
@@ -1756,12 +1763,12 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
         )}
       </div>
 
-      {/* Top KPI Cards — 1. Dana Sosial • 2. Dana Investasi • Buku Kas */}
+      {/* Top KPI Cards — Dana Sosial • Dana Investasi • Buku Kas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1. Dana Sosial & Milestone */}
+        {/* Dana Sosial */}
         <div className="bg-white p-5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/30 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-extrabold text-emerald-950">1. Dana Sosial (Milestone)</span>
+            <span className="text-xs font-extrabold text-emerald-950">Dana Sosial</span>
             <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold border border-emerald-200">
               {milestoneOverallPct}% Tercapai
             </span>
@@ -1783,10 +1790,10 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
           </div>
         </div>
 
-        {/* 2. Dana Investasi (Simpel dalam Rupiah untuk Investasi/Aset) */}
+        {/* Dana Investasi (Simpel dalam Rupiah untuk Investasi/Aset) */}
         <div className="bg-white p-5 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/40 via-white to-indigo-50/30 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-extrabold text-blue-950">2. Dana Investasi</span>
+            <span className="text-xs font-extrabold text-blue-950">Dana Investasi</span>
             <span className="p-1.5 rounded-xl bg-blue-100 text-blue-800">
               <Coins className="w-4 h-4" />
             </span>
@@ -1859,80 +1866,80 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
       {/* Main Tabs Navigation */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="flex border-b border-slate-200 bg-slate-50/70 p-2 gap-1.5 sm:gap-2 overflow-x-auto">
+        <div className="flex flex-wrap border-b border-slate-200 bg-slate-50/70 p-1.5 gap-1">
           <button
             onClick={() => setActiveTab('milestone')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'milestone'
                 ? 'bg-emerald-800 text-white shadow-sm'
                 : 'text-slate-600 hover:bg-slate-200/60'
             }`}
           >
             <span>🎯</span>
-            1. Dana Sosial ({campaigns.length})
+            Dana Sosial ({campaigns.length})
           </button>
 
           <button
             onClick={() => setActiveTab('aset')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'aset'
                 ? 'bg-blue-800 text-white shadow-sm'
                 : 'text-slate-600 hover:bg-slate-200/60'
             }`}
           >
-            <Coins className="w-4 h-4" />
-            2. Dana Investasi ({filteredAssets.length})
+            <Coins className="w-3.5 h-3.5" />
+            Investasi ({filteredAssets.length})
           </button>
 
           <button
             onClick={() => setActiveTab('bukuKas')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'bukuKas'
                 ? 'bg-slate-900 text-amber-300 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-200/60'
             }`}
           >
-            <CreditCard className="w-4 h-4" />
+            <CreditCard className="w-3.5 h-3.5" />
             Buku Kas ({filteredTransactions.length})
           </button>
 
           <button
             onClick={() => setActiveTab('santunan')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'santunan'
                 ? 'bg-red-700 text-white shadow-sm'
                 : 'text-slate-600 hover:bg-slate-200/60'
             }`}
           >
-            <Heart className="w-4 h-4" />
-            Atensi Sakit ({chronicIllMembers.length})
+            <Heart className="w-3.5 h-3.5" />
+            Kesehatan ({chronicIllMembers.length})
           </button>
 
           <button
             onClick={() => setActiveTab('pendidikan')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'pendidikan'
                 ? 'bg-purple-700 text-white shadow-sm'
                 : 'text-slate-600 hover:bg-slate-200/60'
             }`}
           >
-            <GraduationCap className="w-4 h-4" />
-            Anak Yatim ({collegeChildren.length})
+            <GraduationCap className="w-3.5 h-3.5" />
+            Pendidikan ({collegeChildren.length})
           </button>
         </div>
 
         {/* ============================================================== */}
-        {/* TAB 0: PROGRAM DANA SOSIAL & MILESTONE EVENT (KITABISA/SAWERIA) */}
+        {/* TAB 0: PROGRAM DANA SOSIAL                                     */}
         {/* ============================================================== */}
         {activeTab === 'milestone' && (
-          <div className="p-5 sm:p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-gradient-to-r from-emerald-50 via-teal-50/60 to-amber-50/40 border border-emerald-200 rounded-2xl px-4 py-3">
               <div className="flex items-center gap-2 flex-wrap relative">
                 <span className="px-2 py-0.5 rounded-full bg-emerald-700 text-white text-[10px] font-extrabold uppercase tracking-wider">
-                  Milestone Sosial
+                  Dana Sosial
                 </span>
                 <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">
-                  Program &amp; Milestone Dana Sosial WS96
+                  Program Dana Sosial
                 </h3>
                 <button
                   type="button"
@@ -1940,14 +1947,14 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                   onMouseEnter={() => setActiveTooltip('milestone')}
                   onMouseLeave={() => setActiveTooltip((v) => (v === 'milestone' ? null : v))}
                   className="w-4 h-4 rounded-full bg-emerald-700/15 hover:bg-emerald-700 text-emerald-800 hover:text-white inline-flex items-center justify-center cursor-pointer transition-all"
-                  aria-label="Info Milestone Dana Sosial"
+                  aria-label="Info Program Dana Sosial"
                 >
                   <Info className="w-3 h-3" />
                 </button>
                 {activeTooltip === 'milestone' && (
                   <div className="absolute left-0 top-full mt-1.5 w-72 p-3 rounded-xl bg-slate-900 text-white text-[11px] leading-relaxed shadow-xl z-40">
                     Penggalangan dana sukarela untuk <b>Anak Yatim</b>, <b>Anggota Sakit</b>,{' '}
-                    <b>Dana Duka</b>, dan <b>Event/Baksos</b> dengan target milestone fleksibel yang dapat diedit oleh Bendahara.
+                    <b>Dana Duka</b>, dan <b>Event/Baksos</b> dengan target dana yang dapat diatur oleh Bendahara.
                   </div>
                 )}
               </div>
@@ -1956,10 +1963,10 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                   type="button"
                   onClick={() => handleOpenCreateCampaign('EVENT_BAKSOS')}
                   className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold inline-flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap cursor-pointer"
-                  title="Buat Program / Milestone Dana Sosial Baru"
+                  title="Buat Program Dana Sosial Baru"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
-                  Buat Milestone
+                  Buat Program
                 </button>
               )}
             </div>
@@ -1969,7 +1976,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <button
                 type="button"
                 onClick={() => setCampaignFilter('SEMUA')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all whitespace-nowrap cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold border transition-all whitespace-nowrap cursor-pointer ${
                   campaignFilter === 'SEMUA'
                     ? 'bg-slate-900 text-amber-300 border-slate-900'
                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -1977,30 +1984,36 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               >
                 Semua ({campaigns.length})
               </button>
-              {(['ANAK_YATIM', 'ANGGOTA_SAKIT', 'ANGGOTA_MD', 'EVENT_BAKSOS', 'LAINNYA'] as CampaignCategory[]).map(
-                (cat) => {
-                  const meta = CAMPAIGN_CATEGORY_META[cat];
-                  const count = campaigns.filter((c) => c.category === cat).length;
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setCampaignFilter(cat)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all whitespace-nowrap cursor-pointer ${
-                        campaignFilter === cat
-                          ? 'bg-emerald-800 text-white border-emerald-800'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      {meta.icon} {meta.label} ({count})
-                    </button>
-                  );
-                }
-              )}
+              {(
+                [
+                  { cat: 'ANAK_YATIM' as CampaignCategory, shortLabel: '🤲 Yatim' },
+                  { cat: 'ANGGOTA_SAKIT' as CampaignCategory, shortLabel: '🏥 Sakit' },
+                  { cat: 'ANGGOTA_MD' as CampaignCategory, shortLabel: '🕊️ Duka' },
+                  { cat: 'EVENT_BAKSOS' as CampaignCategory, shortLabel: '🤝 Baksos' },
+                  { cat: 'LAINNYA' as CampaignCategory, shortLabel: '🎯 Lainnya' },
+                ] as const
+              ).map(({ cat, shortLabel }) => {
+                const count = campaigns.filter((c) => c.category === cat).length;
+                if (cat === 'LAINNYA' && count === 0) return null;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setCampaignFilter(cat)}
+                    className={`px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold border transition-all whitespace-nowrap cursor-pointer ${
+                      campaignFilter === cat
+                        ? 'bg-emerald-800 text-white border-emerald-800'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    {shortLabel} ({count})
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Milestone Cards Grid (Kitabisa / Saweria style) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Program Dana Sosial Cards Grid (Compact Mobile Accordion) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
               {filteredCampaigns.map((cmp) => {
                 const meta = CAMPAIGN_CATEGORY_META[cmp.category] || CAMPAIGN_CATEGORY_META.LAINNYA;
                 const pct =
@@ -2008,16 +2021,29 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                     ? Math.min(100, Math.round(((Number(cmp.collectedAmount) || 0) / cmp.targetAmount) * 100))
                     : 0;
                 const sisaDana = Math.max(0, (Number(cmp.collectedAmount) || 0) - (Number(cmp.disbursedAmount) || 0));
+                const isExpanded = expandedCampaignId === cmp.id;
 
                 return (
                   <div
                     key={cmp.id}
-                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                    className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
                   >
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-2">
+                    {/* Bagian Header Ringkas (Selalu Tampil & Bisa Diklik) */}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setExpandedCampaignId((prev) => (prev === cmp.id ? null : cmp.id))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setExpandedCampaignId((prev) => (prev === cmp.id ? null : cmp.id));
+                        }
+                      }}
+                      className="cursor-pointer select-none space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className={`px-2.5 py-0.5 rounded-full border text-[10px] font-extrabold ${meta.badge}`}>
+                          <span className={`px-2 py-0.5 rounded-full border text-[10px] font-extrabold ${meta.badge}`}>
                             {meta.icon} {meta.label}
                           </span>
                           <span
@@ -2030,103 +2056,100 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                             }`}
                           >
                             {cmp.status === 'TERCAPAI'
-                              ? '🏆 TERCAPAI'
+                              ? '🏆 Tercapai'
                               : cmp.status === 'SELESAI'
-                              ? 'SELESAI'
-                              : '● AKTIF'}
+                              ? 'Selesai'
+                              : '● Aktif'}
                           </span>
                         </div>
-                        {cmp.deadline && (
-                          <span className="text-[10px] text-slate-400 font-semibold whitespace-nowrap">
-                            s/d {formatHumanTimestamp(cmp.deadline)}
+                        <span className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 whitespace-nowrap shrink-0">
+                          {isExpanded ? 'Tutup ▴' : 'Detail ▾'}
+                        </span>
+                      </div>
+
+                      <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 mt-1">{cmp.title}</h4>
+
+                      <div className="space-y-1.5 pt-0.5">
+                        <div className="flex items-center justify-between gap-2 text-[11px] text-slate-600">
+                          <span>
+                            Terkumpul <b className="text-emerald-800">{formatRupiah(cmp.collectedAmount)}</b> dari{' '}
+                            <b className="text-slate-800">{formatRupiah(cmp.targetAmount)}</b> ({pct}%)
                           </span>
-                        )}
-                      </div>
-
-                      <div>
-                        <h4 className="text-sm sm:text-base font-extrabold text-slate-900">{cmp.title}</h4>
-                        <p className="text-xs text-slate-600 mt-1 leading-relaxed line-clamp-2" title={cmp.description}>
-                          {cmp.description}
-                        </p>
-                      </div>
-
-                      {/* Visual Milestone Progress Bar */}
-                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <div>
-                            <span className="text-[10px] font-bold text-slate-500 uppercase block">
-                              Terkumpul
-                            </span>
-                            <span className="text-lg sm:text-xl font-black text-emerald-800">
-                              {formatRupiah(cmp.collectedAmount)}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase block">
-                              Target
-                            </span>
-                            <span className="text-xs sm:text-sm font-extrabold text-slate-800">
-                              {formatRupiah(cmp.targetAmount)} ({pct}%)
-                            </span>
-                          </div>
                         </div>
-
-                        <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden p-0.5">
+                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                           <div
                             className={`h-full bg-gradient-to-r ${meta.barGradient} rounded-full transition-all duration-500 ws96-progress-fill`}
                             style={{ width: `${Math.max(pct, cmp.collectedAmount > 0 ? 4 : 0)}%` }}
                           />
                         </div>
+                      </div>
+                    </div>
 
-                        <div className="grid grid-cols-3 gap-2 pt-1 text-[11px]">
-                          <div className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-200/70">
+                    {/* Bagian Detail (Hanya Muncul Saat Diklik) */}
+                    {isExpanded && (
+                      <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
+                        <div className="space-y-1">
+                          {cmp.description && (
+                            <p className="text-xs text-slate-600 leading-relaxed">
+                              {cmp.description}
+                            </p>
+                          )}
+                          {cmp.deadline && (
+                            <p className="text-[10px] text-slate-400 font-semibold">
+                              Batas waktu: s/d {formatHumanTimestamp(cmp.deadline)}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 text-[11px]">
+                          <div className="bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200/70">
                             <span className="text-slate-400 block text-[10px]">Donatur</span>
                             <span className="font-extrabold text-slate-800">{cmp.donorCount || 0} Orang</span>
                           </div>
-                          <div className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-200/70">
+                          <div className="bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200/70">
                             <span className="text-slate-400 block text-[10px]">Disalurkan</span>
                             <span className="font-extrabold text-red-700">{formatRupiah(cmp.disbursedAmount || 0)}</span>
                           </div>
-                          <div className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-200/70">
+                          <div className="bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200/70">
                             <span className="text-slate-400 block text-[10px]">Siap Salur</span>
                             <span className="font-extrabold text-emerald-700">{formatRupiah(sisaDana)}</span>
                           </div>
                         </div>
-                      </div>
-                    </div>
 
-                    {canInputKas && (
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenMilestoneAction(cmp, 'DONASI')}
-                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold inline-flex items-center gap-1 shadow-xs transition-all cursor-pointer"
-                            title="Catat Donasi Masuk ke Milestone"
-                          >
-                            <PlusCircle className="w-3.5 h-3.5" />
-                            Donasi
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenMilestoneAction(cmp, 'SALURKAN')}
-                            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold inline-flex items-center gap-1 shadow-xs transition-all cursor-pointer"
-                            title="Salurkan Dana dari Milestone"
-                          >
-                            <ArrowDownRight className="w-3.5 h-3.5" />
-                            Salurkan
-                          </button>
-                        </div>
+                        {canInputKas && (
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenMilestoneAction(cmp, 'DONASI')}
+                                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold inline-flex items-center gap-1 shadow-xs transition-all cursor-pointer"
+                                title="Catat Donasi Masuk"
+                              >
+                                <PlusCircle className="w-3.5 h-3.5" />
+                                Donasi
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenMilestoneAction(cmp, 'SALURKAN')}
+                                className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold inline-flex items-center gap-1 shadow-xs transition-all cursor-pointer"
+                                title="Salurkan Dana Sosial"
+                              >
+                                <ArrowDownRight className="w-3.5 h-3.5" />
+                                Salurkan
+                              </button>
+                            </div>
 
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditCampaign(cmp)}
-                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold inline-flex items-center gap-1 transition-all cursor-pointer"
-                          title="Edit Target / Detail Milestone"
-                        >
-                          <Settings className="w-3.5 h-3.5" />
-                          Edit
-                        </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditCampaign(cmp)}
+                              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold inline-flex items-center gap-1 transition-all cursor-pointer"
+                              title="Edit Program Sosial"
+                            >
+                              <Settings className="w-3.5 h-3.5" />
+                              Edit
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -3154,7 +3177,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
       )}
 
       {/* ============================================================== */}
-      {/* MODAL 3A: BUAT / EDIT PROGRAM MILESTONE DANA SOSIAL            */}
+      {/* MODAL 3A: BUAT / EDIT PROGRAM DANA SOSIAL                      */}
       {/* ============================================================== */}
       {isCampaignModalOpen && canInputKas && (
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-2.5 pt-16 pb-20 sm:p-4">
@@ -3163,10 +3186,10 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <div>
                 <h3 className="text-sm font-bold flex items-center gap-2">
                   <span>🎯</span>
-                  {editingCampaignId ? 'Edit Program / Milestone Dana Sosial' : 'Buat Program / Milestone Baru'}
+                  {editingCampaignId ? 'Edit Program Sosial' : 'Buat Program Sosial'}
                 </h3>
                 <p className="text-[11px] text-emerald-200/80 mt-0.5">
-                  Atur judul, kategori, target milestone (Rp), dana terkumpul, dan status program.
+                  Atur judul, kategori, target dana (Rp), dana terkumpul, dan status program.
                 </p>
               </div>
               <button onClick={() => setIsCampaignModalOpen(false)} className="text-slate-300 hover:text-white">
@@ -3199,18 +3222,18 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold text-slate-900"
                   >
                     <option value="AKTIF">● AKTIF MENGGALANG</option>
-                    <option value="TERCAPAI">🏆 MILESTONE TERCAPAI</option>
+                    <option value="TERCAPAI">🏆 TARGET TERCAPAI</option>
                     <option value="SELESAI">SELESAI / DITUTUP</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Judul Program / Event Penggalangan Dana</label>
+                <label className="block font-bold text-slate-700 mb-1">Judul Program Penggalangan Dana</label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Santunan Anak Yatim / Bantuan Medis / Milestone Baksos WS96"
+                  placeholder="Contoh: Santunan Anak Yatim / Bantuan Medis / Baksos WS96"
                   value={cmpTitle}
                   onChange={(e) => setCmpTitle(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold text-slate-900"
@@ -3220,7 +3243,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
-                    Target Milestone (Rp) — {formatRupiah(cmpTarget)}
+                    Target Dana (Rp) — {formatRupiah(cmpTarget)}
                   </label>
                   <input
                     type="number"
@@ -3283,7 +3306,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">Deskripsi &amp; Tujuan Penggalangan Dana</label>
                 <textarea
                   rows={2}
-                  placeholder="Jelaskan peruntukan dana sosial atau milestone event ini..."
+                  placeholder="Jelaskan peruntukan program dana sosial ini..."
                   value={cmpDesc}
                   onChange={(e) => setCmpDesc(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300"
@@ -3315,7 +3338,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                     type="submit"
                     className="px-5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold shadow-md"
                   >
-                    Simpan Milestone
+                    Simpan Program
                   </button>
                 </div>
               </div>
@@ -3325,7 +3348,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
       )}
 
       {/* ============================================================== */}
-      {/* MODAL 3B: CATAT DONASI / SALURKAN DANA PADA MILESTONE          */}
+      {/* MODAL 3B: CATAT DONASI / SALURKAN DANA SOSIAL                  */}
       {/* ============================================================== */}
       {milestoneActionModal && canInputKas && (
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-2.5 pt-16 pb-20 sm:p-4">
@@ -3338,8 +3361,8 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <div>
                 <h3 className="text-sm font-extrabold">
                   {milestoneActionModal.mode === 'DONASI'
-                    ? 'Catat Donasi Masuk ke Milestone'
-                    : 'Salurkan Dana dari Milestone'}
+                    ? 'Catat Donasi Masuk'
+                    : 'Salurkan Dana Sosial'}
                 </h3>
                 <p className="text-[11px] opacity-85 mt-0.5">{milestoneActionModal.campaign.title}</p>
               </div>

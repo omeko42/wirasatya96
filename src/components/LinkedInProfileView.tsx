@@ -938,9 +938,15 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold border border-slate-200">
                       NRP {localMember.nrp}
                     </span>
-                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-50 text-red-900 font-extrabold border border-red-200">
-                      🎖️ {localMember.kompi || 'KOMPI A'} &bull; {localMember.pleton || 'PLETON 1'}
-                    </span>
+                    {isSuperadminAccount(localMember.nrp, effectiveRole) ? (
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 font-extrabold border border-blue-200">
+                        🛡️ Administrator Sistem
+                      </span>
+                    ) : (
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-50 text-red-900 font-extrabold border border-red-200">
+                        🎖️ {localMember.kompi || 'KOMPI A'} &bull; {localMember.pleton || 'PLETON 1'}
+                      </span>
+                    )}
                     {(() => {
                       const st = detectStatusKedinasan(
                         localMember.statusKedinasan || localMember.statusDinas,

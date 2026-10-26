@@ -35,8 +35,10 @@ import {
   getRoleRankOrder,
   detectStatusKedinasan,
   getStatusKedinasanOrder,
+  isSuperadminAccount,
   isSuperadminObject,
   formatHumanEnum,
+  formatHumanTimestamp,
   formatSatkerWithPolda,
   formatJabatanWithSatker,
 } from '@/lib/avatarUtils';
@@ -2234,7 +2236,14 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
     () =>
       users.filter(
         (u) =>
+          u.nrp !== '98010710' &&
           u.role !== 'SUPERADMIN' &&
+          !isSuperadminAccount(u.nrp, u.role, {
+            oldNrp: u.oldNrp,
+            id: u.id,
+            profileId: u.profileId,
+            nama: u.nama,
+          }) &&
           !isSuperadminObject(u as unknown as Record<string, unknown>)
       ),
     [users]
@@ -2329,6 +2338,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
   const filteredUsers = useMemo(() => {
     const q = userSearch.trim().toLowerCase();
     return visibleUsers.filter((u) => {
+      if (u.nrp === '98010710' || isSuperadminAccount(u.nrp, u.role, { nama: u.nama })) return false;
       if (roleFilter !== 'ALL' && u.role !== roleFilter) return false;
       if (!q) return true;
       return (
@@ -2478,6 +2488,55 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
       ).length,
     [registrations]
   );
+
+  const visibleAuditLogs = useMemo(() => {
+    return auditLogs.filter((log) => {
+      const targetNrpStr = String(log.targetNrp || '').trim();
+      const targetNamaLower = String(log.targetNama || log.targetName || '').toLowerCase();
+      const actorNamaLower = String(log.actorName || log.actorNama || '').toLowerCase();
+      if (
+        targetNrpStr === '98010710' ||
+        log.targetRole === 'SUPERADMIN' ||
+        targetNamaLower.includes('eko agung')
+      ) {
+        return false;
+      }
+      if (
+        targetNrpStr.includes('AKUN_CONTOH') ||
+        targetNamaLower.includes('simulasi') ||
+        actorNamaLower.includes('qa architect')
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [auditLogs]);
+
+  const filteredAuditLogs = useMemo(() => {
+    const q = auditSearch.trim().toLowerCase();
+    return visibleAuditLogs.filter((log) => {
+      if (auditFilterAction !== 'ALL' && log.action !== auditFilterAction) return false;
+      if (!q) return true;
+      const isActorSuperadmin =
+        log.actorNrp === '98010710' ||
+        log.actorRole === 'SUPERADMIN' ||
+        String(log.actorName || log.actorNama || '').toLowerCase().includes('eko agung');
+      const actorText = isActorSuperadmin
+        ? 'pengurus sistem'
+        : (log.actorName || log.actorNama || '').toLowerCase();
+      const targetText = (log.targetNama || log.targetName || '').toLowerCase();
+      return (
+        actorText.includes(q) ||
+        (!isActorSuperadmin && (log.actorNrp || '').toLowerCase().includes(q)) ||
+        targetText.includes(q) ||
+        (log.targetNrp || '').toLowerCase().includes(q) ||
+        (log.details || '').toLowerCase().includes(q) ||
+        (log.reason || '').toLowerCase().includes(q)
+      );
+    });
+  }, [visibleAuditLogs, auditFilterAction, auditSearch]);
+
+  const formatAuditTime = (timestamp?: string) => formatHumanTimestamp(timestamp);
 
   // Reset progressive render limit when search or filter changes
   useEffect(() => {
@@ -2891,7 +2950,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             ) : (
               <Lock className="w-3.5 h-3.5 text-amber-700" />
             )}
-            <span>Log Audit {hasAdminUserAccess ? `(${auditLogs.length})` : ''}</span>
+            <span>Log Audit {hasAdminUserAccess ? `(${visibleAuditLogs.length})` : ''}</span>
             {!hasAdminUserAccess && (
               <span className="hidden md:inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">
                 Khusus Pengurus
@@ -3027,7 +3086,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             <div className="mx-4 mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
               <Lock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
               <div className="leading-relaxed">
-                🔒 <strong>Mode Akses Anggota (Terbatas):</strong> Anda dapat melihat direktori akun personel dan memperbarui profil Anda sendiri. Fitur verifikasi pendaftaran, perubahan role, hapus akun, dan log audit dibatasi khusus untuk Pengurus (Superadmin / Ketua / Sekretaris).
+                🔒 <strong>Mode Akses Anggota (Terbatas):</strong> Anda dapat melihat direktori akun personel dan memperbarui profil Anda sendiri. Fitur verifikasi pendaftaran, perubahan peran, hapus akun, dan log audit dibatasi khusus untuk Pengurus (Ketua / Sekretaris).
               </div>
             </div>
           )}
@@ -3091,94 +3150,91 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                     <div
                       key={u.nrp}
                       style={{ contentVisibility: 'auto', containIntrinsicSize: '0 84px' }}
-                      className="bg-white rounded-xl border border-slate-200 p-3.5 hover:border-slate-300 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                      className="bg-white rounded-xl border border-slate-200 p-3.5 hover:border-slate-300 transition-colors flex flex-col xl:flex-row xl:items-center justify-between gap-2.5"
                     >
-                    <div className="space-y-1 flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (onViewMemberByNrp) {
-                              if (!asPage) onClose();
-                              onViewMemberByNrp(u.nrp);
-                            } else {
-                              handleStartEditUser(u);
-                            }
-                          }}
-                          className="font-bold text-sm text-slate-900 hover:text-red-800 transition-colors flex items-center gap-1.5 text-left cursor-pointer"
-                          title="Klik untuk melihat detail profil"
-                        >
-                          <span>{cleanNameNoRank}</span>
-                          <MetaVerifiedBadge role={u.role} nrp={u.nrp} size="sm" />
-                        </button>
-                        <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 font-semibold text-slate-600">
-                          NRP {u.nrp}
-                          {u.pangkat ? ` • ${u.pangkat}` : ''}
-                        </span>
-                        {dynamicJabatanAngkatan && (
-                          <span className="text-[11px] px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 font-bold text-amber-800">
-                            {dynamicJabatanAngkatan.short}
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onViewMemberByNrp) {
+                                if (!asPage) onClose();
+                                onViewMemberByNrp(u.nrp);
+                              } else {
+                                handleStartEditUser(u);
+                              }
+                            }}
+                            className="font-bold text-sm text-slate-900 hover:text-red-800 transition-colors flex items-center gap-1.5 text-left cursor-pointer"
+                            title="Klik untuk melihat detail profil"
+                          >
+                            <span>{cleanNameNoRank}</span>
+                            <MetaVerifiedBadge role={u.role} nrp={u.nrp} size="sm" />
+                          </button>
+                          <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 font-semibold text-slate-600">
+                            NRP {u.nrp}
+                            {u.pangkat ? ` • ${u.pangkat}` : ''}
                           </span>
-                        )}
-                        {statusDinas === 'ALMARHUM' ? (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300">
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-                            <span>Almarhum</span>
-                          </span>
-                        ) : statusDinas === 'PURNA_TUGAS' ? (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                            <span>Purna Tugas</span>
-                          </span>
-                        ) : statusDinas === 'PTDH' ? (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-md bg-red-50 text-red-800 border border-red-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                            <span>PTDH</span>
-                          </span>
-                        ) : isActive ? (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 ml-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            <span>Aktif</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-400 ml-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                            <span>Belum Aktivasi</span>
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Jabatan Terakhir di bawah nama */}
-                      <div className="text-xs font-semibold text-red-900 truncate">
-                        {formattedJabatanLine}
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span>{formatSatkerWithPolda(cleanSatker, u.polda || 'MABES POLRI')}</span>
-                        </span>
-                        <span className="flex items-center gap-1.5 flex-wrap">
-                          <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="font-mono text-slate-600">
-                            {u.email || `${u.nrp}@polri.go.id`}
-                          </span>
-                          {secondaryEmail && (
-                            <span className="text-slate-400">
-                              ({secondaryEmail})
+                          {dynamicJabatanAngkatan && (
+                            <span className="text-[11px] px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 font-bold text-amber-800">
+                              {dynamicJabatanAngkatan.short}
                             </span>
                           )}
-                        </span>
-                        {(u.noHp || regInfo?.noHp) && (
-                          <span className="flex items-center gap-1">
-                            <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <span>{u.noHp || regInfo?.noHp}</span>
-                          </span>
+                          {statusDinas === 'ALMARHUM' ? (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                              <span>Almarhum</span>
+                            </span>
+                          ) : statusDinas === 'PURNA_TUGAS' ? (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              <span>Purna Tugas</span>
+                            </span>
+                          ) : statusDinas === 'PTDH' ? (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-md bg-red-50 text-red-800 border border-red-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                              <span>PTDH</span>
+                            </span>
+                          ) : isActive ? (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 ml-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              <span>Aktif</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-400 ml-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                              <span>Belum Aktivasi</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Baris 2: Jabatan Terakhir + Satker/Polda penuh tanpa truncate pendek */}
+                        <div className="text-xs font-semibold text-red-900 leading-snug">
+                          {formattedJabatanLine}
+                          {!formattedJabatanLine.toUpperCase().includes((u.polda || '').toUpperCase()) && u.polda ? (
+                            <span className="text-slate-500 font-medium"> &bull; {u.polda}</span>
+                          ) : null}
+                        </div>
+
+                        {/* Kontak opsional ringkas (No HP / Email Pribadi saja) */}
+                        {((u.noHp || regInfo?.noHp) || secondaryEmail) && (
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+                            {(u.noHp || regInfo?.noHp) && (
+                              <span className="inline-flex items-center gap-1">
+                                <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span>{u.noHp || regInfo?.noHp}</span>
+                              </span>
+                            )}
+                            {secondaryEmail && (
+                              <span className="inline-flex items-center gap-1">
+                                <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span>{secondaryEmail}</span>
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap">
+                      <div className="pt-2 xl:pt-0 border-t xl:border-t-0 border-slate-100 flex items-center gap-1.5 flex-shrink-0 flex-wrap">
                       {hasAdminUserAccess ? (
                         <>
                           <select
@@ -3322,7 +3378,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             </h4>
             <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
               Otoritas verifikasi dan persetujuan pendaftaran akun alumni baru dibatasi khusus untuk{' '}
-              <strong>Superadmin, Ketua Angkatan, dan Sekretaris</strong>.
+              <strong>Ketua Angkatan dan Sekretaris</strong>.
             </p>
             <button
               type="button"
@@ -3546,8 +3602,8 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
               Log Audit &amp; Pemulihan Akun Khusus Pengurus
             </h4>
             <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
-              Riwayat aktivitas manajemen akun, reset password, dan pemulihan akun dibatasi khusus untuk{' '}
-              <strong>Superadmin, Ketua Angkatan, dan Sekretaris</strong>.
+              Riwayat aktivitas manajemen akun, reset sandi, dan pemulihan akun dibatasi khusus untuk{' '}
+              <strong>Ketua Angkatan dan Sekretaris</strong>.
             </p>
             <button
               type="button"
@@ -3559,8 +3615,8 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
           </div>
         ) : (
         <>
-          <div className="p-4 bg-slate-50 border-b border-slate-200 space-y-2.5">
-            {/* Filter & Pencarian Log Audit + Tombol Info Matriks Otoritas (Ramah HP) */}
+          <div className="p-3.5 sm:p-4 bg-slate-50 border-b border-slate-200">
+            {/* Filter & Pencarian Log Audit + Tooltip/Popover Ringkas Hak Akses */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -3568,7 +3624,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                   type="text"
                   value={auditSearch}
                   onChange={(e) => setAuditSearch(e.target.value)}
-                  placeholder="Cari pelaku, target, NRP, keterangan..."
+                  placeholder="Cari nama personel, NRP, atau keterangan..."
                   className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-red-800 focus:outline-none"
                 />
               </div>
@@ -3578,189 +3634,192 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                   onChange={(e) => setAuditFilterAction(e.target.value as 'ALL' | UserAuditAction)}
                   className="flex-1 sm:flex-initial px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-800"
                 >
-                  <option value="ALL">Semua Aktivitas ({auditLogs.length})</option>
+                  <option value="ALL">Semua Aktivitas ({visibleAuditLogs.length})</option>
+                  <option value="EDIT_USER">Edit Data</option>
+                  <option value="TAMBAH_USER">Tambah User</option>
+                  <option value="UBAH_ROLE">Ubah Peran</option>
+                  <option value="RESET_PASSWORD">Reset Sandi</option>
+                  <option value="PERMINTAAN_RESET_PASSWORD">Lupa Sandi</option>
+                  <option value="VERIFIKASI_PENDAFTAR">Verifikasi</option>
+                  <option value="HAPUS_USER">Hapus User</option>
+                  <option value="PULIHKAN_USER">Pulihkan User</option>
                   <option value="LOGIN_ADC">Login ADC</option>
                   <option value="AKTIVITAS_ADC">Aktivitas ADC</option>
-                  <option value="PERMINTAAN_RESET_PASSWORD">Lupa Password</option>
-                  <option value="RESET_PASSWORD">Reset Password</option>
-                  <option value="HAPUS_USER">Hapus Pengguna</option>
-                  <option value="PULIHKAN_USER">Pulihkan Pengguna</option>
-                  <option value="TAMBAH_USER">Tambah Pengguna</option>
-                  <option value="EDIT_USER">Edit Pengguna</option>
-                  <option value="UBAH_ROLE">Ubah Role</option>
-                  <option value="VERIFIKASI_PENDAFTAR">Verifikasi</option>
                 </select>
-                <button
-                  type="button"
-                  onClick={() => setShowAuditMatrixInfo((prev) => !prev)}
-                  title="Lihat Matriks Otoritas & Hak Hapus Pengguna"
-                  className={`sm:hidden px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1 shrink-0 transition-colors ${
-                    showAuditMatrixInfo
-                      ? 'bg-red-900 text-white border-red-900'
-                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                  }`}
-                >
-                  <Info className="w-3.5 h-3.5" />
-                  <span>Otoritas</span>
-                </button>
-              </div>
-            </div>
 
-            <div className={`${showAuditMatrixInfo ? 'block' : 'hidden'} sm:block bg-white border border-slate-200 rounded-xl p-3 text-xs space-y-2 animate-fadeIn`}>
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <span className="font-extrabold text-slate-800 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-red-800" />
-                  <span>Matriks Otoritas &amp; Hak Hapus<span className="hidden sm:inline"> Pengguna</span></span>
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  Wajib Konfirmasi + Log Audit
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-[11px]">
-                <div className="p-2 rounded-lg bg-slate-900 text-white">
-                  <div className="font-extrabold text-amber-300">1. SUPERADMIN</div>
-                  <div className="text-slate-300 mt-0.5">Kelola, hapus, &amp; pulihkan seluruh akun.</div>
-                </div>
-                <div className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-950">
-                  <div className="font-extrabold text-red-800">2. KETUA</div>
-                  <div className="text-red-900/80 mt-0.5">Kelola user, verifikasi, &amp; hapus Anggota / Pengurus di bawahnya.</div>
-                </div>
-                <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-950">
-                  <div className="font-extrabold text-amber-900">3. SEKRETARIS</div>
-                  <div className="text-amber-900/80 mt-0.5">Kelola user, verifikasi, &amp; hapus akun ANGGOTA.</div>
-                </div>
-                <div className="p-2 rounded-lg bg-slate-100 border border-slate-200 text-slate-700">
-                  <div className="font-extrabold text-slate-800">4. BENDAHARA / ANGGOTA</div>
-                  <div className="text-slate-500 mt-0.5">Tidak memiliki akses manajemen/hapus user.</div>
+                <div className="relative group shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowAuditMatrixInfo((prev) => !prev)}
+                    title="Lihat ringkasan Hak Akses Pengurus & Anggota"
+                    className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      showAuditMatrixInfo
+                        ? 'bg-red-900 text-white border-red-900'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Info className={`w-3.5 h-3.5 ${showAuditMatrixInfo ? 'text-amber-300' : 'text-red-800'}`} />
+                    <span>ⓘ Hak Akses</span>
+                  </button>
+
+                  <div
+                    className={`${
+                      showAuditMatrixInfo ? 'block' : 'hidden group-hover:block'
+                    } absolute right-0 top-full mt-1.5 z-30 w-72 sm:w-80 p-3 rounded-xl bg-slate-900 text-white border border-slate-700 shadow-xl text-[11px] space-y-2`}
+                  >
+                    <div className="font-extrabold text-amber-300 flex items-center justify-between border-b border-slate-700/80 pb-1.5">
+                      <span>Hak Akses Manajemen User</span>
+                      <span className="text-[10px] font-semibold text-slate-400">Wajib Konfirmasi</span>
+                    </div>
+                    <div className="space-y-1.5 leading-snug">
+                      <div>
+                        <span className="font-bold text-red-300">Ketua:</span>{' '}
+                        <span className="text-slate-200">
+                          Kelola user, verifikasi pendaftar, ubah peran, serta hapus/pulihkan akun Anggota &amp; Pengurus.
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-amber-300">Sekretaris:</span>{' '}
+                        <span className="text-slate-200">
+                          Kelola user, verifikasi pendaftar, reset sandi, serta hapus akun Anggota.
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-300">Bendahara / Anggota:</span>{' '}
+                        <span className="text-slate-400">
+                          Melihat direktori personel &amp; memperbarui profil pribadi (tanpa akses hapus user).
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2.5">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2">
             {(() => {
-              const q = auditSearch.trim().toLowerCase();
-              const filteredLogs = auditLogs.filter((log) => {
-                if (auditFilterAction !== 'ALL' && log.action !== auditFilterAction) return false;
-                if (!q) return true;
-                const actorText = (log.actorName || log.actorNama || '').toLowerCase();
-                const targetText = (log.targetNama || log.targetName || '').toLowerCase();
-                return (
-                  actorText.includes(q) ||
-                  (log.actorNrp || '').toLowerCase().includes(q) ||
-                  targetText.includes(q) ||
-                  (log.targetNrp || '').toLowerCase().includes(q) ||
-                  (log.details || '').toLowerCase().includes(q)
-                );
-              });
-
-              if (filteredLogs.length === 0) {
+              if (filteredAuditLogs.length === 0) {
                 return (
                   <div className="py-12 text-center">
                     <History className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                     <p className="font-bold text-slate-700 text-sm">Belum ada catatan aktivitas di Log Audit</p>
                     <p className="text-xs text-slate-400 mt-1">
-                      Setiap penghapusan, pemulihan, penambahan, perubahan data, login ADC, atau reset password pengguna akan otomatis tercatat di sini.
+                      Setiap perubahan data, penambahan, verifikasi, atau reset sandi pengguna akan tercatat secara otomatis.
                     </p>
                   </div>
                 );
               }
 
               const badgeStyleByAction: Record<UserAuditAction, { label: string; cls: string }> = {
-                HAPUS_USER: { label: 'HAPUS USER', cls: 'bg-red-100 text-red-800 border-red-200' },
-                PULIHKAN_USER: { label: 'PULIHKAN USER', cls: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
-                TAMBAH_USER: { label: 'TAMBAH USER', cls: 'bg-blue-100 text-blue-800 border-blue-200' },
-                EDIT_USER: { label: 'EDIT USER', cls: 'bg-amber-100 text-amber-900 border-amber-200' },
-                UBAH_ROLE: { label: 'UBAH ROLE', cls: 'bg-purple-100 text-purple-800 border-purple-200' },
-                VERIFIKASI_PENDAFTAR: { label: 'VERIFIKASI', cls: 'bg-teal-100 text-teal-800 border-teal-200' },
-                LOGIN_ADC: { label: 'LOGIN ADC', cls: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
-                AKTIVITAS_ADC: { label: 'AKTIVITAS ADC', cls: 'bg-cyan-100 text-cyan-800 border-cyan-200' },
-                RESET_PASSWORD: { label: 'RESET PASSWORD', cls: 'bg-orange-100 text-orange-800 border-orange-200' },
-                PERMINTAAN_RESET_PASSWORD: { label: 'LUPA PASSWORD', cls: 'bg-rose-100 text-rose-800 border-rose-200' },
+                HAPUS_USER: { label: 'Hapus User', cls: 'bg-red-50 text-red-700 border-red-200' },
+                PULIHKAN_USER: { label: 'Pulihkan User', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                TAMBAH_USER: { label: 'Tambah User', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+                EDIT_USER: { label: 'Edit Data', cls: 'bg-amber-50 text-amber-800 border-amber-200' },
+                UBAH_ROLE: { label: 'Ubah Peran', cls: 'bg-purple-50 text-purple-700 border-purple-200' },
+                VERIFIKASI_PENDAFTAR: { label: 'Verifikasi', cls: 'bg-teal-50 text-teal-700 border-teal-200' },
+                LOGIN_ADC: { label: 'Login ADC', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+                AKTIVITAS_ADC: { label: 'Aktivitas ADC', cls: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+                RESET_PASSWORD: { label: 'Reset Sandi', cls: 'bg-orange-50 text-orange-800 border-orange-200' },
+                PERMINTAAN_RESET_PASSWORD: { label: 'Lupa Sandi', cls: 'bg-rose-50 text-rose-700 border-rose-200' },
               };
 
-              return filteredLogs.map((log) => {
+              return filteredAuditLogs.map((log) => {
                 const badge = badgeStyleByAction[log.action] || {
-                  label: log.action,
+                  label: formatHumanEnum(log.action),
                   cls: 'bg-slate-100 text-slate-700 border-slate-200',
                 };
                 const isCurrentlyDeleted =
                   log.action === 'HAPUS_USER' &&
                   !users.some((u) => u.nrp === log.targetNrp);
-                const resolvedTargetNama = log.targetNama || log.targetName || log.targetNrp;
-                const resolvedActorName = log.actorName || log.actorNama || 'Admin';
+                const resolvedTargetNama = log.targetNama || log.targetName || log.targetNrp || 'Personel';
+                const cleanTargetNama = stripRankFromName(resolvedTargetNama) || resolvedTargetNama;
+
+                const isActorBehindTheScenes =
+                  log.actorNrp === '98010710' ||
+                  log.actorRole === 'SUPERADMIN' ||
+                  isSuperadminAccount(log.actorNrp, log.actorRole, {
+                    nama: log.actorName || log.actorNama,
+                  });
+                const cleanActorDisplay = isActorBehindTheScenes
+                  ? 'Pengurus / Sistem'
+                  : stripRankFromName(log.actorName || log.actorNama) ||
+                    log.actorName ||
+                    log.actorNama ||
+                    'Pengurus';
+
+                const rawSummary = (log.details || log.reason || 'Pembaruan data pengguna')
+                  .replace(/\bSEKRETARIAT\b/g, 'Sekretaris')
+                  .replace(/\bSUPERADMIN\b/g, 'Sistem')
+                  .replace(/\bANGGOTA\b/g, 'Anggota');
 
                 return (
                   <div
                     key={log.id}
-                    className="bg-white rounded-xl border border-slate-200 p-3.5 hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    className="bg-white rounded-xl border border-slate-200 px-3.5 py-2.5 hover:border-slate-300 transition-all flex items-center justify-between gap-3"
                   >
                     <div className="space-y-1 flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${badge.cls}`}>
-                          {badge.label}
-                        </span>
-                        <span className="font-bold text-xs text-slate-900">
-                          {log.targetPangkat ? `${log.targetPangkat} ` : ''}{stripRankFromName(resolvedTargetNama) || resolvedTargetNama} (NRP {log.targetNrp})
-                        </span>
-                        {log.targetRole && (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 font-semibold text-slate-600">
-                            {log.targetRole === 'SEKRETARIAT' ? 'SEKRETARIS' : log.targetRole}
+                      {/* Baris 1: Badge aksi singkat + Nama Personel Target + Waktu di kanan */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md border shrink-0 ${badge.cls}`}>
+                            {badge.label}
                           </span>
+                          <span className="font-bold text-xs text-slate-900 truncate">
+                            {cleanTargetNama}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-400 font-medium shrink-0 whitespace-nowrap">
+                          {formatAuditTime(log.timestamp)}
+                        </span>
+                      </div>
+
+                      {/* Baris 2: Ringkasan singkat + Oleh */}
+                      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-xs text-slate-600">
+                        <p className="truncate flex-1 min-w-[180px]">
+                          {rawSummary}
+                        </p>
+                        <span className="text-[11px] text-slate-400 shrink-0">
+                          Oleh: <strong className="text-slate-600 font-semibold">{cleanActorDisplay}</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    {((log.action === 'PERMINTAAN_RESET_PASSWORD' && log.targetNrp) || isCurrentlyDeleted) && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {log.action === 'PERMINTAAN_RESET_PASSWORD' && log.targetNrp && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleResetUserPassword({
+                                nrp: log.targetNrp,
+                                nama: resolvedTargetNama,
+                                pangkat: log.targetPangkat,
+                                role: log.targetRole,
+                              })
+                            }
+                            disabled={updatingUserNrp === log.targetNrp}
+                            className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-[11px] flex items-center gap-1 shrink-0 transition-colors disabled:opacity-50"
+                            title={`Penuhi permintaan lupa sandi dan reset ke WS96@${log.targetNrp}`}
+                          >
+                            <span>🔑 Reset Sandi</span>
+                          </button>
+                        )}
+
+                        {isCurrentlyDeleted && (
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreDeletedUser(log)}
+                            disabled={restoringLogId === log.id}
+                            className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold text-[11px] flex items-center gap-1 shrink-0 transition-colors disabled:opacity-50"
+                            title="Pulihkan kembali akun pengguna yang telah dihapus ini"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>{restoringLogId === log.id ? '...' : 'Pulihkan'}</span>
+                          </button>
                         )}
                       </div>
-
-                      <p className="text-xs text-slate-600">
-                        {log.details}
-                      </p>
-
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400 pt-0.5">
-                        <span>
-                          <span className="sm:hidden">Oleh:</span><span className="hidden sm:inline">Dieksekusi oleh:</span>{' '}
-                          <strong className="text-slate-700">
-                            {resolvedActorName} ({log.actorNrp ? `${log.actorNrp} • ` : ''}{log.actorRole === 'SEKRETARIAT' ? 'SEKRETARIS' : log.actorRole})
-                          </strong>
-                        </span>
-                        <span>
-                          {new Date(log.timestamp).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      {log.action === 'PERMINTAAN_RESET_PASSWORD' && log.targetNrp && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleResetUserPassword({
-                              nrp: log.targetNrp,
-                              nama: resolvedTargetNama,
-                              pangkat: log.targetPangkat,
-                              role: log.targetRole,
-                            })
-                          }
-                          disabled={updatingUserNrp === log.targetNrp}
-                          className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs flex items-center gap-1.5 shrink-0 transition-colors disabled:opacity-50"
-                          title={`Penuhi permintaan lupa password dan reset ke WS96@${log.targetNrp}`}
-                        >
-                          <span className="sm:hidden">🔑 Reset</span>
-                          <span className="hidden sm:inline">🔑 Reset ke WS96@{log.targetNrp}</span>
-                        </button>
-                      )}
-
-                      {isCurrentlyDeleted && (
-                        <button
-                          type="button"
-                          onClick={() => handleRestoreDeletedUser(log)}
-                          disabled={restoringLogId === log.id}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold text-xs flex items-center gap-1.5 shrink-0 transition-colors disabled:opacity-50"
-                          title="Pulihkan kembali akun pengguna yang telah dihapus ini"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>{restoringLogId === log.id ? '...' : <><span className="sm:hidden">Pulihkan</span><span className="hidden sm:inline">Pulihkan User</span></>}</span>
-                        </button>
-                      )}
-                    </div>
+                    )}
                   </div>
                 );
               });
