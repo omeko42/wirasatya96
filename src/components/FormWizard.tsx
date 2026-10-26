@@ -31,6 +31,7 @@ import {
   isSuperadminAccount,
 } from '@/lib/avatarUtils';
 import { SatkerBerjenjangModal } from '@/components/SatkerBerjenjangModal';
+import { MetaVerifiedBadge } from '@/components/MetaVerifiedBadge';
 import {
   getJabatanGroupsForPangkat,
   isStandardPolriJabatan,
@@ -2771,17 +2772,20 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-800 block truncate">
                   {formData.pangkat || 'Kombes Pol'} &bull; NRP {formData.nrp || '—'}
                 </span>
-                <h3 className="text-sm font-black text-slate-900 truncate">
-                  {formData.namaLengkap?.trim() || 'Personel Baru'}
+                <h3 className="text-sm font-black text-slate-900 truncate flex items-center gap-1">
+                  <span className="truncate">
+                    {formData.namaLengkap?.trim() || 'Personel Baru'}
+                  </span>
+                  <MetaVerifiedBadge
+                    nrp={formData.nrp}
+                    role={isEditingSelf ? activeUser.role : undefined}
+                    size="sm"
+                  />
                 </h3>
                 <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                  {isEditingSuperadmin ? (
-                    <span className="px-2 py-0.5 rounded-md bg-slate-800 text-amber-300 text-[10px] font-extrabold">
-                      Admin Sistem
-                    </span>
-                  ) : (
+                  {!isEditingSuperadmin && (formData.kompi || formData.pleton) && (
                     <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-extrabold">
-                      🎖️ {formData.kompi || 'KOMPI A'} &bull; {formData.pleton || 'PLETON 1'}
+                      🎖️ {[formData.kompi, formData.pleton].filter(Boolean).join(' • ')}
                     </span>
                   )}
                   <span

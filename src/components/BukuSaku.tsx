@@ -1065,10 +1065,12 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                     <MetaVerifiedBadge role={currentUser?.role} nrp={currentUser?.nrp} size="sm" />
                   </div>
                   <div className="text-[10px] text-slate-500 truncate">
-                    {isSuperadminAccount(currentUser?.nrp, currentUser?.role)
-                      ? 'Admin Sistem'
-                      : currentMemberObj?.pangkat || currentUser.pangkat}{' '}
-                    &bull; Profil Saya
+                    {currentMemberObj?.pangkat || currentUser.pangkat} &bull;{' '}
+                    {cleanJabatanOnly(
+                      currentMemberObj?.jabatanTerakhir === 'Lead Developer'
+                        ? 'Staf'
+                        : currentMemberObj?.jabatanTerakhir
+                    ) || 'Profil Saya'}
                   </div>
                 </div>
               </div>
@@ -1118,15 +1120,19 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                 </h3>
                 <p
                   className="text-[11px] text-slate-500 mt-0.5 line-clamp-2"
-                  title={
-                    isSuperadminAccount(currentUser?.nrp, currentUser?.role)
-                      ? 'Admin Sistem Wira Satya 96'
-                      : `${currentMemberObj?.pangkat || currentUser.pangkat} • ${formatJabatanWithSatker(currentMemberObj?.jabatanTerakhir, currentMemberObj?.satuanKerja || currentUser.satker)}`
-                  }
+                  title={`${currentMemberObj?.pangkat || currentUser.pangkat} • ${formatJabatanWithSatker(
+                    currentMemberObj?.jabatanTerakhir === 'Lead Developer'
+                      ? 'Staf'
+                      : currentMemberObj?.jabatanTerakhir,
+                    currentMemberObj?.satuanKerja || currentUser.satker || 'Bareskrim Polri'
+                  )}`}
                 >
-                  {isSuperadminAccount(currentUser?.nrp, currentUser?.role)
-                    ? 'Admin Sistem Wira Satya 96'
-                    : `${currentMemberObj?.pangkat || currentUser.pangkat} • ${formatJabatanWithSatker(currentMemberObj?.jabatanTerakhir, currentMemberObj?.satuanKerja || currentUser.satker)}`}
+                  {`${currentMemberObj?.pangkat || currentUser.pangkat} • ${formatJabatanWithSatker(
+                    currentMemberObj?.jabatanTerakhir === 'Lead Developer'
+                      ? 'Staf'
+                      : currentMemberObj?.jabatanTerakhir,
+                    currentMemberObj?.satuanKerja || currentUser.satker || 'Bareskrim Polri'
+                  )}`}
                 </p>
               </div>
             </div>
@@ -1135,57 +1141,39 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
             <div className={`${mobileOpenProfile ? 'block ws96-accordion-body' : 'hidden'} lg:block px-4 pb-4`}>
               <div className="pt-3 border-t border-slate-100 lg:mt-3 text-left space-y-1.5 text-xs">
                 <div className="flex items-center justify-between text-slate-500">
-                  <span>{isSuperadminAccount(currentUser?.nrp, currentUser?.role) ? 'ID Akun:' : 'NRP:'}</span>
+                  <span>NRP:</span>
                   <span className="font-mono font-bold text-slate-800">{currentUser.nrp}</span>
                 </div>
-                {!isSuperadminAccount(currentUser?.nrp, currentUser?.role) && (
-                  <>
-                    <div className="flex items-start justify-between gap-2 text-slate-500">
-                      <span className="shrink-0">Jabatan Polri:</span>
-                      <span
-                        className="font-bold text-slate-800 line-clamp-2 text-right leading-snug"
-                        title={cleanJabatanOnly(currentMemberObj?.jabatanTerakhir) || currentUser.satker || '-'}
-                      >
-                        {cleanJabatanOnly(currentMemberObj?.jabatanTerakhir) || currentUser.satker || '-'}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between gap-2 text-slate-500">
-                      <span className="shrink-0">Satker / Wilayah:</span>
-                      <span
-                        className="font-bold text-slate-700 line-clamp-2 text-right leading-snug"
-                        title={currentMemberObj?.satuanKerja || currentUser.polda || 'MABES POLRI'}
-                      >
-                        {currentMemberObj?.satuanKerja || currentUser.polda || 'MABES POLRI'}
-                      </span>
-                    </div>
-                  </>
-                )}
-                {(myEffectiveRole === 'KETUA' ||
-                  myEffectiveRole === 'SEKRETARIAT' ||
-                  myEffectiveRole === 'BENDAHARA') && (
-                  <div className="flex items-center justify-between gap-2 text-slate-500">
-                    <span className="shrink-0">Jabatan Angkatan:</span>
-                    <span className="font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-[10px]">
-                      {myEffectiveRole === 'KETUA' ? (
-                        'Ketua Angkatan'
-                      ) : myEffectiveRole === 'SEKRETARIAT' ? (
-                        <>
-                          <span className="sm:hidden">Sekretaris</span>
-                          <span className="hidden sm:inline">Sekretaris Angkatan</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="sm:hidden">Bendahara</span>
-                          <span className="hidden sm:inline">Bendahara Angkatan</span>
-                        </>
-                      )}
-                    </span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between text-slate-500">
-                  <span>Hak Akses:</span>
-                  <span className="font-bold text-slate-900">
-                    {formatHumanEnum(myEffectiveRole)}
+                <div className="flex items-start justify-between gap-2 text-slate-500">
+                  <span className="shrink-0">Jabatan Terakhir:</span>
+                  <span
+                    className="font-bold text-slate-800 line-clamp-2 text-right leading-snug"
+                    title={
+                      cleanJabatanOnly(
+                        currentMemberObj?.jabatanTerakhir === 'Lead Developer'
+                          ? 'Staf'
+                          : currentMemberObj?.jabatanTerakhir
+                      ) ||
+                      currentUser.satker ||
+                      '-'
+                    }
+                  >
+                    {cleanJabatanOnly(
+                      currentMemberObj?.jabatanTerakhir === 'Lead Developer'
+                        ? 'Staf'
+                        : currentMemberObj?.jabatanTerakhir
+                    ) ||
+                      currentUser.satker ||
+                      '-'}
+                  </span>
+                </div>
+                <div className="flex items-start justify-between gap-2 text-slate-500">
+                  <span className="shrink-0">Satker / Wilayah:</span>
+                  <span
+                    className="font-bold text-slate-700 line-clamp-2 text-right leading-snug"
+                    title={currentMemberObj?.satuanKerja || currentUser.satker || currentUser.polda || 'MABES POLRI'}
+                  >
+                    {currentMemberObj?.satuanKerja || currentUser.satker || currentUser.polda || 'MABES POLRI'}
                   </span>
                 </div>
               </div>
