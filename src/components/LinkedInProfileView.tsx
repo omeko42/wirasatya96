@@ -472,10 +472,20 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
     return `${displayMemberNameWithRank} adalah Perwira Polri alumni Akademi Kepolisian Negara Republik Indonesia (Akpol) Tahun 1996 Batalyon Wira Satya yang saat ini mengemban amanah sebagai ${localMember.jabatanTerakhir} pada ${localMember.satuanKerja} (${localMember.polda}).`;
   };
 
-  const displayedBio =
+  const displayedBio = (
     localMember.bio && localMember.bio.trim().length > 0
       ? localMember.bio
-      : getDefaultBioText();
+      : getDefaultBioText()
+  )
+    .replace(/^\[AKUN CONTOH_\d+\]\s*/i, '')
+    .trim();
+
+  const rhesusSymbol =
+    (localMember.rhesusDarah || '').toUpperCase().includes('NEGATIF') ||
+    (localMember.rhesusDarah || '').includes('-')
+      ? '-'
+      : '+';
+  const formattedGolDarah = `${localMember.golonganDarah || 'O'}${rhesusSymbol}`;
 
   const getJabatanAngkatanLabel = (role?: UserRole): string => {
     if (role === 'KETUA') return 'Ketua Angkatan';
@@ -972,17 +982,13 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                   <p className="text-xs text-slate-500 flex flex-wrap items-center gap-1.5 pt-1">
                     <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <span>
-                      {localMember.polda} • NRP {localMember.nrp}
+                      {localMember.polda}
+                      {localMember.alamatTempatTinggal &&
+                      localMember.alamatTempatTinggal.toUpperCase() !==
+                        (localMember.polda || '').toUpperCase()
+                        ? ` • ${localMember.alamatTempatTinggal}`
+                        : ''}
                     </span>
-                    <span>&bull;</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowContactModal(true)}
-                      className="text-red-900 font-bold hover:underline cursor-pointer"
-                    >
-                      <span className="sm:hidden">Kontak</span>
-                      <span className="hidden sm:inline">Info Kontak</span>
-                    </button>
                   </p>
                 </div>
               </div>
@@ -1094,7 +1100,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                         Kesehatan &amp; Gol. Darah:
                       </span>
                       <span className="font-bold text-emerald-700">
-                        {localMember.kondisiKesehatan} • Gol. {localMember.golonganDarah || 'O'}
+                        {localMember.kondisiKesehatan} • Gol. {formattedGolDarah}
                       </span>
                     </div>
                   </div>
@@ -1330,30 +1336,6 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                 {displayedBio}
               </p>
             )}
-
-            <div className="pt-2 flex flex-wrap gap-2 text-xs">
-              <span className="px-2.5 py-1 rounded-md bg-red-50 text-red-900 border border-red-200 font-extrabold">
-                🎖️ {localMember.kompi || 'KOMPI A'} &bull; {localMember.pleton || 'PLETON 1'}
-              </span>
-              <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold">
-                🎓 {localMember.pendidikanTerakhir || 'Pendidikan Polri'}
-              </span>
-              <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold">
-                🛡️ Pangkat: {localMember.pangkat}
-              </span>
-              <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold">
-                🏛️ {localMember.satuanKerja}
-              </span>
-              <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold">
-                📍 {localMember.polda}
-              </span>
-              <span className="px-2.5 py-1 rounded-md bg-red-50 text-red-800 border border-red-200 font-bold">
-                🩸 Gol. Darah: {localMember.golonganDarah || 'O'}
-              </span>
-              <span className="px-2.5 py-1 rounded-md bg-amber-50 text-amber-900 border border-amber-200 font-bold">
-                👕 Ukuran Aparel Personel: Baju ({localMember.ukuranBaju || '-'}) • Celana ({localMember.ukuranCelana || '-'}) • Sepatu ({localMember.ukuranSepatu || '-'})
-              </span>
-            </div>
           </div>
 
           {/* SECTION: UNGGAHAN */}
@@ -1601,25 +1583,25 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-slate-50/70 p-3.5 rounded-xl border border-slate-200">
                     <div>
-                      <span className="text-slate-500 block">Kondisi Kesehatan (4B):</span>
+                      <span className="text-slate-500 block">Kondisi Kesehatan:</span>
                       <span className="font-bold text-slate-900">
                         {localMember.kondisiKesehatan || 'BAIK'}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block">Golongan Darah &amp; Rhesus (4A):</span>
+                      <span className="text-slate-500 block">Golongan Darah &amp; Rhesus:</span>
                       <span className="font-extrabold text-red-700">
-                        Gol. {golonganDarah} ({rhesusDarah})
+                        Gol. {formattedGolDarah}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block">Postur Fisik TB / BB (4A):</span>
+                      <span className="text-slate-500 block">Postur Fisik TB / BB:</span>
                       <span className="font-bold text-slate-900">
                         {tbCm} cm / {bbKg} kg{bmiVal ? ` (IMT ${bmiVal})` : ''}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block">Visus Mata &amp; Olahraga (4A):</span>
+                      <span className="text-slate-500 block">Visus Mata &amp; Olahraga:</span>
                       <span className="font-semibold text-slate-900">
                         {localMember.kondisiMata || 'Normal'} &bull;{' '}
                         {localMember.frekuensiOlahraga || 'Rutin'}
@@ -1627,23 +1609,23 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block">Rutin MCU (4C):</span>
+                      <span className="text-slate-500 block">Rutin MCU:</span>
                       <span className="font-semibold text-slate-900">
                         {localMember.rutinMcu === 'YA' ? 'Ya (Rutin)' : 'Tidak'} • MCU:{' '}
                         {localMember.mcuTerakhir || '-'}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block">Asuransi &amp; BPJS (4C):</span>
+                      <span className="text-slate-500 block">Asuransi &amp; BPJS:</span>
                       <span className="font-bold text-emerald-700">{bpjsStatus}</span>{' '}
                       <span className="text-slate-600">({asuransiKesehatan})</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block">Alergi Obat / Makanan (4C):</span>
+                      <span className="text-slate-500 block">Alergi Obat / Makanan:</span>
                       <span className="font-semibold text-slate-900">{alergiText}</span>
                     </div>
                     <div className="sm:col-span-2">
-                      <span className="text-slate-500 block">Riwayat Penyakit &amp; Faskes Rujukan (4B):</span>
+                      <span className="text-slate-500 block">Riwayat Penyakit &amp; Faskes Rujukan:</span>
                       <span className="font-bold text-slate-900">{penyakitKronisText}</span>
                       {localMember.faskesRujukan && (
                         <span className="block text-[11px] text-slate-600 mt-0.5">
@@ -1662,7 +1644,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       <span className="font-semibold text-slate-800">{catatanMedisText}</span>
                     </div>
                     <div className="sm:col-span-3 pt-1 border-t border-slate-200/70">
-                      <span className="text-slate-500 block">Keterangan Kesehatan Lain-lain (4C):</span>
+                      <span className="text-slate-500 block">Keterangan Kesehatan Tambahan:</span>
                       <span className="font-semibold text-slate-800">
                         {localMember.kesehatanLainLain || 'Tidak ada catatan khusus tambahan'}
                       </span>
@@ -2067,7 +2049,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
         {/* RIGHT SIDEBAR (1 COL): LINKEDIN WIDGETS & REKAN DIREKTORI     */}
         {/* ============================================================== */}
         <div className="space-y-4">
-          {/* Widget 1: Info Akun (Sinkron dengan Isian Menu Data Diri 1B, 1C, 1E) */}
+          {/* Widget 1: Info Akun (Ringkas & Tanpa Duplikasi dengan Header) */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3 text-xs">
             <div className="flex items-center justify-between border-b pb-2.5">
               <span className="font-bold text-slate-900 text-sm inline-flex items-center gap-1.5">
@@ -2083,7 +2065,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                   type="button"
                   onClick={() => onEditProfile(localMember, 1)}
                   className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-200 text-red-800 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Ubah di Menu Data Diri (Lembar 1B, 1C, 1E)"
+                  title="Ubah di Menu Data Diri"
                 >
                   <Edit3 className="w-3 h-3" />
                   <span>Ubah</span>
@@ -2095,7 +2077,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
 
             <div>
               <span className="text-slate-500 block text-[11px]">
-                Kategori Personel (1B):
+                Kategori Personel:
               </span>
               <span className="font-extrabold text-slate-900">
                 {getPersonnelCategoryLabel()}
@@ -2104,81 +2086,50 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
 
             <div>
               <span className="text-slate-500 block text-[11px]">
-                Jabatan &amp; Satker (1B):
-              </span>
-              <span className="font-bold text-slate-900">
-                {cleanJabatanOnly(localMember.jabatanTerakhir)} ({localMember.satuanKerja})
-              </span>
-            </div>
-
-            <div>
-              <span className="text-slate-500 block text-[11px]">
-                Kompi &amp; Pleton (1C):
-              </span>
-              <span className="font-extrabold text-red-900">
-                {localMember.kompi || 'KOMPI A'} &bull; {localMember.pleton || 'PLETON 1'}
-              </span>
-            </div>
-
-            {(effectiveRole === 'KETUA' ||
-              effectiveRole === 'SEKRETARIAT' ||
-              effectiveRole === 'BENDAHARA') && (
-              <div>
-                <span className="text-slate-500 block text-[11px]">
-                  Jabatan Angkatan:
-                </span>
-                <span className="font-extrabold text-amber-800">
-                  {jabatanAngkatanLabel}
-                </span>
-              </div>
-            )}
-
-            {(() => {
-              const ret58 = calculateRetirement58(localMember.tanggalLahir, localMember.nrp);
-              return (
-                <div>
-                  <span className="text-slate-500 block text-[11px]">
-                    Tanggal Lahir &amp; BUP {RETIREMENT_AGE_POLRI} Thn (1C):
-                  </span>
-                  <span className="font-bold text-slate-800 block">
-                    {ret58.formattedTanggalLahir} ({ret58.usiaLabel})
-                  </span>
-                  <span className="text-[11px] font-semibold text-amber-800">
-                    Pensiun Thn {ret58.tahunPurnaTugas} • {ret58.sisaMasaDinasLabel}
-                  </span>
-                </div>
-              );
-            })()}
-
-            <div>
-              <span className="text-slate-500 block text-[11px]">
-                Pendidikan Terakhir (1C):
+                Pendidikan Terakhir:
               </span>
               <span className="font-bold text-slate-800">
                 {localMember.pendidikanTerakhir || '-'}
               </span>
             </div>
 
+            {(() => {
+              const ret58 = calculateRetirement58(localMember.tanggalLahir, localMember.nrp);
+              return (
+                <div>
+                  <span className="text-slate-500 block text-[11px]">
+                    Tempat, Tanggal Lahir &amp; Usia:
+                  </span>
+                  <span className="font-bold text-slate-800 block">
+                    {localMember.tempatLahir ? `${localMember.tempatLahir}, ` : ''}
+                    {ret58.formattedTanggalLahir} ({ret58.usiaLabel})
+                  </span>
+                </div>
+              );
+            })()}
+
             <div>
-              <span className="text-slate-500 block text-[11px]">Email Dinas (1E):</span>
+              <span className="text-slate-500 block text-[11px]">Email Dinas:</span>
               <span className="font-mono font-semibold text-slate-800 break-all">
                 {officialEmail}
               </span>
             </div>
 
-            <div>
-              <span className="text-slate-500 block text-[11px]">Email Pribadi (1E):</span>
-              <span className="font-mono font-semibold text-slate-700 break-all">
-                {secondaryEmail}
-              </span>
-            </div>
+            {secondaryEmail && secondaryEmail !== '—' && (
+              <div>
+                <span className="text-slate-500 block text-[11px]">Email Pribadi:</span>
+                <span className="font-mono font-semibold text-slate-700 break-all">
+                  {secondaryEmail}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Widget 1B: Aparel & Perlengkapan (Sinkron dengan Kategori 5: 5A) */}
+          {/* Widget 1B: Aparel & Perlengkapan */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3 text-xs">
             <div className="flex items-center justify-between border-b pb-2.5">
               <span className="font-bold text-slate-900 text-sm">
-                Aparel &amp; Perlengkapan (5A)
+                Aparel &amp; Perlengkapan
               </span>
               {canEditProfile && onEditProfile && (
                 <button
