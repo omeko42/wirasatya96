@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         action: 'CLEAR_DUMMY',
-        message: `Clearance Otomatis berhasil! Seluruh akun dummy_1 s/d dummy_5 beserta postingan, transaksi, aset, dan pesan simulasi telah dibersihkan. Data 261 anggota existing tetap aman & utuh.`,
+        message: `Clearance Otomatis berhasil! Seluruh AKUN CONTOH_1 s/d AKUN CONTOH_3 beserta postingan foto/video, transaksi, aset, dan obrolan simulasi telah dibersihkan. Data 261 anggota existing tetap aman & utuh.`,
         data: {
           ...result,
           members: serverStore.getMembers(),
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         action: 'SEED_DUMMY',
-        message: `Paket Data Dummy Simulasi (dummy_1 s/d dummy_5) berhasil dimuat ke seluruh fitur tanpa menggunakan figur asli!`,
+        message: `Paket Data Simulasi (AKUN CONTOH_1 s/d AKUN CONTOH_3, postingan foto & video, obrolan, usaha & kas) berhasil dimuat ke seluruh fitur tanpa menggunakan figur asli!`,
         data: {
           ...result,
           members: serverStore.getMembers(),

@@ -35,7 +35,7 @@ import {
   isSuperadminObject,
 } from '@/lib/avatarUtils';
 
-const STORAGE_VERSION = 'ws96_akpol96_real_v24_dummy_clean';
+const STORAGE_VERSION = 'ws96_akpol96_real_v25_akun_contoh_qa';
 const MAX_SESSION_DURATION_MS = 4 * 60 * 60 * 1000; // 4 jam batas sesi maksimal
 const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 jam tanpa aktivitas otomatis logout
 

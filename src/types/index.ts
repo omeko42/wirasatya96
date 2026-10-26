@@ -409,6 +409,7 @@ export interface FeedPost {
   badgeLabel?: string;
   content: string;
   imageUrl?: string;
+  videoUrl?: string;
   tags?: string[];
   createdAt: string;
   updatedAt?: string;

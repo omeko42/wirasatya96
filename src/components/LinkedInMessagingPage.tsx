@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AuthUser, AnggotaWiraSatya, ChatMessage } from '@/types';
 import { getAvatarUrl, isSuperadminAccount } from '@/lib/avatarUtils';
+import { processSecureImageUpload } from '@/lib/mediaSecurity';
 import { MetaVerifiedBadge } from './MetaVerifiedBadge';
 import { 
   Search, 
@@ -36,6 +37,8 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
   const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputText, setInputText] = useState('');
+  const [pendingAttachmentUrl, setPendingAttachmentUrl] = useState<string>('');
+  const [pendingAttachmentName, setPendingAttachmentName] = useState<string>('');
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const [newChatSearch, setNewChatSearch] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -324,13 +327,48 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
       )
     : [];
 
+  const handleAttachmentFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    if (file.type.startsWith('image/')) {
+      try {
+        const processed = await processSecureImageUpload(file, {
+          preset: 'POST',
+          actorNrp: currentUser.nrp,
+          ownerNrp: currentUser.nrp,
+        });
+        setPendingAttachmentUrl(processed.dataUrl);
+        setPendingAttachmentName(file.name);
+      } catch {
+        // ignore
+      }
+      return;
+    }
+    if (file.size <= 2 * 1024 * 1024) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setPendingAttachmentUrl(reader.result);
+          setPendingAttachmentName(file.name);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Send message handler
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || isSending || !activePartner) return;
+    if ((!inputText.trim() && !pendingAttachmentUrl) || isSending || !activePartner) return;
 
-    const text = inputText.trim();
+    const text =
+      inputText.trim() || `📎 Melampirkan file: ${pendingAttachmentName || 'Lampiran'}`;
+    const attachUrl = pendingAttachmentUrl || undefined;
+    const attachName = pendingAttachmentName || undefined;
     setInputText('');
+    setPendingAttachmentUrl('');
+    setPendingAttachmentName('');
     setIsSending(true);
 
     const optimisticMsg: ChatMessage = {
@@ -341,6 +379,8 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
       receiverNrp: activePartner.nrp,
       receiverName: activePartner.namaLengkap,
       text: text,
+      attachmentUrl: attachUrl,
+      attachmentName: attachName,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       createdAt: new Date().toISOString(),
       isRead: false,
@@ -365,6 +405,8 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
           receiverNrp: activePartner.nrp,
           receiverName: activePartner.namaLengkap,
           text: text,
+          attachmentUrl: attachUrl,
+          attachmentName: attachName,
         }),
       });
       const data = await res.json();
@@ -843,9 +885,37 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
                           <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
 
                           {msg.attachmentUrl && (
-                            <div className="mt-2 p-2 rounded-lg bg-black/10 flex items-center gap-2">
-                              <FileText className="w-4 h-4" />
-                              <span className="text-xs underline">{msg.attachmentName || 'Dokumen Terlampir'}</span>
+                            <div className="mt-2">
+                              {/^(data:image\/|\/|\S+\.(png|jpe?g|webp|gif|svg))/i.test(
+                                msg.attachmentUrl
+                              ) ? (
+                                <div className="rounded-xl overflow-hidden border border-black/10 max-w-xs bg-slate-900">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={msg.attachmentUrl}
+                                    alt={msg.attachmentName || 'Lampiran Foto'}
+                                    className="w-full max-h-48 object-cover"
+                                  />
+                                  {msg.attachmentName && (
+                                    <div className="px-2.5 py-1 bg-black/50 text-[10px] text-white truncate">
+                                      {msg.attachmentName}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <a
+                                  href={msg.attachmentUrl}
+                                  download={msg.attachmentName || 'lampiran'}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-2 rounded-lg bg-black/10 hover:bg-black/15 flex items-center gap-2 transition-colors"
+                                >
+                                  <FileText className="w-4 h-4 shrink-0" />
+                                  <span className="text-xs underline truncate">
+                                    {msg.attachmentName || 'Dokumen Terlampir'}
+                                  </span>
+                                </a>
+                              )}
                             </div>
                           )}
 
@@ -868,6 +938,28 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
               {/* Bottom Chat Input Bar */}
               <div className="p-3 border-t border-slate-200 bg-white flex-shrink-0">
                 <form onSubmit={handleSendMessage} className="space-y-2">
+                  {pendingAttachmentUrl && (
+                    <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Paperclip className="w-3.5 h-3.5 text-red-800 shrink-0" />
+                        <span className="font-bold text-slate-800 truncate">
+                          {pendingAttachmentName || 'Lampiran siap dikirim'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingAttachmentUrl('');
+                          setPendingAttachmentName('');
+                        }}
+                        className="p-1 text-slate-400 hover:text-red-600"
+                        title="Hapus lampiran"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -877,23 +969,22 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
                       className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-full text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-red-800"
                     />
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const preset = prompt('Masukkan URL dokumen/lampiran (misal PDF atau tautan OnlyOffice):');
-                        if (preset) {
-                          setInputText((prev) => (prev ? `${prev}\nLampiran: ${preset}` : `Lampiran Dokumen: ${preset}`));
-                        }
-                      }}
-                      className="p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                      title="Lampirkan Dokumen / Tautan Dinas"
+                    <label
+                      className="p-2 rounded-full text-slate-500 hover:text-red-800 hover:bg-red-50 transition-colors cursor-pointer"
+                      title="Lampirkan Foto atau Dokumen (PDF/Word)"
                     >
                       <Paperclip className="w-4 h-4" />
-                    </button>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf,.doc,.docx"
+                        onChange={handleAttachmentFileChange}
+                        className="hidden"
+                      />
+                    </label>
 
                     <button
                       type="submit"
-                      disabled={!inputText.trim() || isSending}
+                      disabled={(!inputText.trim() && !pendingAttachmentUrl) || isSending}
                       className="p-2.5 rounded-full bg-red-800 hover:bg-red-900 disabled:opacity-50 text-white transition-all shadow-sm active:scale-95"
                       title="Kirim Pesan"
                     >

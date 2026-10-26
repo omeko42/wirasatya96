@@ -960,6 +960,78 @@ export function readDb(): GlobalStore {
         cleanedAuditLogs.push(log);
       }
 
+      // Automatically migrate legacy dummy_1..dummy_5 records to AKUN CONTOH_1..AKUN CONTOH_3 if dummy mode is active
+      const hasLegacyDummy =
+        loadedMembers.some(
+          (m) =>
+            m.nrp === '99960004' ||
+            m.nrp === '99960005' ||
+            String(m.namaLengkap || '').toLowerCase().startsWith('dummy_')
+        ) ||
+        (Array.isArray(parsed.posts) &&
+          parsed.posts.some((p: FeedPost) => String(p?.authorName || '').toLowerCase().startsWith('dummy_')));
+
+      if (hasLegacyDummy && !deletedSet.has('99960001')) {
+        const cleanMembers = [
+          ...DUMMY_MEMBERS.map((m) => ({ ...m })),
+          ...loadedMembers.filter((m) => !isDummySimulationRecord({ id: m.id, nrp: m.nrp, namaLengkap: m.namaLengkap })),
+        ];
+        loadedMembers.length = 0;
+        loadedMembers.push(...cleanMembers);
+
+        const nonDummyUsers = loadedUsers.filter(
+          (u) => !isDummySimulationRecord({ id: u.id, nrp: u.nrp, nama: u.nama })
+        );
+        const superadminUsers = nonDummyUsers.filter((u) => isSuperadminItem(u));
+        const otherRealUsers = nonDummyUsers.filter((u) => !isSuperadminItem(u));
+        loadedUsers.length = 0;
+        loadedUsers.push(...superadminUsers, ...DUMMY_USERS.map((u) => ({ ...u })), ...otherRealUsers);
+
+        const cleanIuran = [
+          ...DUMMY_IURAN_LIST.map((i) => ({ ...i })),
+          ...loadedIuran.filter((i) => !isDummySimulationRecord({ id: i.id, nrp: i.nrp, namaLengkap: i.namaLengkap })),
+        ];
+        loadedIuran.length = 0;
+        loadedIuran.push(...cleanIuran);
+
+        parsed.posts = [
+          ...DUMMY_POSTS.map((p) => ({ ...p, comments: (p.comments || []).map((c) => ({ ...c })) })),
+          ...(Array.isArray(parsed.posts) ? parsed.posts : []).filter(
+            (p: FeedPost) => !isDummySimulationRecord({ id: p.id, authorNrp: p.authorNrp, authorName: p.authorName })
+          ),
+        ];
+        parsed.transactions = [
+          ...DUMMY_TRANSACTIONS.map((t) => ({ ...t })),
+          ...(Array.isArray(parsed.transactions) ? parsed.transactions : []).filter(
+            (t: KasTransaction) =>
+              !isDummySimulationRecord({
+                id: t.id,
+                nrpTerkait: t.nrpTerkait,
+                nomorReferensi: t.nomorReferensi,
+                pihakTerkait: t.pihakTerkait,
+              })
+          ),
+        ];
+        parsed.assets = [
+          ...DUMMY_ASSETS.map((a) => ({ ...a })),
+          ...(Array.isArray(parsed.assets) ? parsed.assets : []).filter(
+            (a: AssetPortfolioItem) => !isDummySimulationRecord({ id: a.id, namaAset: a.namaAset })
+          ),
+        ];
+        parsed.messages = [
+          ...DUMMY_MESSAGES.map((m) => ({ ...m })),
+          ...(Array.isArray(parsed.messages) ? parsed.messages : []).filter(
+            (m: ChatMessage) =>
+              !isDummySimulationRecord({
+                id: m.id,
+                senderNrp: m.senderNrp,
+                receiverNrp: m.receiverNrp,
+                senderName: m.senderName,
+              })
+          ),
+        ];
+      }
+
       return {
         members: loadedMembers,
         users: loadedUsers,
@@ -1642,12 +1714,12 @@ export const serverStore = {
       actorName: actor?.actorName || 'Superadmin',
       actorNrp: actor?.actorNrp || '98010710',
       actorRole: actor?.actorRole || 'SUPERADMIN',
-      targetNrp: 'DUMMY_1..DUMMY_5',
-      targetNama: 'Clearance Otomatis Akun & Data Dummy Simulasi',
+      targetNrp: 'AKUN_CONTOH_1..3',
+      targetNama: 'Clearance Otomatis Akun Contoh & Data Simulasi',
       targetPangkat: 'Sistem',
       targetRole: 'ANGGOTA',
-      reason: 'Clearance otomatis seluruh akun dummy_1 s/d dummy_5 beserta postingan, kas, aset, dan pesan simulasi',
-      details: `Dibersihkan: ${purgedMembers} profil dummy, ${purgedPosts} postingan, ${purgedTransactions} transaksi, ${purgedAssets} aset, ${purgedMessages} pesan. 261 anggota asli tetap utuh.`,
+      reason: 'Clearance otomatis seluruh AKUN CONTOH_1 s/d AKUN CONTOH_3 beserta postingan, kas, aset, dan obrolan simulasi',
+      details: `Dibersihkan: ${purgedMembers} profil contoh, ${purgedPosts} postingan, ${purgedTransactions} transaksi, ${purgedAssets} aset, ${purgedMessages} obrolan. 261 anggota asli tetap utuh.`,
     });
 
     persistLocalStore(globalStore);
@@ -1760,12 +1832,12 @@ export const serverStore = {
       actorName: actor?.actorName || 'Superadmin',
       actorNrp: actor?.actorNrp || '98010710',
       actorRole: actor?.actorRole || 'SUPERADMIN',
-      targetNrp: 'DUMMY_1..DUMMY_5',
-      targetNama: 'Injeksi Paket Data Dummy Simulasi (dummy_1 s/d dummy_5)',
+      targetNrp: 'AKUN_CONTOH_1..3',
+      targetNama: 'Injeksi Paket Data Simulasi (AKUN CONTOH_1 s/d AKUN CONTOH_3)',
       targetPangkat: 'Sistem',
       targetRole: 'ANGGOTA',
-      reason: 'Pemasangan data simulasi menggunakan akun dummy_1 s/d dummy_5 agar tidak menyentuh figur asli',
-      details: `Dimuat: ${DUMMY_MEMBERS.length} akun dummy, ${DUMMY_POSTS.length} postingan, ${DUMMY_TRANSACTIONS.length} transaksi, ${DUMMY_ASSETS.length} aset, ${DUMMY_MESSAGES.length} pesan.`,
+      reason: 'Pemasangan data simulasi menggunakan AKUN CONTOH_1 s/d AKUN CONTOH_3 agar tidak menyentuh figur asli',
+      details: `Dimuat: ${DUMMY_MEMBERS.length} akun contoh, ${DUMMY_POSTS.length} postingan (foto & video), ${DUMMY_TRANSACTIONS.length} transaksi, ${DUMMY_ASSETS.length} aset, ${DUMMY_MESSAGES.length} obrolan.`,
     });
 
     persistLocalStore(globalStore);
@@ -4008,6 +4080,7 @@ export const serverStore = {
     updates: {
       content?: string;
       imageUrl?: string | null;
+      videoUrl?: string | null;
       category?: FeedPost['category'];
       pinned?: boolean;
       tags?: string[];
@@ -4033,6 +4106,9 @@ export const serverStore = {
     }
     if (updates.imageUrl !== undefined) {
       p.imageUrl = updates.imageUrl || undefined;
+    }
+    if (updates.videoUrl !== undefined) {
+      p.videoUrl = updates.videoUrl || undefined;
     }
     if (updates.category) {
       p.category = updates.category;

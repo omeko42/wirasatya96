@@ -44,6 +44,7 @@ interface LinkedInPostCardProps {
     updates: {
       content?: string;
       imageUrl?: string | null;
+      videoUrl?: string | null;
       category?: FeedPost['category'];
       pinned?: boolean;
       isPinned?: boolean;
@@ -120,6 +121,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
     post.category || 'MOTIVASI'
   );
   const [editPostImage, setEditPostImage] = useState<string | null>(post.imageUrl || null);
+  const [editPostVideo, setEditPostVideo] = useState<string | null>(post.videoUrl || null);
   const [confirmDeletePost, setConfirmDeletePost] = useState(false);
 
   // Close dropdown menu smoothly on outside click or Escape key
@@ -239,6 +241,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
     setEditPostContent(post.content || '');
     setEditPostCategory(post.category || 'MOTIVASI');
     setEditPostImage(post.imageUrl || null);
+    setEditPostVideo(post.videoUrl || null);
     setIsEditingPost(true);
     setShowMoreMenu(false);
     setConfirmDeletePost(false);
@@ -262,12 +265,13 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
 
   const handleSaveEditPost = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editPostContent.trim() && !editPostImage) return;
+    if (!editPostContent.trim() && !editPostImage && !editPostVideo) return;
     if (onEditPost) {
       onEditPost(post.id, {
         content: editPostContent.trim(),
         category: editPostCategory,
         imageUrl: editPostImage,
+        videoUrl: editPostVideo,
       });
     }
     setIsEditingPost(false);
@@ -927,6 +931,26 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
             </div>
           )}
 
+          {editPostVideo && (
+            <div className="relative rounded-xl overflow-hidden border border-slate-200 max-h-60 bg-slate-950">
+              <video
+                src={editPostVideo}
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full max-h-52 object-contain bg-black"
+              />
+              <button
+                type="button"
+                onClick={() => setEditPostVideo(null)}
+                className="absolute top-2 right-2 px-2.5 py-1 rounded-full bg-slate-900/85 hover:bg-red-600 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Hapus Video</span>
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-slate-200/80">
             <label className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors">
               <ImageIcon className="w-3.5 h-3.5 text-red-800" />
@@ -949,7 +973,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={!editPostContent.trim() && !editPostImage}
+                disabled={!editPostContent.trim() && !editPostImage && !editPostVideo}
                 className="px-4 py-1.5 rounded-xl bg-red-800 hover:bg-red-900 text-white text-xs font-bold shadow-xs disabled:bg-slate-200 disabled:text-slate-400 transition-colors cursor-pointer"
               >
                 Simpan
@@ -963,6 +987,31 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
           {post.content && (
             <div className="px-4 py-2 text-xs sm:text-sm text-slate-800 whitespace-pre-line leading-relaxed font-normal">
               {renderFormattedContent(post.content)}
+            </div>
+          )}
+
+          {/* Post Attached Video (Playable HTML5 Video or Embedded YouTube) */}
+          {post.videoUrl && (
+            <div className="mt-2 bg-slate-950 border-y border-slate-800 overflow-hidden max-h-[460px] flex items-center justify-center">
+              {/youtube\.com|youtu\.be/i.test(post.videoUrl) ? (
+                <iframe
+                  src={post.videoUrl
+                    .replace('watch?v=', 'embed/')
+                    .replace('youtu.be/', 'www.youtube.com/embed/')}
+                  title="Video Postingan Wira Satya 96"
+                  className="w-full aspect-video max-h-[460px]"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={post.videoUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full max-h-[460px] object-contain bg-black"
+                />
+              )}
             </div>
           )}
 

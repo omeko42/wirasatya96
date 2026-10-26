@@ -2902,7 +2902,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
         </div>
       )}
 
-      {/* Panel Kontrol Data Dummy Simulasi (Khusus Superadmin) */}
+      {/* Panel Kontrol Data Simulasi Akun Contoh (Khusus Superadmin) */}
       {canImpersonate && (
         <div className="px-4 py-3 bg-gradient-to-r from-amber-50 via-red-50/60 to-amber-50 border-b border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="min-w-0">
@@ -2911,7 +2911,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 Superadmin Control
               </span>
               <span className="text-xs font-extrabold text-slate-900">
-                Simulasi Akun Dummy (<code className="text-red-800">dummy_1</code> s/d <code className="text-red-800">dummy_5</code>)
+                Data Simulasi Akun Contoh (<code className="text-red-800">AKUN CONTOH_1</code> s/d <code className="text-red-800">AKUN CONTOH_3</code>)
               </span>
               <span
                 className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
@@ -2921,12 +2921,12 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 }`}
               >
                 {dummyUsersCount > 0
-                  ? `Aktif: ${dummyUsersCount} Akun Dummy + Postingan, Anev, Kas & Chat`
+                  ? `Aktif: ${dummyUsersCount} Akun Contoh + Postingan Foto/Video, Anev, Kas & Obrolan`
                   : 'Status: Bersih (Hanya 261 Anggota Existing)'}
               </span>
             </div>
             <p className="text-[11px] text-slate-600 mt-0.5">
-              Seluruh data contoh pada Linimasa, Anev (Kesehatan, Kontrak Rumah, Usaha Bersama &amp; Open Lowongan Kerja), Dansos, dan Chat diisi oleh <span className="font-semibold text-slate-800">dummy_1..dummy_5</span> tanpa menyentuh figur asli di DB.
+              Seluruh data contoh pada Linimasa (Foto &amp; Video), Anev (Kesehatan, Kontrak Rumah, Usaha Bersama &amp; Open Lowongan Kerja), Dansos, dan Obrolan diisi oleh <span className="font-semibold text-slate-800">AKUN CONTOH_1 s/d AKUN CONTOH_3</span> tanpa menyentuh figur asli di DB.
             </p>
           </div>
 
@@ -2941,8 +2941,8 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>
                   {dummyActionLoading === 'CLEAR_DUMMY'
-                    ? 'Membersihkan Dummy...'
-                    : 'Clearance Semua Data Dummy (Otomatis)'}
+                    ? 'Membersihkan Data Contoh...'
+                    : 'Clearance Data Contoh (Otomatis)'}
                 </span>
               </button>
             ) : null}
@@ -2955,10 +2955,10 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
               <RotateCcw className={`w-3.5 h-3.5 ${dummyActionLoading === 'SEED_DUMMY' ? 'animate-spin' : ''}`} />
               <span>
                 {dummyActionLoading === 'SEED_DUMMY'
-                  ? 'Memuat Dummy...'
+                  ? 'Memuat Akun Contoh...'
                   : dummyUsersCount > 0
-                  ? 'Reset / Muat Ulang Dummy'
-                  : 'Pasang Data Dummy (dummy_1 - dummy_5)'}
+                  ? 'Reset / Muat Ulang Akun Contoh'
+                  : 'Pasang Data Contoh (AKUN CONTOH_1 - 3)'}
               </span>
             </button>
           </div>

@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
         {
           content: body.content,
           imageUrl: body.imageUrl,
+          videoUrl: body.videoUrl,
           category: body.category,
           pinned: body.pinned,
           tags: body.tags,
@@ -136,9 +137,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: !!updated, post: updated, posts: serverStore.getPosts() });
     }
 
-    // Default: CREATE post (allow text, photo, or both)
-    if (!body.content?.trim() && !body.imageUrl) {
-      return NextResponse.json({ success: false, message: 'Konten atau foto postingan wajib diisi' }, { status: 400 });
+    // Default: CREATE post (allow text, photo, video, or combination)
+    if (!body.content?.trim() && !body.imageUrl && !body.videoUrl) {
+      return NextResponse.json(
+        { success: false, message: 'Konten, foto, atau video postingan wajib diisi' },
+        { status: 400 }
+      );
     }
 
     const created = serverStore.addPost({
@@ -154,6 +158,7 @@ export async function POST(req: NextRequest) {
       category: body.category || 'MOTIVASI',
       content: (body.content || '').trim(),
       imageUrl: body.imageUrl,
+      videoUrl: body.videoUrl,
       tags: body.tags,
     });
 

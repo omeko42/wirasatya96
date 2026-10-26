@@ -281,6 +281,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
   const [feedCategoryFilter, setFeedCategoryFilter] = useState<string>('SEMUA');
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   const [openCreatePostWithImage, setOpenCreatePostWithImage] = useState(false);
+  const [openCreatePostWithVideo, setOpenCreatePostWithVideo] = useState(false);
   const [memberOverrides, setMemberOverrides] = useState<Record<string, AnggotaWiraSatya>>({});
 
   useEffect(() => {
@@ -512,6 +513,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
     updates: {
       content?: string;
       imageUrl?: string | null;
+      videoUrl?: string | null;
       category?: FeedPost['category'];
       pinned?: boolean;
       isPinned?: boolean;
@@ -536,11 +538,18 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
             : updates.imageUrl !== undefined
             ? updates.imageUrl
             : p.imageUrl,
+        videoUrl:
+          updates.videoUrl === null
+            ? undefined
+            : updates.videoUrl !== undefined
+            ? updates.videoUrl
+            : p.videoUrl,
         pinned: nextPinned !== undefined ? nextPinned : p.pinned,
         isPinned: nextPinned !== undefined ? nextPinned : p.isPinned ?? p.pinned,
         isEdited:
           updates.content !== undefined ||
           updates.imageUrl !== undefined ||
+          updates.videoUrl !== undefined ||
           updates.category !== undefined
             ? true
             : p.isEdited,
@@ -1594,6 +1603,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
               <button
                 onClick={() => {
                   setOpenCreatePostWithImage(false);
+                  setOpenCreatePostWithVideo(false);
                   setIsCreatePostModalOpen(true);
                 }}
                 className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200/80 rounded-full text-left text-xs text-slate-500 font-medium transition-colors border border-slate-200 hover:text-slate-800 truncate"
@@ -1606,6 +1616,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
               <button
                 onClick={() => {
                   setOpenCreatePostWithImage(true);
+                  setOpenCreatePostWithVideo(false);
                   setIsCreatePostModalOpen(true);
                 }}
                 className="flex items-center gap-1.5 sm:gap-2 hover:text-red-900 transition-colors p-1 whitespace-nowrap"
@@ -1615,7 +1626,8 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
               </button>
               <button
                 onClick={() => {
-                  setOpenCreatePostWithImage(true);
+                  setOpenCreatePostWithImage(false);
+                  setOpenCreatePostWithVideo(true);
                   setIsCreatePostModalOpen(true);
                 }}
                 className="flex items-center gap-1.5 sm:gap-2 hover:text-emerald-600 transition-colors p-1 whitespace-nowrap"
@@ -1626,6 +1638,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
               <button
                 onClick={() => {
                   setOpenCreatePostWithImage(false);
+                  setOpenCreatePostWithVideo(false);
                   setIsCreatePostModalOpen(true);
                 }}
                 className="flex items-center gap-1.5 sm:gap-2 hover:text-amber-600 transition-colors p-1 whitespace-nowrap"
@@ -1741,10 +1754,12 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
         onClose={() => {
           setIsCreatePostModalOpen(false);
           setOpenCreatePostWithImage(false);
+          setOpenCreatePostWithVideo(false);
         }}
         currentUser={{ ...currentUser, fotoUrl: myResolvedAvatarUrl }}
         onSubmitPost={handleCreatePost}
         initialOpenImagePicker={openCreatePostWithImage}
+        initialOpenVideoPicker={openCreatePostWithVideo}
       />
     </div>
   );

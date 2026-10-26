@@ -58,9 +58,9 @@ export async function POST(request: Request) {
       attachmentName,
     } = body;
 
-    if (!senderNrp || !receiverNrp || !text?.trim()) {
+    if (!senderNrp || !receiverNrp || (!text?.trim() && !attachmentUrl)) {
       return NextResponse.json(
-        { success: false, error: 'Data pengirim, penerima, dan pesan wajib diisi.' },
+        { success: false, error: 'Data pengirim, penerima, dan pesan/lampiran wajib diisi.' },
         { status: 400 }
       );
     }
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       senderAvatar,
       receiverNrp,
       receiverName,
-      text: text.trim(),
+      text: (text || '').trim() || `📎 Melampirkan file: ${attachmentName || 'Lampiran'}`,
       attachmentUrl,
       attachmentName,
     });

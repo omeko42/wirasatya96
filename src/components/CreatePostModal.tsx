@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import { AuthUser, FeedPost } from '@/types';
-import { PRESET_POST_IMAGES } from '@/data/mockPosts';
+import { PRESET_POST_IMAGES, PRESET_POST_VIDEOS } from '@/data/mockPosts';
 import { getAvatarUrl } from '@/lib/avatarUtils';
 import { processSecureImageUpload } from '@/lib/mediaSecurity';
 import { 
   X, 
   Image as ImageIcon, 
+  Video as VideoIcon,
   Smile, 
   Globe, 
   MessageSquare, 
@@ -21,6 +22,7 @@ interface CreatePostModalProps {
   onClose: () => void;
   currentUser: AuthUser;
   initialOpenImagePicker?: boolean;
+  initialOpenVideoPicker?: boolean;
   onSubmitPost: (post: Omit<FeedPost, 'id' | 'createdAt' | 'likesCount' | 'repostsCount' | 'comments'>) => void;
 }
 
@@ -29,21 +31,29 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
   onClose,
   currentUser,
   initialOpenImagePicker = false,
+  initialOpenVideoPicker = false,
   onSubmitPost,
 }) => {
   const [content, setContent] = useState('');
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [customImageUrl, setCustomImageUrl] = useState('');
+  const [selectedVideo, setSelectedVideo] = useState<string>('');
+  const [customVideoUrl, setCustomVideoUrl] = useState('');
   const [showImagePicker, setShowImagePicker] = useState(initialOpenImagePicker);
+  const [showVideoPicker, setShowVideoPicker] = useState(initialOpenVideoPicker);
   const [selectedCategory, setSelectedCategory] = useState<FeedPost['category']>('MOTIVASI');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (isOpen) {
       setShowImagePicker(initialOpenImagePicker);
+      setShowVideoPicker(initialOpenVideoPicker);
+      setVideoError(null);
     }
-  }, [isOpen, initialOpenImagePicker]);
+  }, [isOpen, initialOpenImagePicker, initialOpenVideoPicker]);
 
   if (!isOpen) return null;
 
@@ -89,8 +99,38 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     }
   };
 
+  const handleVideoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setVideoError(null);
+    if (!file.type.startsWith('video/')) {
+      setVideoError('Format file harus berupa video (.mp4 / .webm / .mov).');
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setVideoError('Ukuran file video maksimal 4 MB agar hemat bandwidth, atau gunakan URL video / preset dokumentasi.');
+      return;
+    }
+    setIsUploadingVideo(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setSelectedVideo(reader.result);
+        setCustomVideoUrl('');
+      }
+      setIsUploadingVideo(false);
+    };
+    reader.onerror = () => {
+      setVideoError('Gagal membaca file video.');
+      setIsUploadingVideo(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const imageToUse = customImageUrl.trim() || selectedImage;
-  const canSubmit = Boolean(content.trim() || imageToUse);
+  const videoToUse = customVideoUrl.trim() || selectedVideo;
+  const canSubmit = Boolean(content.trim() || imageToUse || videoToUse);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,6 +158,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
           : 'Anggota',
       content: content.trim(),
       imageUrl: imageToUse || undefined,
+      videoUrl: videoToUse || undefined,
       tags: Array.from(new Set(extractedTags)),
       category: selectedCategory,
     });
@@ -126,7 +167,10 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     setContent('');
     setSelectedImage('');
     setCustomImageUrl('');
+    setSelectedVideo('');
+    setCustomVideoUrl('');
     setShowImagePicker(false);
+    setShowVideoPicker(false);
     onClose();
   };
 
@@ -181,7 +225,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Tulis informasi, kegiatan, atau keterangan foto..."
+            placeholder="Tulis informasi, kegiatan, atau keterangan foto/video..."
             className="w-full h-24 sm:h-28 resize-none text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-0 leading-relaxed font-normal shrink-0"
           />
 
@@ -209,6 +253,36 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Hapus Foto</span>
+              </button>
+            </div>
+          )}
+
+          {/* Active Video Preview (ALWAYS visible whenever a video is selected/uploaded) */}
+          {videoToUse && (
+            <div className="relative rounded-xl overflow-hidden border-2 border-emerald-500/80 bg-slate-950 max-h-60 group shadow-sm">
+              <video
+                src={videoToUse}
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full max-h-56 object-contain bg-black"
+              />
+              <div className="absolute top-2 left-2 px-2.5 py-1 rounded-full bg-emerald-600/95 text-white text-[10px] font-bold flex items-center gap-1 shadow-md pointer-events-none">
+                <Check className="w-3 h-3" />
+                <span>Video Siap Diposting</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedVideo('');
+                  setCustomVideoUrl('');
+                  setVideoError(null);
+                }}
+                className="absolute top-2 right-2 px-2.5 py-1 rounded-full bg-slate-900/85 hover:bg-red-600 text-white text-[10px] font-bold flex items-center gap-1 transition-colors shadow-md cursor-pointer"
+                title="Hapus video"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Hapus Video</span>
               </button>
             </div>
           )}
@@ -345,6 +419,108 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             </div>
           )}
 
+          {/* Video Upload & Picker */}
+          {showVideoPicker && (
+            <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl p-3 space-y-2.5 animate-fadeIn">
+              <div className="flex items-center justify-between text-xs font-bold text-emerald-950">
+                <span className="flex items-center gap-1.5">
+                  <VideoIcon className="w-3.5 h-3.5 text-emerald-700" />
+                  Unggah Video atau Pilih Dokumentasi Video:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowVideoPicker(false)}
+                  className="text-slate-500 hover:text-slate-800 text-[11px] font-semibold"
+                >
+                  Sembunyikan
+                </button>
+              </div>
+
+              {/* Upload Video File From Device */}
+              <div>
+                <label className="w-full py-2.5 px-3 rounded-lg border-2 border-dashed border-emerald-700 bg-white hover:bg-emerald-50 text-emerald-900 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors">
+                  <VideoIcon className="w-4 h-4 text-emerald-700" />
+                  <span>
+                    {isUploadingVideo
+                      ? 'Memproses video...'
+                      : selectedVideo
+                      ? 'Ganti File Video dari Perangkat (.mp4 / .webm)...'
+                      : 'Pilih File Video dari Perangkat (.mp4 / .webm)...'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime,video/*"
+                    onChange={handleVideoFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {videoError && (
+                <p className="text-[11px] font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
+                  {videoError}
+                </p>
+              )}
+
+              {/* Preset Sample Videos */}
+              <div className="grid grid-cols-1 gap-2">
+                {PRESET_POST_VIDEOS.map((preset) => (
+                  <div
+                    key={preset.label}
+                    onClick={() => {
+                      setSelectedVideo(preset.url);
+                      setCustomVideoUrl('');
+                      setVideoError(null);
+                    }}
+                    className={`flex items-center justify-between gap-2.5 p-2 rounded-lg border-2 cursor-pointer transition-all bg-white ${
+                      selectedVideo === preset.url
+                        ? 'border-emerald-700 ring-2 ring-emerald-200 shadow-xs'
+                        : 'border-slate-200 hover:border-emerald-400'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                        <VideoIcon className="w-4 h-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-bold text-slate-900 truncate">
+                          {preset.label}
+                        </div>
+                        <div className="text-[10px] text-slate-500 truncate">
+                          {preset.description}
+                        </div>
+                      </div>
+                    </div>
+                    {selectedVideo === preset.url ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-700 text-white text-[10px] font-bold shrink-0">
+                        Terpilih
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold shrink-0">
+                        Gunakan Video
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Custom Video URL Option */}
+              <div className="pt-1">
+                <input
+                  type="url"
+                  placeholder="Atau tempel URL video (.mp4 / .webm / YouTube URL)"
+                  value={customVideoUrl}
+                  onChange={(e) => {
+                    setCustomVideoUrl(e.target.value);
+                    if (e.target.value) setSelectedVideo('');
+                    setVideoError(null);
+                  }}
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white focus:ring-1 focus:ring-emerald-700 focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Emoji Popover */}
           {showEmojiPicker && (
             <div className="flex items-center gap-2 p-2 bg-slate-100 rounded-lg border border-slate-200 animate-fadeIn">
@@ -367,7 +543,10 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             <div className="flex items-center gap-1 sm:gap-2">
               <button
                 type="button"
-                onClick={() => setShowImagePicker(!showImagePicker)}
+                onClick={() => {
+                  setShowImagePicker(!showImagePicker);
+                  if (!showImagePicker) setShowVideoPicker(false);
+                }}
                 className={`p-2 rounded-full transition-colors ${
                   showImagePicker || selectedImage || customImageUrl
                     ? 'bg-red-100 text-red-900'
@@ -376,6 +555,22 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                 title="Tambahkan foto"
               >
                 <ImageIcon className="w-5 h-5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVideoPicker(!showVideoPicker);
+                  if (!showVideoPicker) setShowImagePicker(false);
+                }}
+                className={`p-2 rounded-full transition-colors ${
+                  showVideoPicker || selectedVideo || customVideoUrl
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                }`}
+                title="Tambahkan video"
+              >
+                <VideoIcon className="w-5 h-5" />
               </button>
 
               <button
@@ -412,9 +607,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
               <button
                 type="submit"
-                disabled={!canSubmit || isUploadingImage}
+                disabled={!canSubmit || isUploadingImage || isUploadingVideo}
                 className={`px-6 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${
-                  canSubmit && !isUploadingImage
+                  canSubmit && !isUploadingImage && !isUploadingVideo
                     ? 'bg-red-800 hover:bg-red-900 text-white cursor-pointer hover:shadow'
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                 }`}
