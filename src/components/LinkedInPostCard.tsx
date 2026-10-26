@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FeedPost, PostComment, AuthUser, ReactionType } from '@/types';
-import { getAvatarUrl } from '@/lib/avatarUtils';
+import { getAvatarUrl, resolveAvatarUrl } from '@/lib/avatarUtils';
 import { processSecureImageUpload } from '@/lib/mediaSecurity';
 import { MetaVerifiedBadge } from './MetaVerifiedBadge';
 import {
@@ -22,11 +22,15 @@ import {
   Trash2,
   X,
   CornerDownRight,
+  Flag,
+  Hash,
 } from 'lucide-react';
 
 interface LinkedInPostCardProps {
   post: FeedPost;
   currentUser: AuthUser;
+  currentUserAvatar?: string;
+  resolveAuthorAvatar?: (authorNrp?: string, authorName?: string, fallback?: string) => string;
   onLikeToggle: (postId: string, reaction?: ReactionType | null) => void;
   onRepost: (postId: string) => void;
   onAddComment: (
@@ -42,6 +46,7 @@ interface LinkedInPostCardProps {
       imageUrl?: string | null;
       category?: FeedPost['category'];
       pinned?: boolean;
+      isPinned?: boolean;
     }
   ) => void;
   onDeletePost?: (postId: string) => void;
@@ -75,9 +80,19 @@ const REACTIONS: { key: ReactionType; emoji: string; label: string; color: strin
 
 const COMMENT_EMOJIS = ['👍', '❤️', '🔥', '👏', '🙏', '💪', '⭐', '🤝', '😄', '🇮🇩'];
 
+const POST_CATEGORIES: { key: FeedPost['category']; label: string }[] = [
+  { key: 'MOTIVASI', label: 'Motivasi' },
+  { key: 'KENAIKAN_PANGKAT', label: 'Kenaikan Pangkat' },
+  { key: 'BAKSOS', label: 'Baksos' },
+];
+
+const QUICK_HASHTAGS = ['#SelaluBahagia', '#WiraSatya96', '#Akpol96', '#PolriPresisi'];
+
 export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
   post,
   currentUser,
+  currentUserAvatar,
+  resolveAuthorAvatar,
   onLikeToggle,
   onRepost,
   onAddComment,
@@ -96,12 +111,54 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   // Edit / Delete Post state
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [editPostContent, setEditPostContent] = useState(post.content || '');
+  const [editPostCategory, setEditPostCategory] = useState<FeedPost['category']>(
+    post.category || 'MOTIVASI'
+  );
   const [editPostImage, setEditPostImage] = useState<string | null>(post.imageUrl || null);
   const [confirmDeletePost, setConfirmDeletePost] = useState(false);
+
+  // Close dropdown menu smoothly on outside click or Escape key
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setShowMoreMenu(false);
+        setConfirmDeletePost(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowMoreMenu(false);
+        setConfirmDeletePost(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [showMoreMenu]);
+
+  const myLiveAvatar = resolveAvatarUrl(currentUserAvatar, currentUser.fotoUrl);
+
+  const getLiveAvatar = (nrp?: string, name?: string, fallback?: string): string => {
+    if (resolveAuthorAvatar) {
+      return resolveAuthorAvatar(nrp, name, fallback);
+    }
+    if (nrp && nrp === currentUser.nrp) {
+      return resolveAvatarUrl(myLiveAvatar, fallback);
+    }
+    return getAvatarUrl(fallback);
+  };
+
+  const resolvedPostAuthorAvatar = getLiveAvatar(post.authorNrp, post.authorName, post.authorAvatar);
+  const isPostPinned = Boolean(post.pinned || post.isPinned);
 
   // Comment Reply & Edit state
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
@@ -180,9 +237,11 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
 
   const handleStartEditPost = () => {
     setEditPostContent(post.content || '');
+    setEditPostCategory(post.category || 'MOTIVASI');
     setEditPostImage(post.imageUrl || null);
     setIsEditingPost(true);
     setShowMoreMenu(false);
+    setConfirmDeletePost(false);
   };
 
   const handleEditPostImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -207,11 +266,20 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
     if (onEditPost) {
       onEditPost(post.id, {
         content: editPostContent.trim(),
+        category: editPostCategory,
         imageUrl: editPostImage,
       });
     }
     setIsEditingPost(false);
     showToast('Postingan berhasil diperbarui!');
+  };
+
+  const handleTogglePinPost = () => {
+    if (!onEditPost) return;
+    const nextPinned = !isPostPinned;
+    onEditPost(post.id, { pinned: nextPinned, isPinned: nextPinned });
+    setShowMoreMenu(false);
+    showToast(nextPinned ? 'Postingan disematkan di teratas!' : 'Sematan postingan dilepas.');
   };
 
   const handleConfirmDeletePost = () => {
@@ -305,10 +373,10 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
         <div className="flex items-start gap-2.5 text-xs">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={getAvatarUrl(comm.authorAvatar)}
+            src={getLiveAvatar(comm.authorNrp, comm.authorName, comm.authorAvatar)}
             alt={comm.authorName}
             onClick={() => onAuthorClick && onAuthorClick(comm.authorNrp)}
-            className="w-7 h-7 rounded-full object-cover border border-slate-200 mt-0.5 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-red-800"
+            className="w-7 h-7 rounded-full object-cover border border-slate-200 mt-0.5 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-red-800 bg-white"
           />
           <div className="flex-1 min-w-0">
             <div className="bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
@@ -516,10 +584,21 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
       )}
 
       {/* Top Banner (Pinned / Activity Header) */}
-      {post.pinned && (
-        <div className="px-4 pt-3 pb-1 text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 border-b border-slate-50 bg-red-50/50">
-          <Pin className="w-3 h-3 text-red-800 fill-red-800" />
-          <span className="text-red-950">Disematkan oleh Pengurus</span>
+      {isPostPinned && (
+        <div className="px-4 py-1.5 text-[11px] font-bold text-red-900 flex items-center justify-between border-b border-red-100 bg-gradient-to-r from-red-50/90 via-amber-50/60 to-white">
+          <div className="flex items-center gap-1.5">
+            <Pin className="w-3 h-3 text-red-800 fill-red-800" />
+            <span>Postingan Disematkan</span>
+          </div>
+          {isAdmin && onEditPost && (
+            <button
+              type="button"
+              onClick={handleTogglePinPost}
+              className="text-[10px] font-bold text-slate-500 hover:text-red-800 transition-colors cursor-pointer"
+            >
+              Lepas
+            </button>
+          )}
         </div>
       )}
 
@@ -528,11 +607,11 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
         <div className="flex items-start gap-3 min-w-0">
           <div
             onClick={() => onAuthorClick && onAuthorClick(post.authorNrp)}
-            className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-red-800 transition-all bg-slate-100"
+            className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-red-800 transition-all bg-white shadow-2xs"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={getAvatarUrl(post.authorAvatar)}
+              src={resolvedPostAuthorAvatar}
               alt={post.authorName}
               className="w-full h-full object-cover bg-white"
             />
@@ -572,12 +651,19 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
           </div>
         </div>
 
-        {/* Menu Dropdown (...) */}
-        <div className="relative flex-shrink-0">
+        {/* Modern Fluid Action Menu (...) */}
+        <div className="relative flex-shrink-0" ref={moreMenuRef}>
           <button
             type="button"
-            onClick={() => setShowMoreMenu(!showMoreMenu)}
-            className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            onClick={() => {
+              setShowMoreMenu((prev) => !prev);
+              setConfirmDeletePost(false);
+            }}
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              showMoreMenu
+                ? 'bg-red-50 text-red-900 ring-2 ring-red-800/20'
+                : 'text-slate-400 hover:text-slate-800 hover:bg-slate-100'
+            }`}
             title="Opsi Postingan"
           >
             <MoreHorizontal className="w-4 h-4" />
@@ -585,106 +671,223 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
 
           {showMoreMenu && (
             <div
-              className="absolute right-0 top-8 z-30 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 text-xs text-slate-700 animate-fadeIn"
+              className="absolute right-0 top-9 z-30 w-64 bg-white/98 backdrop-blur-md rounded-2xl shadow-[0_14px_38px_-6px_rgba(15,23,42,0.22)] border border-slate-200/90 p-2 text-xs text-slate-700 animate-fadeIn"
               onClick={(e) => e.stopPropagation()}
             >
-              {canManagePost && (
-                <>
+              {/* Quick-Action Pill Row (3 Tombol Cepat) */}
+              <div className="grid grid-cols-3 gap-1.5 pb-2 mb-1.5 border-b border-slate-100">
+                {canManagePost ? (
                   <button
                     type="button"
                     onClick={handleStartEditPost}
-                    className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 font-semibold text-slate-800 cursor-pointer"
+                    className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 transition-all cursor-pointer group"
                   >
-                    <Edit3 className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Edit Postingan</span>
+                    <Edit3 className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-bold">Edit</span>
                   </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleBookmark}
+                    className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-50 hover:bg-amber-50 hover:text-amber-800 text-slate-700 transition-all cursor-pointer group"
+                  >
+                    <Bookmark
+                      className={`w-3.5 h-3.5 transition-transform group-hover:scale-110 ${
+                        isBookmarked ? 'text-amber-500 fill-amber-500' : 'text-amber-600'
+                      }`}
+                    />
+                    <span className="text-[10px] font-bold">
+                      {isBookmarked ? 'Tersimpan' : 'Simpan'}
+                    </span>
+                  </button>
+                )}
 
-                  {isAdmin && onEditPost && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onEditPost(post.id, { pinned: !post.pinned });
-                        setShowMoreMenu(false);
-                        showToast(
-                          post.pinned ? 'Sematan postingan dilepas' : 'Postingan disematkan di atas!'
-                        );
-                      }}
-                      className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 font-semibold text-slate-800 cursor-pointer"
-                    >
-                      <Pin className="w-3.5 h-3.5 text-amber-600" />
-                      <span>{post.pinned ? 'Lepas Sematan' : 'Sematkan Postingan'}</span>
-                    </button>
-                  )}
+                {isAdmin && onEditPost ? (
+                  <button
+                    type="button"
+                    onClick={handleTogglePinPost}
+                    className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl transition-all cursor-pointer group ${
+                      isPostPinned
+                        ? 'bg-amber-100/80 text-amber-900'
+                        : 'bg-slate-50 hover:bg-amber-50 hover:text-amber-800 text-slate-700'
+                    }`}
+                  >
+                    <Pin
+                      className={`w-3.5 h-3.5 text-amber-600 group-hover:scale-110 transition-transform ${
+                        isPostPinned ? 'fill-amber-600' : ''
+                      }`}
+                    />
+                    <span className="text-[10px] font-bold">
+                      {isPostPinned ? 'Lepas Pin' : 'Sematkan'}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleBookmark}
+                    className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-50 hover:bg-amber-50 hover:text-amber-800 text-slate-700 transition-all cursor-pointer group"
+                  >
+                    <Bookmark
+                      className={`w-3.5 h-3.5 transition-transform group-hover:scale-110 ${
+                        isBookmarked ? 'text-amber-500 fill-amber-500' : 'text-amber-600'
+                      }`}
+                    />
+                    <span className="text-[10px] font-bold">
+                      {isBookmarked ? 'Tersimpan' : 'Simpan'}
+                    </span>
+                  </button>
+                )}
 
-                  {!confirmDeletePost ? (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDeletePost(true)}
-                      className="w-full px-3.5 py-2 text-left hover:bg-red-50 flex items-center gap-2 font-semibold text-red-700 border-b border-slate-100 mb-1 cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                      <span>Hapus Postingan</span>
-                    </button>
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 transition-all cursor-pointer group"
+                >
+                  {isCopied ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
                   ) : (
-                    <div className="px-3.5 py-2 bg-red-50 border-b border-red-100 mb-1 space-y-1.5">
-                      <p className="text-[11px] font-bold text-red-900">
-                        Yakin hapus postingan ini?
-                      </p>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={handleConfirmDeletePost}
-                          className="px-2.5 py-1 rounded bg-red-700 text-white text-[10px] font-bold hover:bg-red-800 cursor-pointer"
-                        >
-                          Ya, Hapus
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmDeletePost(false)}
-                          className="px-2.5 py-1 rounded bg-white border border-slate-200 text-slate-700 text-[10px] font-bold hover:bg-slate-100 cursor-pointer"
-                        >
-                          Batal
-                        </button>
+                    <Copy className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
+                  )}
+                  <span className="text-[10px] font-bold">
+                    {isCopied ? 'Tersalin' : 'Salin Link'}
+                  </span>
+                </button>
+              </div>
+
+              {/* Action Items List */}
+              <div className="space-y-0.5">
+                {canManagePost && (
+                  <button
+                    type="button"
+                    onClick={handleStartEditPost}
+                    className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-slate-100/90 flex items-center gap-2.5 transition-all cursor-pointer group"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-slate-800 text-xs leading-tight">
+                        Edit Postingan
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate">
+                        Ubah teks, kategori, atau foto
                       </div>
                     </div>
-                  )}
-                </>
-              )}
-
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-              >
-                {isCopied ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5 text-slate-500" />
+                  </button>
                 )}
-                <span>{isCopied ? 'Tautan Tersalin!' : 'Salin Tautan Postingan'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleBookmark}
-                className="w-full px-3.5 py-2 text-left hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-              >
-                <Bookmark
-                  className={`w-3.5 h-3.5 ${
-                    isBookmarked ? 'text-amber-500 fill-amber-500' : 'text-slate-500'
-                  }`}
-                />
-                <span>{isBookmarked ? 'Hapus Simpanan' : 'Simpan Postingan'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMoreMenu(false);
-                  showToast('Laporan konten diterima oleh Pengurus.');
-                }}
-                className="w-full px-3.5 py-2 text-left hover:bg-slate-50 text-slate-500 flex items-center gap-2 border-t border-slate-100 mt-1 cursor-pointer"
-              >
-                <span>Atensi / Laporkan Konten</span>
-              </button>
+
+                {isAdmin && onEditPost && (
+                  <button
+                    type="button"
+                    onClick={handleTogglePinPost}
+                    className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-slate-100/90 flex items-center gap-2.5 transition-all cursor-pointer group"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:bg-amber-100 transition-colors">
+                      <Pin className={`w-3.5 h-3.5 ${isPostPinned ? 'fill-amber-600' : ''}`} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-slate-800 text-xs leading-tight flex items-center gap-1.5">
+                        <span>{isPostPinned ? 'Lepas Sematan' : 'Sematkan di Atas'}</span>
+                        {isPostPinned && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 font-extrabold">
+                            Aktif
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate">
+                        Tampilkan di urutan utama linimasa
+                      </div>
+                    </div>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleBookmark}
+                  className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-slate-100/90 flex items-center gap-2.5 transition-all cursor-pointer group"
+                >
+                  <span className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:bg-purple-100 transition-colors">
+                    <Bookmark
+                      className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-purple-600' : ''}`}
+                    />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-slate-800 text-xs leading-tight">
+                      {isBookmarked ? 'Hapus dari Simpanan' : 'Simpan Postingan'}
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate">
+                      Simpan ke daftar markah pribadi
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                    showToast('Laporan konten diterima oleh Pengurus.');
+                  }}
+                  className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-slate-100/90 flex items-center gap-2.5 transition-all cursor-pointer group"
+                >
+                  <span className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-slate-200 transition-colors">
+                    <Flag className="w-3.5 h-3.5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-slate-700 text-xs leading-tight">
+                      Laporkan Konten
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate">
+                      Teruskan atensi ke Sekretariat
+                    </div>
+                  </div>
+                </button>
+
+                {canManagePost && (
+                  <div className="pt-1 mt-1 border-t border-slate-100">
+                    {!confirmDeletePost ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeletePost(true)}
+                        className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-red-50 flex items-center gap-2.5 transition-all cursor-pointer group"
+                      >
+                        <span className="w-7 h-7 rounded-lg bg-red-50 text-red-600 flex items-center justify-center shrink-0 group-hover:bg-red-100 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold text-red-700 text-xs leading-tight">
+                            Hapus Postingan
+                          </div>
+                          <div className="text-[10px] text-red-400 truncate">
+                            Hapus permanen dari linimasa
+                          </div>
+                        </div>
+                      </button>
+                    ) : (
+                      <div className="p-2.5 rounded-xl bg-red-50/90 border border-red-200 space-y-2 animate-fadeIn">
+                        <div className="text-[11px] font-extrabold text-red-900 flex items-center justify-between">
+                          <span>Hapus postingan ini?</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={handleConfirmDeletePost}
+                            className="py-1.5 px-2.5 rounded-lg bg-red-700 hover:bg-red-800 text-white text-[11px] font-extrabold transition-colors cursor-pointer"
+                          >
+                            Ya, Hapus
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeletePost(false)}
+                            className="py-1.5 px-2.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-bold transition-colors cursor-pointer"
+                          >
+                            Batal
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -692,15 +895,62 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
 
       {/* Inline Edit Post Mode */}
       {isEditingPost ? (
-        <form onSubmit={handleSaveEditPost} className="px-4 py-3 bg-slate-50 border-y border-slate-200 space-y-3">
+        <form
+          onSubmit={handleSaveEditPost}
+          className="mx-3.5 my-2 p-3.5 rounded-2xl bg-slate-50/90 border border-red-900/20 shadow-inner space-y-3 animate-fadeIn"
+        >
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-[11px] font-extrabold text-slate-700 flex items-center gap-1.5">
+              <Edit3 className="w-3.5 h-3.5 text-red-800" />
+              <span>Edit Postingan</span>
+            </span>
+            <div className="flex items-center gap-1">
+              {POST_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setEditPostCategory(cat.key)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
+                    editPostCategory === cat.key
+                      ? 'bg-red-800 text-white shadow-2xs'
+                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <textarea
             value={editPostContent}
             onChange={(e) => setEditPostContent(e.target.value)}
             rows={3}
-            placeholder="Edit isi postingan..."
+            placeholder="Tulis pembaruan isi postingan..."
             className="w-full p-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-800/30 focus:border-red-800"
             autoFocus
           />
+
+          {/* Quick Hashtag Chips */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-0.5">
+              <Hash className="w-3 h-3" /> Tag:
+            </span>
+            {QUICK_HASHTAGS.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => {
+                  if (!editPostContent.includes(tag)) {
+                    setEditPostContent((prev) => `${prev.trim()} ${tag}`.trim());
+                  }
+                }}
+                className="px-2 py-0.5 rounded-md bg-white hover:bg-red-50 text-red-900 border border-slate-200 text-[10px] font-bold transition-colors cursor-pointer"
+              >
+                +{tag}
+              </button>
+            ))}
+          </div>
 
           {editPostImage && (
             <div className="relative rounded-xl overflow-hidden border border-slate-200 max-h-56 bg-slate-900">
@@ -713,7 +963,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
               <button
                 type="button"
                 onClick={() => setEditPostImage(null)}
-                className="absolute top-2 right-2 px-2.5 py-1 rounded-full bg-slate-900/80 hover:bg-red-600 text-white text-[10px] font-bold flex items-center gap-1"
+                className="absolute top-2 right-2 px-2.5 py-1 rounded-full bg-slate-900/80 hover:bg-red-600 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Hapus Foto</span>
@@ -721,8 +971,8 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <label className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+          <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-slate-200/80">
+            <label className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors">
               <ImageIcon className="w-3.5 h-3.5 text-red-800" />
               <span>{editPostImage ? 'Ganti Foto' : 'Tambah Foto'}</span>
               <input
@@ -737,16 +987,16 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
               <button
                 type="button"
                 onClick={() => setIsEditingPost(false)}
-                className="px-3.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-bold hover:bg-slate-100"
+                className="px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={!editPostContent.trim() && !editPostImage}
-                className="px-4 py-1.5 rounded-lg bg-red-800 hover:bg-red-900 text-white text-xs font-bold shadow-xs disabled:bg-slate-200 disabled:text-slate-400"
+                className="px-4 py-1.5 rounded-xl bg-red-800 hover:bg-red-900 text-white text-xs font-bold shadow-xs disabled:bg-slate-200 disabled:text-slate-400 transition-colors cursor-pointer"
               >
-                Simpan Perubahan
+                Simpan
               </button>
             </div>
           </div>
@@ -899,7 +1149,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
           <form onSubmit={handleCommentSubmit} className="flex items-start gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={getAvatarUrl(currentUser.fotoUrl)}
+              src={myLiveAvatar}
               alt={currentUser.nama}
               className="w-8 h-8 rounded-full object-cover border border-slate-200 mt-0.5 flex-shrink-0 bg-white"
             />

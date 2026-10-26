@@ -1023,9 +1023,16 @@ function buildCloudSnapshotMap(
     map.set(key, { collection, record_id: cleanId, payload, json });
   };
 
+  const memberNrpsWithFoto = new Set(
+    (store.members || []).filter((m) => Boolean(m.fotoUrl)).map((m) => m.nrp)
+  );
   (store.members || []).forEach((m) => addEntry('members', m.nrp, stripEmptyJsonFields(m)));
   (store.users || []).forEach((u) =>
-    addEntry('users', u.nrp, stripEmptyJsonFields(u, { stripUserInlineImages: true }))
+    addEntry(
+      'users',
+      u.nrp,
+      stripEmptyJsonFields(u, { stripUserInlineImages: memberNrpsWithFoto.has(u.nrp) })
+    )
   );
   (store.posts || []).forEach((p) => addEntry('posts', p.id, stripEmptyJsonFields(p)));
   (store.transactions || []).forEach((t) => addEntry('transactions', t.id, stripEmptyJsonFields(t)));
@@ -1053,9 +1060,14 @@ function writeDiskSnapshotOnly(store: GlobalStore) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
+    const memberNrpsWithFoto = new Set(
+      (store.members || []).filter((m) => Boolean(m.fotoUrl)).map((m) => m.nrp)
+    );
     const compactStore = {
       members: (store.members || []).map((m) => stripEmptyJsonFields(m)),
-      users: (store.users || []).map((u) => stripEmptyJsonFields(u, { stripUserInlineImages: true })),
+      users: (store.users || []).map((u) =>
+        stripEmptyJsonFields(u, { stripUserInlineImages: memberNrpsWithFoto.has(u.nrp) })
+      ),
       transactions: (store.transactions || []).map((t) => stripEmptyJsonFields(t)),
       assets: (store.assets || []).map((a) => stripEmptyJsonFields(a)),
       iuranList: (store.iuranList || []).map((i) => stripEmptyJsonFields(i)),
@@ -3516,7 +3528,41 @@ export const serverStore = {
   // ==============================================================
   // FEED POSTS METHODS
   // ==============================================================
-  getPosts: () => globalStore.posts || [],
+  getPosts: () => {
+    const rawPosts = globalStore.posts || [];
+    const resolveLiveAvatar = (nrp?: string, name?: string, fallback?: string): string | undefined => {
+      const cleanNrp = (nrp || '').trim();
+      const cleanName = stripRankFromName(name || '').split(',')[0].trim().toLowerCase();
+      const matchedMember = (globalStore.members || []).find(
+        (m) =>
+          (cleanNrp && (m.nrp === cleanNrp || m.oldNrp === cleanNrp)) ||
+          (cleanName &&
+            stripRankFromName(m.namaLengkap || '').split(',')[0].trim().toLowerCase() === cleanName)
+      );
+      const matchedUser = (globalStore.users || []).find(
+        (u) =>
+          (cleanNrp && (u.nrp === cleanNrp || u.oldNrp === cleanNrp)) ||
+          (cleanName &&
+            stripRankFromName(u.nama || '').split(',')[0].trim().toLowerCase() === cleanName)
+      );
+      return resolveBestFotoUrl(matchedMember?.fotoUrl, matchedUser?.fotoUrl, fallback) || fallback;
+    };
+
+    const enrichComments = (comments?: PostComment[]): PostComment[] => {
+      if (!Array.isArray(comments)) return [];
+      return comments.map((c) => ({
+        ...c,
+        authorAvatar: resolveLiveAvatar(c.authorNrp, c.authorName, c.authorAvatar) || c.authorAvatar,
+        replies: Array.isArray(c.replies) ? enrichComments(c.replies) : c.replies,
+      }));
+    };
+
+    return rawPosts.map((p) => ({
+      ...p,
+      authorAvatar: resolveLiveAvatar(p.authorNrp, p.authorName, p.authorAvatar) || p.authorAvatar,
+      comments: enrichComments(p.comments),
+    }));
+  },
 
   addPost: (
     postData: Omit<FeedPost, 'id' | 'createdAt' | 'likesCount' | 'repostsCount' | 'comments'> & {

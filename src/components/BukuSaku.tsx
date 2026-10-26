@@ -444,7 +444,13 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
       await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'LIKE', postId, userNrp, reaction }),
+        body: JSON.stringify({
+          action: 'LIKE',
+          postId,
+          actorNrp: userNrp,
+          userNrp,
+          reaction,
+        }),
       });
     } catch {
       // ignore
@@ -481,7 +487,12 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
       await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'REPOST', postId, userNrp }),
+        body: JSON.stringify({
+          action: 'REPOST',
+          postId,
+          actorNrp: userNrp,
+          userNrp,
+        }),
       });
     } catch {
       // ignore
@@ -490,22 +501,41 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
 
   const handleEditPost = async (
     postId: string,
-    updates: { content?: string; imageUrl?: string | null; isPinned?: boolean }
+    updates: {
+      content?: string;
+      imageUrl?: string | null;
+      category?: FeedPost['category'];
+      pinned?: boolean;
+      isPinned?: boolean;
+    }
   ) => {
+    const nextPinned =
+      updates.pinned !== undefined
+        ? updates.pinned
+        : updates.isPinned !== undefined
+        ? updates.isPinned
+        : undefined;
+
     const updated = posts.map((p) => {
       if (p.id !== postId) return p;
       return {
         ...p,
         content: updates.content !== undefined ? updates.content : p.content,
+        category: updates.category !== undefined ? updates.category : p.category,
         imageUrl:
           updates.imageUrl === null
             ? undefined
             : updates.imageUrl !== undefined
             ? updates.imageUrl
             : p.imageUrl,
-        pinned: updates.isPinned !== undefined ? updates.isPinned : p.pinned,
-        isPinned: updates.isPinned !== undefined ? updates.isPinned : p.isPinned ?? p.pinned,
-        isEdited: updates.content !== undefined || updates.imageUrl !== undefined ? true : p.isEdited,
+        pinned: nextPinned !== undefined ? nextPinned : p.pinned,
+        isPinned: nextPinned !== undefined ? nextPinned : p.isPinned ?? p.pinned,
+        isEdited:
+          updates.content !== undefined ||
+          updates.imageUrl !== undefined ||
+          updates.category !== undefined
+            ? true
+            : p.isEdited,
         updatedAt: 'Diedit baru saja',
       };
     });
@@ -515,7 +545,14 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
       await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'EDIT_POST', postId, ...updates }),
+        body: JSON.stringify({
+          action: 'EDIT_POST',
+          postId,
+          actorNrp: currentUser.nrp,
+          actorRole: currentUser.role,
+          ...updates,
+          pinned: nextPinned,
+        }),
       });
     } catch {
       // ignore
@@ -543,7 +580,12 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
       await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'DELETE_POST', postId }),
+        body: JSON.stringify({
+          action: 'DELETE_POST',
+          postId,
+          actorNrp: currentUser.nrp,
+          actorRole: currentUser.role,
+        }),
       });
     } catch {
       // ignore
@@ -618,7 +660,12 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
     }
   };
 
-  const handleEditComment = async (postId: string, commentId: string, content: string) => {
+  const handleEditComment = async (
+    postId: string,
+    commentId: string,
+    content: string,
+    parentCommentId?: string
+  ) => {
     const editRecursive = (list: PostComment[]): PostComment[] =>
       list.map((c) => {
         if (c.id === commentId) {
@@ -645,14 +692,26 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
       await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'EDIT_COMMENT', postId, commentId, content }),
+        body: JSON.stringify({
+          action: 'EDIT_COMMENT',
+          postId,
+          commentId,
+          parentCommentId,
+          actorNrp: currentUser.nrp,
+          actorRole: currentUser.role,
+          content,
+        }),
       });
     } catch {
       // ignore
     }
   };
 
-  const handleDeleteComment = async (postId: string, commentId: string) => {
+  const handleDeleteComment = async (
+    postId: string,
+    commentId: string,
+    parentCommentId?: string
+  ) => {
     const deleteRecursive = (list: PostComment[]): PostComment[] =>
       list
         .filter((c) => c.id !== commentId)
@@ -668,14 +727,25 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
       await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'DELETE_COMMENT', postId, commentId }),
+        body: JSON.stringify({
+          action: 'DELETE_COMMENT',
+          postId,
+          commentId,
+          parentCommentId,
+          actorNrp: currentUser.nrp,
+          actorRole: currentUser.role,
+        }),
       });
     } catch {
       // ignore
     }
   };
 
-  const handleLikeComment = async (postId: string, commentId: string) => {
+  const handleLikeComment = async (
+    postId: string,
+    commentId: string,
+    parentCommentId?: string
+  ) => {
     const userNrp = currentUser.nrp;
     const toggleLikeRecursive = (list: PostComment[]): PostComment[] =>
       list.map((c) => {
@@ -704,7 +774,14 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
       await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'LIKE_COMMENT', postId, commentId, userNrp }),
+        body: JSON.stringify({
+          action: 'LIKE_COMMENT',
+          postId,
+          commentId,
+          parentCommentId,
+          actorNrp: userNrp,
+          userNrp,
+        }),
       });
     } catch {
       // ignore
@@ -721,13 +798,68 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
     if (found) setSelectedMember(found);
   };
 
+  const resolveLiveAuthorAvatar = useMemo(() => {
+    const myBaseName = (currentMemberObj?.namaLengkap || currentUser.nama || '')
+      .replace(/\(.*?\)/g, '')
+      .split(',')[0]
+      .trim()
+      .toLowerCase();
+
+    return (authorNrp?: string, authorName?: string, fallbackAvatar?: string): string => {
+      const cleanNrp = (authorNrp || '').trim();
+      const cleanName = (authorName || '')
+        .replace(/\(.*?\)/g, '')
+        .split(',')[0]
+        .trim()
+        .toLowerCase();
+
+      if (
+        (cleanNrp &&
+          (cleanNrp === currentUser.nrp ||
+            (currentUser.oldNrp && cleanNrp === currentUser.oldNrp))) ||
+        (cleanName && myBaseName && cleanName === myBaseName)
+      ) {
+        return resolveAvatarUrl(
+          currentMemberObj?.fotoUrl || currentUser.fotoUrl,
+          fallbackAvatar
+        );
+      }
+
+      const foundMember = effectiveMembers.find((m) => {
+        if (cleanNrp && (m.nrp === cleanNrp || m.oldNrp === cleanNrp)) return true;
+        if (!cleanName) return false;
+        const mBase = (m.namaLengkap || '').split(',')[0].trim().toLowerCase();
+        return Boolean(mBase && mBase === cleanName);
+      });
+
+      return resolveAvatarUrl(foundMember?.fotoUrl, fallbackAvatar);
+    };
+  }, [currentMemberObj, currentUser, effectiveMembers]);
+
   const filteredPosts = useMemo(() => {
-    const list =
+    const enrichCommentsWithLiveAvatar = (comments?: PostComment[]): PostComment[] => {
+      if (!Array.isArray(comments)) return [];
+      return comments.map((c) => ({
+        ...c,
+        authorAvatar: resolveLiveAuthorAvatar(c.authorNrp, c.authorName, c.authorAvatar),
+        replies: Array.isArray(c.replies)
+          ? enrichCommentsWithLiveAvatar(c.replies)
+          : c.replies,
+      }));
+    };
+
+    const list = (
       feedCategoryFilter === 'SEMUA'
         ? posts
-        : posts.filter((p) => p.category === feedCategoryFilter);
+        : posts.filter((p) => p.category === feedCategoryFilter)
+    ).map((p) => ({
+      ...p,
+      authorAvatar: resolveLiveAuthorAvatar(p.authorNrp, p.authorName, p.authorAvatar),
+      comments: enrichCommentsWithLiveAvatar(p.comments),
+    }));
+
     return [...list].sort((a, b) => (b.isPinned || b.pinned ? 1 : 0) - (a.isPinned || a.pinned ? 1 : 0));
-  }, [posts, feedCategoryFilter]);
+  }, [posts, feedCategoryFilter, resolveLiveAuthorAvatar]);
 
   const infiniteFeedPosts = useMemo(() => {
     if (filteredPosts.length === 0) return [];
@@ -1546,6 +1678,8 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                     key={renderKey}
                     post={post}
                     currentUser={currentUser}
+                    currentUserAvatar={myResolvedAvatarUrl}
+                    resolveAuthorAvatar={resolveLiveAuthorAvatar}
                     onLikeToggle={handleLikeToggle}
                     onRepost={handleRepost}
                     onAddComment={handleAddComment}
@@ -1600,7 +1734,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
           setIsCreatePostModalOpen(false);
           setOpenCreatePostWithImage(false);
         }}
-        currentUser={currentUser}
+        currentUser={{ ...currentUser, fotoUrl: myResolvedAvatarUrl }}
         onSubmitPost={handleCreatePost}
         initialOpenImagePicker={openCreatePostWithImage}
       />
