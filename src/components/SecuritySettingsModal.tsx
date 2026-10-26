@@ -97,24 +97,19 @@ export function getUserSecurityConfig(
   fallbackUser?: Partial<AuthUser>
 ): UserSecurityConfig {
   const cleanNrp = (nrp || '').trim();
-  const defaultDevices: TrustedDevicePasskey[] = [
-    {
-      id: `dev-${cleanNrp}-1`,
-      deviceName: 'Windows PC • Google Chrome (Gawai Utama)',
-      platform: 'Windows PC',
-      credentialId: `pk-${cleanNrp}-primary`,
-      createdAt: '2026-10-01T08:00:00.000Z',
-      lastUsedAt: new Date().toISOString(),
-    },
-    {
-      id: `dev-${cleanNrp}-2`,
-      deviceName: 'Perangkat Mobile • Biometrik Sidik Jari / Wajah',
-      platform: 'Mobile',
-      credentialId: `pk-${cleanNrp}-mobile`,
-      createdAt: '2026-10-10T10:30:00.000Z',
-      lastUsedAt: new Date().toISOString(),
-    },
-  ];
+  const isDefaultBiometric = fallbackUser?.mfaMethod === 'BIOMETRIC';
+  const defaultDevices: TrustedDevicePasskey[] = isDefaultBiometric
+    ? [
+        {
+          id: `dev-${cleanNrp}-1`,
+          deviceName: 'Windows PC • Google Chrome (Gawai Utama)',
+          platform: 'Windows PC',
+          credentialId: `pk-${cleanNrp}-primary`,
+          createdAt: '2026-10-01T08:00:00.000Z',
+          lastUsedAt: new Date().toISOString(),
+        },
+      ]
+    : [];
 
   const defaultCfg: UserSecurityConfig = {
     emailOtpEnabled: fallbackUser?.mfaMethod === 'EMAIL_OTP',
@@ -122,7 +117,7 @@ export function getUserSecurityConfig(
     pinCode: '199696',
     totpEnabled: fallbackUser?.mfaMethod === 'TOTP',
     totpSecret: generateBase32Secret(cleanNrp || '98010710'),
-    passkeyEnabled: fallbackUser?.mfaMethod === 'BIOMETRIC',
+    passkeyEnabled: isDefaultBiometric,
     trustedDevices: defaultDevices,
     updatedAt: new Date().toISOString(),
   };
@@ -133,12 +128,22 @@ export function getUserSecurityConfig(
     const raw = localStorage.getItem(`${SECURITY_STORAGE_PREFIX}${cleanNrp}`);
     if (raw) {
       const parsed = JSON.parse(raw);
+      const rawDevices: TrustedDevicePasskey[] = Array.isArray(parsed.trustedDevices)
+        ? parsed.trustedDevices
+        : defaultDevices;
+      // Strip legacy dummy devices if passkey was never enabled by the user
+      const cleanedDevices =
+        !parsed.passkeyEnabled
+          ? rawDevices.filter(
+              (d) =>
+                d.id !== `dev-${cleanNrp}-1` &&
+                d.id !== `dev-${cleanNrp}-2`
+            )
+          : rawDevices;
       return {
         ...defaultCfg,
         ...parsed,
-        trustedDevices: Array.isArray(parsed.trustedDevices)
-          ? parsed.trustedDevices
-          : defaultDevices,
+        trustedDevices: cleanedDevices,
       };
     }
   } catch {
@@ -1037,7 +1042,13 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
             {/* 2FA ROW D: BIOMETRIK PERANGKAT (PASSKEY) */}
             <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                    secConfig.passkeyEnabled
+                      ? 'bg-emerald-50 text-emerald-600'
+                      : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
                   <Fingerprint className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -1045,8 +1056,9 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
                     Biometrik Perangkat (Passkey){' '}
                   </span>
                   <span className="text-slate-500 text-[11px]">
-                    ({secConfig.trustedDevices.length} gawai terpercaya aktif untuk login
-                    biometrik (wajah / sidik jari / PIN))
+                    {secConfig.passkeyEnabled
+                      ? `(${secConfig.trustedDevices.length} gawai terpercaya aktif untuk login biometrik wajah / sidik jari / PIN)`
+                      : '(Login biometrik cepat menggunakan pemindai wajah, sidik jari, atau PIN perangkat)'}
                   </span>
                 </div>
               </div>
@@ -1080,52 +1092,32 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
                   />
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowDevicesModal(true)}
-                  className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
-                >
-                  Kelola ({secConfig.trustedDevices.length})
-                </button>
-              </div>
-            </div>
-
-            {/* ROW E: PERANGKAT & GAWAI TERPERCAYA */}
-            <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
-                  <KeyRound className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <span className="font-extrabold text-slate-900">
-                    Perangkat &amp; Gawai Terpercaya{' '}
-                  </span>
-                  <span className="text-slate-500 text-[11px]">
-                    (Audit dan cabut izin gawai biometrik yang pernah didaftarkan)
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
-                {secConfig.trustedDevices.length > 0 ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
-                    <Unlock className="w-3 h-3" />
-                    <span>Aktif</span>
-                  </span>
+                {secConfig.passkeyEnabled ? (
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowDevicesModal(true)}
+                      className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                    >
+                      Gawai ({secConfig.trustedDevices.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleTogglePasskey}
+                      className="text-[11px] font-bold text-red-600 hover:underline cursor-pointer"
+                    >
+                      Nonaktifkan
+                    </button>
+                  </div>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-bold">
-                    <Lock className="w-3 h-3" />
-                    <span>Kosong</span>
-                  </span>
+                  <button
+                    type="button"
+                    onClick={handleTogglePasskey}
+                    className="text-[11px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                  >
+                    Aktifkan
+                  </button>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => setShowDevicesModal(true)}
-                  className="px-3.5 py-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] shadow-xs transition-colors cursor-pointer"
-                >
-                  Kelola Gawai ({secConfig.trustedDevices.length})
-                </button>
               </div>
             </div>
           </div>
