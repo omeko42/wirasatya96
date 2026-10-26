@@ -5,12 +5,12 @@
 // ============================================================================
 
 export const SUPABASE_PROJECT_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://pdjuiicfchuawoqsybpt.supabase.co';
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://oqudzlzvteofmtxqmvtz.supabase.co';
 
 export const SUPABASE_API_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkanVpaWNmY2h1YXdvcXN5YnB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzOTQyNDAsImV4cCI6MjEwNzk3MDI0MH0.5vcpctMgop_eIG0P9-YsroU59hCqpbFkFuTIrWyUR_g';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xdWR6bHp2dGVvZm10eHFtdnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMTAzMjMsImV4cCI6MjEwODU4NjMyM30.PpKBDoCegYqDynYD7cehjIzduAQiJ1zTHYX5e7uSYU0';
 
 export interface SupabaseRecordRow<T = unknown> {
   collection: string;
