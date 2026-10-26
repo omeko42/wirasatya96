@@ -4,7 +4,16 @@ import React, { useState } from 'react';
 import { AnggotaWiraSatya, AuthUser, LowonganUsahaItem } from '@/types';
 import { DAFTAR_38_POLDA } from '@/data/polriStructure';
 import { generateLeakageTrackedFileName } from '@/lib/mediaSecurity';
-import { isSuperadminAccount, detectStatusKedinasan } from '@/lib/avatarUtils';
+import {
+  isSuperadminAccount,
+  detectStatusKedinasan,
+  formatHumanTimestamp,
+  formatHumanDiseaseList,
+  formatBloodTypeWithRhesus,
+  formatJabatanWithSatker,
+  formatHumanEnum,
+  RETIREMENT_AGE_POLRI,
+} from '@/lib/avatarUtils';
 import { 
   BarChart3, 
   Heart, 
@@ -91,7 +100,9 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     (m) => m.statusRumahPurnaTugas === 'MILIK PRIBADI' && m.statusTempatTinggal !== 'SEWA/KONTRAK'
   ).length;
   const hunianKeluargaCount = alumniMembers.filter(
-    (m) => m.statusRumahPurnaTugas === 'RUMAH KELUARGA' || m.statusRumahPurnaTugas === 'DINAS'
+    (m) =>
+      (m.statusRumahPurnaTugas === 'RUMAH KELUARGA' || m.statusRumahPurnaTugas === 'DINAS') &&
+      m.statusTempatTinggal !== 'SEWA/KONTRAK'
   ).length;
   // Katalog Usaha: hanya personel yang benar-benar mengisi nama/bidang usaha atau membuka lowongan kerja (bukan 261 default)
   const entrepreneurs = React.useMemo(
@@ -183,7 +194,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         if (a.nama?.trim() && a.status === 'BELUM BEKERJA') {
           list.push({
             namaAnak: a.nama.trim(),
-            tempatTanggalLahir: [a.tempatLahir, a.tanggalLahir].filter(Boolean).join(', ') || '-',
+            tempatTanggalLahir:
+              [a.tempatLahir, a.tanggalLahir ? formatHumanTimestamp(a.tanggalLahir) : '']
+                .filter(Boolean)
+                .join(', ') || '-',
             namaOrtu: m.namaLengkap,
             pangkatOrtu: m.pangkat,
             poldaOrtu: m.polda,
@@ -366,7 +380,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         `"${m.satuanKerja}"`,
         `"${m.polda}"`,
         `"${m.noHp}"`,
-        `"${m.golonganDarah || 'O'}"`,
+        `"${formatBloodTypeWithRhesus(m.golonganDarah, m.rhesusDarah)}"`,
         `"${m.ukuranBaju || '-'}"`,
         `"${m.ukuranCelana || '-'}"`,
         `"${m.ukuranSepatu || '-'}"`,
@@ -648,10 +662,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                     <div>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-red-100 text-red-800">
-                          {m.kondisiKesehatan}
+                          {formatHumanEnum(m.kondisiKesehatan)}
                         </span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-900 border border-rose-200">
-                          🩸 Gol. Darah: {m.golonganDarah || 'O'}
+                          🩸 Gol. Darah: {formatBloodTypeWithRhesus(m.golonganDarah, m.rhesusDarah)}
                         </span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-900 border border-blue-200">
                           {m.kompi || 'KOMPI A'} • {m.pleton || 'PLETON 1'}
@@ -679,7 +693,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                     <div className="flex flex-wrap gap-1">
                       {m.daftarPenyakit?.map((p, i) => (
                         <span key={i} className="px-2 py-0.5 bg-red-100 text-red-800 rounded font-medium text-[11px]">
-                          {p}
+                          {formatHumanDiseaseList([p], { includeSince: true }) || p}
                         </span>
                       ))}
                     </div>
@@ -709,7 +723,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         {activeSubTab === 'hunian' && (
           <div className="p-5 sm:p-6 space-y-4">
             <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-900 text-xs">
-              <span className="font-bold">📌 Rekap Program Hunian Purna Tugas (BUP 60 Thn):</span> Rekapitulasi kesiapan tempat tinggal pasca dinas seluruh alumni ({total} personel) serta rincian biaya sewa/kontrak personel yang masih berstatus sewa/kontrak.
+              <span className="font-bold">📌 Rekap Program Hunian Purna Tugas (BUP {RETIREMENT_AGE_POLRI} Thn):</span> Rekapitulasi kesiapan tempat tinggal pasca dinas seluruh alumni ({total} personel) serta rincian biaya sewa/kontrak personel yang masih berstatus sewa/kontrak.
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -757,10 +771,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                       <div>
                         <div className="flex flex-wrap gap-1">
                           <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-amber-100 text-amber-900">
-                            Domisili: {m.statusTempatTinggal}
+                            Domisili: {formatHumanEnum(m.statusTempatTinggal)}
                           </span>
                           <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-orange-100 text-orange-900">
-                            Pensiun (BUP {m.tahunPurnaTugas}): {m.statusRumahPurnaTugas}
+                            Pensiun (BUP {m.tahunPurnaTugas}): {formatHumanEnum(m.statusRumahPurnaTugas)}
                           </span>
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-900 border border-blue-200">
                             {m.kompi || 'KOMPI A'} • {m.pleton || 'PLETON 1'}
@@ -872,7 +886,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold transition-colors cursor-pointer"
                   >
                     <Briefcase className="w-3.5 h-3.5" />
-                    <span>Isi via Data Diri (3B)</span>
+                    <span>Buka Formulir Data Usaha</span>
                   </button>
                 )}
               </div>
@@ -1331,7 +1345,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                               {isBersama ? '🤝 USAHA BERSAMA LETING' : '🏢 USAHA PRIBADI'}
                             </span>
                             <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800">
-                              {m.statusUsaha || 'SUDAH JALAN'}
+                              {formatHumanEnum(m.statusUsaha || 'SUDAH JALAN')}
                             </span>
                           </div>
                           <span className="text-[11px] font-semibold text-slate-500">
@@ -1435,7 +1449,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                       🎓 Putra-Putri Leting / Almarhum Siap Kerja ({anakButuhKerjaList.length} Kandidat)
                     </h4>
                     <p className="text-[11px] text-blue-800">
-                      Data putra-putri rekan leting berstatus <b>BELUM BEKERJA</b> yang dapat direkrut ke posisi lowongan pada Usaha Pribadi atau Usaha Bersama Leting.
+                      Data putra-putri rekan leting berstatus <b>Siap Kerja / Mencari Pekerjaan</b> yang dapat direkrut ke posisi lowongan pada Usaha Pribadi atau Usaha Bersama Leting.
                     </p>
                   </div>
                 </div>
@@ -1653,7 +1667,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                               {m.kompi || 'KOMPI A'} • {m.pleton || 'PLETON 1'}
                             </span>
                             <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-bold">
-                              Gol. {m.golonganDarah || 'O'}
+                              Gol. {formatBloodTypeWithRhesus(m.golonganDarah, m.rhesusDarah)}
                             </span>
                           </div>
                           <span className="text-slate-500 text-[11px] block">{m.polda} • {m.satuanKerja}</span>
@@ -1748,7 +1762,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                         {studentChildren.map((a, i) => (
                           <div key={i} className="flex justify-between items-center text-[11px] text-slate-600 bg-white p-1.5 rounded border border-slate-200">
                             <span>• {a.nama}</span>
-                            <span className="font-semibold text-purple-700">{a.biayaPendidikanTahunan}</span>
+                            <span className="font-semibold text-purple-700">{formatHumanEnum(a.biayaPendidikanTahunan)}</span>
                           </div>
                         ))}
                       </div>
@@ -1807,7 +1821,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                         </div>
                         <h4 className="font-extrabold text-slate-900 text-sm mt-1.5">{m.namaLengkap}</h4>
                         <p className="text-xs text-slate-600 font-medium mt-0.5">
-                          {m.jabatanTerakhir} — {m.satuanKerja} ({m.polda})
+                          {formatJabatanWithSatker(m.jabatanTerakhir, m.satuanKerja)} ({m.polda})
                         </p>
                       </div>
                       {kontakKeluarga && (
@@ -1859,7 +1873,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                                   {idx + 1}. {anak.nama}
                                 </span>
                                 <span className="text-slate-500 block sm:inline sm:ml-1.5">
-                                  ({anak.tempatLahir || '-'}, {anak.tanggalLahir || '-'})
+                                  ({anak.tempatLahir || '-'}, {anak.tanggalLahir ? formatHumanTimestamp(anak.tanggalLahir) : '-'})
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -1872,11 +1886,11 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                                       : 'bg-amber-100 text-amber-800'
                                   }`}
                                 >
-                                  {anak.status}
+                                  {formatHumanEnum(anak.status)}
                                 </span>
                                 {anak.biayaPendidikanTahunan && (
                                   <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">
-                                    Biaya: {anak.biayaPendidikanTahunan}
+                                    Biaya: {formatHumanEnum(anak.biayaPendidikanTahunan)}
                                   </span>
                                 )}
                               </div>

@@ -105,7 +105,9 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
     const stripTechNoise = (raw?: string): string =>
       (raw || '')
         .replace(/\[SIMULASI DUMMY\]\s*/gi, '')
+        .replace(/\[SIMULASI[^\]]*\]\s*/gi, '')
         .replace(/\[AKUN SIMULASI[^\]]*\]\s*/gi, '')
+        .replace(/\[AKUN CONTOH[^\]]*\]\s*/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
 

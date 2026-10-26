@@ -2500,7 +2500,7 @@ export default function Home() {
                 type="button"
                 onClick={() => setIsSyncModalOpen(true)}
                 className="flex items-center gap-1.5 shrink-0 hover:opacity-90 transition cursor-pointer"
-                title="Klik untuk membuka status Redis Cache & Mode Offline Tersinkronisasi"
+                title="Klik untuk melihat status jaringan & penyimpanan data"
               >
                 <span className="relative flex h-2.5 w-2.5">
                   <span

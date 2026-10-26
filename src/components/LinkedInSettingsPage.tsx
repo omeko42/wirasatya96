@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { AuthUser } from '@/types';
-import { getAvatarUrl } from '@/lib/avatarUtils';
+import { getAvatarUrl, formatHumanEnum } from '@/lib/avatarUtils';
 import { SecuritySettingsPanel } from '@/components/SecuritySettingsModal';
 import { 
   User, 
@@ -101,7 +101,11 @@ export const LinkedInSettingsPage: React.FC<LinkedInSettingsPageProps> = ({
     } catch {
       // ignore
     }
-    showToast(nextVal ? 'Passkey FIDO2 Biometrik berhasil diaktifkan!' : 'Passkey FIDO2 dinonaktifkan.');
+    showToast(
+      nextVal
+        ? 'Login Biometrik (Sidik Jari / Wajah) berhasil diaktifkan!'
+        : 'Login Biometrik (Sidik Jari / Wajah) dinonaktifkan.'
+    );
   };
 
   const handleDownloadData = () => {
@@ -109,7 +113,7 @@ export const LinkedInSettingsPage: React.FC<LinkedInSettingsPageProps> = ({
       alumniUser: currentUser,
       exportTimestamp: new Date().toISOString(),
       association: 'Batalyon Wira Satya Akpol 1996 (#SelaluBahagia)',
-      encryption: 'AES-256 GCM WiraSatya Security Core',
+      encryption: 'Standar Keamanan Internal Wira Satya 96',
     };
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -243,7 +247,7 @@ export const LinkedInSettingsPage: React.FC<LinkedInSettingsPageProps> = ({
                       <div className="font-semibold text-slate-800">Status Akun</div>
                       <div className="text-emerald-600 font-semibold text-[11px] flex items-center gap-1 mt-0.5">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        Aktif &amp; Terdaftar ({currentUser.role})
+                        Aktif &amp; Terdaftar ({formatHumanEnum(currentUser.role)})
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -401,7 +405,7 @@ export const LinkedInSettingsPage: React.FC<LinkedInSettingsPageProps> = ({
                 <div className="divide-y divide-slate-100 text-xs">
                   <div className="py-3 flex items-center justify-between">
                     <div>
-                      <div className="font-semibold text-slate-800">Unduh data profil (JSON)</div>
+                      <div className="font-semibold text-slate-800">Unduh Arsip Data Profil</div>
                       <div className="text-slate-500 text-[11px] mt-0.5">
                         Salinan arsip data kedinasan dan profil akun
                       </div>

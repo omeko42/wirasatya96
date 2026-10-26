@@ -19,7 +19,13 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { AnggotaWiraSatya, ChatMessage } from '@/types';
-import { getAvatarUrl, formatMemberDisplayName, isSuperadminAccount } from '@/lib/avatarUtils';
+import {
+  getAvatarUrl,
+  formatMemberDisplayName,
+  isSuperadminAccount,
+  formatJabatanWithSatker,
+  formatSatkerWithPolda,
+} from '@/lib/avatarUtils';
 import { isDummySimulationRecord, isClientDummyCleared } from '@/data/dummySimulationData';
 import { WSLogo } from './WSLogo';
 import { MetaVerifiedBadge } from './MetaVerifiedBadge';
@@ -119,11 +125,30 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
     }, 20000);
     const handleSync = () => fetchMessages();
     window.addEventListener('ws96_messages_updated', handleSync);
+    window.addEventListener('ws96_dummy_data_changed', handleSync);
     return () => {
       clearInterval(interval);
       window.removeEventListener('ws96_messages_updated', handleSync);
+      window.removeEventListener('ws96_dummy_data_changed', handleSync);
     };
   }, [fetchMessages]);
+
+  useEffect(() => {
+    const checkDummyActive = () => {
+      if (
+        activeChatMember &&
+        isClientDummyCleared() &&
+        isDummySimulationRecord({ nrp: activeChatMember.nrp })
+      ) {
+        setActiveChatMember(null);
+      }
+    };
+    checkDummyActive();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('ws96_dummy_data_changed', checkDummyActive);
+      return () => window.removeEventListener('ws96_dummy_data_changed', checkDummyActive);
+    }
+  }, [activeChatMember]);
 
   const otherMembers = React.useMemo(
     () =>
@@ -281,7 +306,7 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
                   <MetaVerifiedBadge nrp={activeChatMember.nrp} size="xs" />
                 </p>
                 <p className="text-[10px] text-amber-300 truncate">
-                  {activeChatMember.satuanKerja} • {activeChatMember.polda}
+                  {formatSatkerWithPolda(activeChatMember.satuanKerja, activeChatMember.polda)}
                 </p>
               </div>
             </div>
@@ -326,7 +351,9 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
 
           {/* Subheader: Jabatan Polri */}
           <div className="bg-slate-50 border-b border-slate-200 px-3 py-1.5 flex items-center justify-between text-[11px] text-slate-600">
-            <span className="truncate">{activeChatMember.jabatanTerakhir}</span>
+            <span className="truncate">
+              {formatJabatanWithSatker(activeChatMember.jabatanTerakhir, activeChatMember.satuanKerja)}
+            </span>
             <span className="px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-700 font-bold text-[9px] flex-shrink-0">
               NRP {activeChatMember.nrp}
             </span>
@@ -784,7 +811,7 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
                         </div>
                       </div>
                       <p className="text-[10px] text-slate-500 truncate mt-0.5">
-                        {lastMsg ? lastMsg.text : `${member.satuanKerja} • ${member.polda}`}
+                        {lastMsg ? lastMsg.text : formatSatkerWithPolda(member.satuanKerja, member.polda)}
                       </p>
                     </div>
                   </div>

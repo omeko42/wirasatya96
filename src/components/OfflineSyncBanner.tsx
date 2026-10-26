@@ -162,7 +162,7 @@ export const OfflineSyncBanner: React.FC<{
       });
       const data = await res.json();
       if (data.success) {
-        setSyncToast(data.message || 'Cache Redis berhasil di-reset.');
+        setSyncToast('Penyimpanan lokal berhasil dioptimalkan.');
         setTimeout(() => setSyncToast(null), 4000);
         fetchCacheStats();
       }
@@ -194,7 +194,7 @@ export const OfflineSyncBanner: React.FC<{
       });
       const data = await res.json();
       if (data.success) {
-        setSyncToast(data.message || 'Data sampah dibersihkan & JSON dikompresi.');
+        setSyncToast('Penyimpanan lokal berhasil dioptimalkan.');
         setTimeout(() => setSyncToast(null), 5000);
         fetchCacheStats();
       }
@@ -297,8 +297,8 @@ export const OfflineSyncBanner: React.FC<{
                   <Database className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div>
-                  <p className="font-bold text-white text-sm">Redis Cache & Sinkronisasi Offline</p>
-                  <p className="text-[11px] text-slate-400">Multi-Tier Caching • Offline-First Outbox Queue</p>
+                  <p className="font-bold text-white text-sm">Status Jaringan &amp; Penyimpanan Lokal</p>
+                  <p className="text-[11px] text-slate-400">Sinkronisasi Data Otomatis saat Koneksi Tersedia</p>
                 </div>
               </div>
               <button
@@ -310,40 +310,40 @@ export const OfflineSyncBanner: React.FC<{
               </button>
             </div>
 
-            {/* Redis Cache Stats */}
+            {/* Penyimpanan Lokal Stats */}
             <div className="bg-slate-800/70 rounded-xl p-3.5 border border-slate-700/60 space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-amber-400" /> Redis Caching Engine
+                  <Zap className="w-3.5 h-3.5 text-amber-400" /> Kecepatan Akses Data
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-emerald-400 border border-slate-700">
-                  {cacheTelemetry.lastStatus} • {cacheTelemetry.lastLayer}
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-900 text-emerald-400 border border-slate-700">
+                  Aktif • Siap Pakai
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center pt-1">
                 <div className="bg-slate-900/80 rounded-lg p-2 border border-slate-800">
-                  <p className="text-[10px] text-slate-400">Cache Hits</p>
+                  <p className="text-[10px] text-slate-400">Data Tersimpan</p>
                   <p className="text-base font-extrabold text-emerald-400">{cacheTelemetry.hits}</p>
                 </div>
                 <div className="bg-slate-900/80 rounded-lg p-2 border border-slate-800">
-                  <p className="text-[10px] text-slate-400">Cache Miss</p>
+                  <p className="text-[10px] text-slate-400">Muat Ulang Server</p>
                   <p className="text-base font-extrabold text-amber-300">{cacheTelemetry.misses}</p>
                 </div>
                 <div className="bg-slate-900/80 rounded-lg p-2 border border-slate-800">
-                  <p className="text-[10px] text-slate-400">Active Keys</p>
+                  <p className="text-[10px] text-slate-400">Data Aktif</p>
                   <p className="text-base font-extrabold text-blue-300">{cacheTelemetry.keysCount}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[10px] text-slate-400 truncate">
-                  JSON DB: <strong className="text-emerald-300">{localDbKb > 0 ? `${localDbKb} KB` : 'Ringkas'}</strong> • Media: <strong className="text-amber-300">3–14 KB WebP</strong>
+                  Ruang Penyimpanan: <strong className="text-emerald-300">{localDbKb > 0 ? `${localDbKb} KB` : 'Ringkas'}</strong> • <strong className="text-amber-300">Foto Terkompresi Otomatis</strong>
                 </span>
                 <button
                   type="button"
                   onClick={handleFlushRedisCache}
                   className="text-[11px] font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1"
                 >
-                  <RefreshCw className="w-3 h-3" /> Flush Redis Cache
+                  <RefreshCw className="w-3 h-3" /> Segarkan Penyimpanan
                 </button>
               </div>
               <button
@@ -354,12 +354,12 @@ export const OfflineSyncBanner: React.FC<{
               >
                 <Trash2 className={`w-3.5 h-3.5 ${isCleaningJunk ? 'animate-spin' : ''}`} />
                 {isCleaningJunk
-                  ? 'Mengompresi JSON & Membersihkan Sampah...'
-                  : 'Bersihkan Data Sampah & Kompres JSON (KB)'}
+                  ? 'Mengoptimalkan Penyimpanan Perangkat...'
+                  : 'Optimalkan Penyimpanan Perangkat'}
               </button>
             </div>
 
-            {/* Offline Mode & Outbox Queue */}
+            {/* Offline Mode & Antrean Perubahan */}
             <div className="bg-slate-800/70 rounded-xl p-3.5 border border-slate-700/60 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <div>
@@ -372,7 +372,7 @@ export const OfflineSyncBanner: React.FC<{
                     Mode Offline Tersinkronisasi
                   </p>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    Antrean Outbox Lokal: <strong className="text-white">{outbox.length} perubahan</strong>
+                    Antrean Perubahan Data (Menunggu Sinyal): <strong className="text-white">{outbox.length} perubahan</strong>
                   </p>
                 </div>
                 <button
@@ -398,11 +398,15 @@ export const OfflineSyncBanner: React.FC<{
                       <div className="truncate">
                         <p className="font-semibold text-amber-200 truncate">{item.label}</p>
                         <p className="text-[10px] text-slate-400">
-                          {new Date(item.createdAt).toLocaleTimeString('id-ID')} • {item.method} {item.endpoint}
+                          {new Date(item.createdAt).toLocaleTimeString('id-ID', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}{' '}
+                          WIB
                         </p>
                       </div>
-                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[9px] shrink-0">
-                        PENDING
+                      <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold text-[10px] shrink-0">
+                        Menunggu Koneksi
                       </span>
                     </div>
                   ))}

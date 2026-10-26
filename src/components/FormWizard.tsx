@@ -24,6 +24,8 @@ import {
   extractCleanJabatanTitle,
   getActiveAdcSessionFromStorage,
   recordAdcActivityToAuditLog,
+  formatHumanEnum,
+  formatJabatanWithSatker,
 } from '@/lib/avatarUtils';
 import { SatkerBerjenjangModal } from '@/components/SatkerBerjenjangModal';
 import {
@@ -1420,7 +1422,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         id: '1A',
         tab: 1,
         title: 'Foto, Sampul & Bio',
-        shortTitle: '1A. Foto & Bio',
+        shortTitle: 'Foto & Bio Singkat',
         existingDetail: `${hasCustomFoto ? 'Foto Terpasang' : 'Foto Standar'} • ${
           hasBio ? `Bio: "${formData.bio!.trim().slice(0, 36)}..."` : 'Bio kosong'
         }`,
@@ -1430,10 +1432,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         id: '1B',
         tab: 1,
         title: 'Jabatan & Satker Polri',
-        shortTitle: '1B. Jabatan & Satker',
-        existingDetail: `${formData.pangkat || 'Kombes Pol'} • ${
-          formData.jabatanTerakhir?.trim() || 'Belum diisi'
-        } — ${formData.satuanKerja || 'Bareskrim Polri'}`,
+        shortTitle: 'Jabatan & Satker',
+        existingDetail: `${formData.pangkat || 'Kombes Pol'} • ${formatJabatanWithSatker(
+          formData.jabatanTerakhir?.trim() || 'Belum diisi',
+          formData.satuanKerja || 'Bareskrim Polri'
+        )}`,
         isComplete: Boolean(
           formData.pangkat && formData.jabatanTerakhir?.trim() && formData.satuanKerja?.trim()
         ),
@@ -1442,7 +1445,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         id: '1C',
         tab: 1,
         title: 'Identitas Pribadi & Batalyon',
-        shortTitle: '1C. Identitas & Kompi',
+        shortTitle: 'Identitas & Kompi',
         existingDetail: `${formData.kompi || 'KOMPI A'} • ${formData.pleton || 'PLETON 1'} • ${
           retirementCalc.formattedTanggalLahir
         } (${retirementCalc.usiaTahun} Thn)`,
@@ -1458,7 +1461,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         id: '1D',
         tab: 1,
         title: 'Pendidikan, Dikbang & Tanda Kehormatan',
-        shortTitle: '1D. Dikbang & Brevet',
+        shortTitle: 'Dikbang & Brevet',
         existingDetail: `${formData.pendidikanTerakhir?.trim() || 'Akpol 1996'} • ${
           formData.dikbangPolri?.trim() || 'SESPIMTI POLRI'
         }`,
@@ -1470,7 +1473,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         id: '1E',
         tab: 1,
         title: 'Kontak & Ajudan (ADC)',
-        shortTitle: '1E. Kontak & ADC',
+        shortTitle: 'Kontak & ADC',
         existingDetail: `HP: ${formData.noHp?.trim() || '-'} • ${
           formData.daftarAdc?.length || 0
         } ADC`,
@@ -1480,8 +1483,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         id: '2A',
         tab: 2,
         title: 'Domisili & Biaya Sewa',
-        shortTitle: '2A. Domisili & Sewa',
-        existingDetail: `${formData.statusTempatTinggal || 'MILIK PRIBADI'} • ${
+        shortTitle: 'Domisili & Sewa',
+        existingDetail: `${formatHumanEnum(formData.statusTempatTinggal || 'MILIK PRIBADI')} • ${
           formData.alamatTempatTinggal?.trim() || 'Belum diisi'
         }${
           formData.statusTempatTinggal === 'SEWA/KONTRAK'
@@ -1501,8 +1504,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           formData.statusKedinasan === 'ALMARHUM'
             ? 'Data Istri / Ahli Waris'
             : 'Data Istri / Pasangan',
-        shortTitle: '2B. Data Istri',
-        existingDetail: `${formData.statusPerkawinan || 'MENIKAH'} • ${
+        shortTitle: 'Data Istri',
+        existingDetail: `${formatHumanEnum(formData.statusPerkawinan || 'MENIKAH')} • ${
           formData.namaIstri?.trim() ? formData.namaIstri : 'Belum diisi'
         } • HP: ${formData.kontakIstri?.trim() || '-'}`,
         isComplete: Boolean(
@@ -1513,7 +1516,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         id: '2C',
         tab: 2,
         title: 'Putra-Putri (Anak 1 Garis Keturunan)',
-        shortTitle: '2C. Putra-Putri (Anak)',
+        shortTitle: 'Putra-Putri (Anak)',
         existingDetail: `${formData.daftarAnak?.length || 0} Anak${
           anakNames.length > 0 ? ` (${anakNames.join(', ')})` : ''
         }`,
@@ -1525,10 +1528,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         id: '3A',
         tab: 3,
         title: `Purna Tugas (${RETIREMENT_AGE_POLRI} Thn) & Hunian`,
-        shortTitle: `3A. Purna Tugas & Hunian`,
-        existingDetail: `Pensiun ${retirementCalc.tahunPurnaTugas} • Hunian: ${
+        shortTitle: 'Purna Tugas & Hunian',
+        existingDetail: `Pensiun ${retirementCalc.tahunPurnaTugas} • Hunian: ${formatHumanEnum(
           formData.statusRumahPurnaTugas || 'MILIK PRIBADI'
-        }${
+        )}${
           formData.statusRumahPurnaTugas === 'SEWA/KONTRAK'
             ? ` (${formData.biayaSewaTahunan?.trim() || 'Belum diisi'})`
             : ''
@@ -1543,8 +1546,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         id: '3B',
         tab: 3,
         title: 'Usaha (Pribadi / Bersama) & Open Lowongan Kerja',
-        shortTitle: '3B. Usaha & Lowongan',
-        existingDetail: `${formData.kategoriUsaha || 'USAHA PRIBADI / MANDIRI'} • ${
+        shortTitle: 'Usaha & Lowongan',
+        existingDetail: `${formatHumanEnum(
+          formData.kategoriUsaha || 'USAHA PRIBADI / MANDIRI'
+        )} • ${
           formData.namaUsahaYayasan?.trim() || formData.jenisUsaha?.trim() || 'Belum diisi'
         }${
           formData.bukaLowonganKerja === 'YA' && (formData.daftarLowonganUsaha?.length || 0) > 0
@@ -1562,17 +1567,17 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         id: '3C',
         tab: 3,
         title: 'Kesiapan Finansial Pensiun',
-        shortTitle: '3C. Kesiapan Finansial',
-        existingDetail: `Dana: ${formData.kecukupanDanaPensiun || 'CUKUP'} • Sikap: ${
-          formData.perasaanPensiun || 'OPTIMIS'
-        }`,
+        shortTitle: 'Kesiapan Finansial',
+        existingDetail: `Dana: ${formatHumanEnum(
+          formData.kecukupanDanaPensiun || 'CUKUP'
+        )} • Sikap: ${formatHumanEnum(formData.perasaanPensiun || 'OPTIMIS')}`,
         isComplete: Boolean(formData.kecukupanDanaPensiun && formData.perasaanPensiun),
       },
       {
         id: '4A',
         tab: 4,
         title: 'Postur Fisik & Golongan Darah',
-        shortTitle: '4A. Fisik & Gol. Darah',
+        shortTitle: 'Fisik & Gol. Darah',
         existingDetail: `Gol. Darah: ${formData.golonganDarah || 'O'} (${
           formData.rhesusDarah || 'Rh+'
         }) • TB: ${formData.tinggiBadan || '-'} cm • BB: ${formData.beratBadan || '-'} kg${
@@ -1586,17 +1591,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         id: '4B',
         tab: 4,
         title: 'Kondisi Medis & Riwayat Penyakit',
-        shortTitle: '4B. Riwayat Penyakit',
-        existingDetail: `Kondisi: ${formData.kondisiKesehatan || 'BAIK'} • Kronis: ${
-          formData.adaPenyakitKronis || 'TIDAK ADA'
-        }${penyakitCount > 0 ? ` (${penyakitCount} diagnosa)` : ''}`,
+        shortTitle: 'Riwayat Penyakit',
+        existingDetail: `Kondisi: ${formatHumanEnum(
+          formData.kondisiKesehatan || 'BAIK'
+        )} • Kronis: ${formatHumanEnum(formData.adaPenyakitKronis || 'TIDAK ADA')}${
+          penyakitCount > 0 ? ` (${penyakitCount} diagnosa)` : ''
+        }`,
         isComplete: Boolean(formData.kondisiKesehatan && formData.adaPenyakitKronis),
       },
       {
         id: '4C',
         tab: 4,
         title: 'Asuransi, MCU & Alergi / Catatan',
-        shortTitle: '4C. Asuransi, MCU & Alergi',
+        shortTitle: 'Asuransi, MCU & Alergi',
         existingDetail: `${(formData.asuransiAktif || ['BPJS']).join(', ')} • MCU: ${
           formData.rutinMcu || 'YA'
         }${formData.alergiObatMakanan?.trim() ? ` • Alergi: ${formData.alergiObatMakanan}` : ''}`,
@@ -1606,7 +1613,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         id: '5A',
         tab: 5,
         title: 'Ukuran Pakaian, Sepatu & Atribut',
-        shortTitle: '5A. Ukuran Aparel',
+        shortTitle: 'Ukuran Aparel',
         existingDetail: `Baju: ${formData.ukuranBaju || '-'} • Jaket: ${
           formData.ukuranJaket || formData.ukuranBaju || '-'
         } • Celana: ${formData.ukuranCelana || '-'} • Sepatu: ${
@@ -1645,7 +1652,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         setStep(1);
         setExpandedSections((prev) => ({ ...prev, '1C': true }));
         setErrorMsg(
-          'Untuk personel baru yang belum terdaftar, mohon isi Nama Lengkap dan NRP pada Kategori 1 (Sub-bagian 1C) terlebih dahulu.'
+          'Untuk personel baru yang belum terdaftar, mohon isi Nama Lengkap dan NRP pada Kategori 1 (bagian Identitas Pribadi) terlebih dahulu.'
         );
         return false;
       }
@@ -1654,13 +1661,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     if (tabNum === 1) {
       if (!formData.namaLengkap?.trim()) {
         setExpandedSections((prev) => ({ ...prev, '1C': true }));
-        setErrorMsg('Mohon lengkapi Nama Lengkap & Gelar personel pada Sub-bagian 1C.');
+        setErrorMsg('Mohon lengkapi Nama Lengkap & Gelar personel pada bagian Identitas Pribadi.');
         return false;
       }
       const cleanNrp = (formData.nrp || '').replace(/\s+/g, '').trim();
       if (!cleanNrp) {
         setExpandedSections((prev) => ({ ...prev, '1C': true }));
-        setErrorMsg('Mohon lengkapi NRP / NIP personel pada Sub-bagian 1C.');
+        setErrorMsg('Mohon lengkapi NRP / NIP personel pada bagian Identitas Pribadi.');
         return false;
       }
       if (!/^\d{6,18}$/.test(cleanNrp)) {
@@ -1670,12 +1677,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       }
       if (!formData.satuanKerja?.trim() && !formData.satkerMabes?.trim()) {
         setExpandedSections((prev) => ({ ...prev, '1B': true }));
-        setErrorMsg('Mohon pilih Satuan Kerja (Satker) pada Sub-bagian 1B.');
+        setErrorMsg('Mohon pilih Satuan Kerja (Satker) pada bagian Jabatan & Satuan Kerja.');
         return false;
       }
       if (isExternalJabatan && !formData.jabatanTerakhir?.trim()) {
         setExpandedSections((prev) => ({ ...prev, '1B': true }));
-        setErrorMsg('Mohon ketik nama Jabatan Eksternal (Luar Struktur Polri) pada Sub-bagian 1B.');
+        setErrorMsg('Mohon ketik nama Jabatan Eksternal (Luar Struktur Polri) pada bagian Jabatan & Satuan Kerja.');
         return false;
       }
       return true;
@@ -1687,7 +1694,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         if (emptyChildIdx >= 0) {
           setExpandedSections((prev) => ({ ...prev, '2C': true }));
           setErrorMsg(
-            `Mohon isi Nama Anak ke-${emptyChildIdx + 1} pada Sub-bagian 2C, atau hapus baris anak yang masih kosong.`
+            `Mohon isi Nama Anak ke-${emptyChildIdx + 1} pada bagian Daftar Putra-Putri, atau hapus baris anak yang masih kosong.`
           );
           return false;
         }
@@ -1698,7 +1705,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     if (tabNum === 3) {
       if (!formData.statusRumahPurnaTugas) {
         setExpandedSections((prev) => ({ ...prev, '3A': true }));
-        setErrorMsg('Mohon pilih Status Tempat Tinggal Setelah Pensiun pada Sub-bagian 3A.');
+        setErrorMsg('Mohon pilih Status Tempat Tinggal Setelah Pensiun pada bagian Purna Tugas & Hunian.');
         return false;
       }
       return true;
@@ -1713,7 +1720,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         if (emptyIdx >= 0) {
           setExpandedSections((prev) => ({ ...prev, '4B': true }));
           setErrorMsg(
-            `Mohon isi Nama Penyakit / Diagnosa ke-${emptyIdx + 1} pada Sub-bagian 4B, atau hapus baris yang kosong.`
+            `Mohon isi Nama Penyakit / Diagnosa ke-${emptyIdx + 1} pada bagian Riwayat Kesehatan, atau hapus baris yang kosong.`
           );
           return false;
         }
@@ -1728,7 +1735,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       ) {
         setExpandedSections((prev) => ({ ...prev, '4B': true }));
         setErrorMsg(
-          'Anda memilih Status Penyakit Kronis "ADA". Klik "+ Tambah Penyakit" untuk menambahkan detail diagnosa medis & sejak kapan pada Sub-bagian 4B.'
+          'Anda memilih Status Penyakit Kronis "Ada". Klik "+ Tambah Penyakit" untuk menambahkan detail diagnosa medis & sejak kapan pada bagian Riwayat Kesehatan.'
         );
         return false;
       }
@@ -2464,8 +2471,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     }`}
                   >
                     {formData.statusKedinasan === 'ALMARHUM'
-                      ? '🕊️ ALMARHUM'
-                      : formData.statusKedinasan || 'AKTIF'}
+                      ? '🕊️ Almarhum'
+                      : formatHumanEnum(formData.statusKedinasan || 'AKTIF')}
                   </span>
                 </div>
               </div>
@@ -5099,7 +5106,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>Simpan &amp; Profil</span>
+                <span>Simpan &amp; Lihat Profil</span>
               </button>
 
               {step < 5 && (

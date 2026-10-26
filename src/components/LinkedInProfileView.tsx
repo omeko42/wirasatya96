@@ -23,6 +23,9 @@ import {
   isSuperadminAccount,
   formatHumanTimestamp,
   formatHumanDiseaseList,
+  formatBloodTypeWithRhesus,
+  formatSatkerWithPolda,
+  formatHumanEnum,
 } from '@/lib/avatarUtils';
 import { MetaVerifiedBadge, resolveRoleForBadge } from '@/components/MetaVerifiedBadge';
 import { SecuritySettingsPanel } from '@/components/SecuritySettingsModal';
@@ -413,7 +416,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
       });
       await persistMemberUpdate(
         { coverUrl: processed.dataUrl },
-        `Sampul diperbarui (${processed.encryptedFileName} • ${Math.max(1, Math.round(processed.compressedBytes / 1024))} KB)`
+        'Foto sampul berhasil diperbarui'
       );
     } catch {
       triggerToast('Gagal memproses file sampul');
@@ -435,7 +438,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
       });
       await persistMemberUpdate(
         { fotoUrl: processed.dataUrl },
-        `Foto profil diperbarui (${processed.encryptedFileName} • ${Math.max(1, Math.round(processed.compressedBytes / 1024))} KB)`
+        'Foto profil berhasil diperbarui'
       );
     } catch {
       triggerToast('Gagal memproses foto profil');
@@ -466,26 +469,39 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
   };
 
   const getDefaultBioText = (): string => {
+    const jabWithSatker = formatJabatanWithSatker(
+      localMember.jabatanTerakhir,
+      localMember.satuanKerja
+    );
+    const satkerWithPolda = formatSatkerWithPolda(
+      localMember.satuanKerja,
+      localMember.polda
+    );
     if (!isAkpol96Alumni) {
-      return `${displayMemberNameWithRank} (NRP ${localMember.nrp}) berdinas aktif pada ${localMember.satuanKerja} (${localMember.polda}) dengan jabatan ${localMember.jabatanTerakhir}.`;
+      return `${displayMemberNameWithRank} (NRP ${localMember.nrp}) berdinas aktif pada ${satkerWithPolda} dengan jabatan ${cleanJabatanOnly(localMember.jabatanTerakhir) || jabWithSatker}.`;
     }
-    return `${displayMemberNameWithRank} adalah Perwira Polri alumni Akademi Kepolisian Negara Republik Indonesia (Akpol) Tahun 1996 Batalyon Wira Satya yang saat ini mengemban amanah sebagai ${localMember.jabatanTerakhir} pada ${localMember.satuanKerja} (${localMember.polda}).`;
+    const cleanPolda = (localMember.polda || '').trim();
+    const suffixWilayah =
+      cleanPolda && !jabWithSatker.toLowerCase().includes(cleanPolda.toLowerCase())
+        ? ` (${satkerWithPolda.includes('(') ? cleanPolda : satkerWithPolda})`
+        : '';
+    return `${displayMemberNameWithRank} adalah Perwira Polri alumni Akademi Kepolisian Negara Republik Indonesia (Akpol) Tahun 1996 Batalyon Wira Satya yang saat ini mengemban amanah sebagai ${jabWithSatker}${suffixWilayah}.`;
   };
 
-  const displayedBio = (
+  const cleanBio = (
     localMember.bio && localMember.bio.trim().length > 0
       ? localMember.bio
       : getDefaultBioText()
   )
-    .replace(/^\[AKUN CONTOH_\d+\]\s*/i, '')
+    .replace(/\[AKUN CONTOH[^\]]*\]\s*/gi, '')
+    .replace(/\[SIMULASI[^\]]*\]\s*/gi, '')
     .trim();
+  const displayedBio = cleanBio;
 
-  const rhesusSymbol =
-    (localMember.rhesusDarah || '').toUpperCase().includes('NEGATIF') ||
-    (localMember.rhesusDarah || '').includes('-')
-      ? '-'
-      : '+';
-  const formattedGolDarah = `${localMember.golonganDarah || 'O'}${rhesusSymbol}`;
+  const formattedGolDarah = formatBloodTypeWithRhesus(
+    localMember.golonganDarah,
+    localMember.rhesusDarah
+  );
 
   const getJabatanAngkatanLabel = (role?: UserRole): string => {
     if (role === 'KETUA') return 'Ketua Angkatan';
@@ -765,17 +781,17 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                         !localMember.coverUrl.startsWith('preset:')
                           ? localMember.coverUrl
                           : DEFAULT_COVER_URL;
-                      const fileName = triggerTrackedDownload(coverSrc, {
+                      triggerTrackedDownload(coverSrc, {
                         actorNrp: currentUser.nrp,
                         ownerNrp: localMember.nrp,
                         preset: 'COVER',
                         extension: 'jpg',
                       });
-                      triggerToast(`Diunduh: ${fileName}`);
+                      triggerToast('Gambar berhasil diunduh');
                       setShowCoverMenu(false);
                     }}
                     className="text-slate-700 hover:text-slate-900 font-bold flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                    title="Unduh dengan nama terenkripsi WS-hash-date"
+                    title="Unduh Gambar"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Unduh</span>
@@ -859,17 +875,17 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          const fileName = triggerTrackedDownload(resolvedMemberAvatar, {
+                          triggerTrackedDownload(resolvedMemberAvatar, {
                             actorNrp: currentUser.nrp,
                             ownerNrp: localMember.nrp,
                             preset: 'AVATAR',
                             extension: 'jpg',
                           });
-                          triggerToast(`Diunduh: ${fileName}`);
+                          triggerToast('Gambar berhasil diunduh');
                           setShowAvatarMenu(false);
                         }}
                         className="w-full py-2 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold flex items-center gap-2 transition-colors cursor-pointer"
-                        title="Unduh dengan nama terenkripsi WS-hash-date"
+                        title="Unduh Gambar"
                       >
                         <Download className="w-3.5 h-3.5" />
                         <span>Unduh Foto</span>
@@ -1100,7 +1116,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                         Kesehatan &amp; Gol. Darah:
                       </span>
                       <span className="font-bold text-emerald-700">
-                        {localMember.kondisiKesehatan} • Gol. {formattedGolDarah}
+                        {formatHumanEnum(localMember.kondisiKesehatan || 'BAIK')} • Gol. {formattedGolDarah}
                       </span>
                     </div>
                   </div>
@@ -1194,7 +1210,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                   </span>
                   <span className="font-bold text-white block mt-0.5">
                     {localMember.alamatTempatTinggal || 'Belum Terdata'} (
-                    {localMember.statusTempatTinggal || 'MILIK PRIBADI'})
+                    {formatHumanEnum(localMember.statusTempatTinggal || 'MILIK PRIBADI')})
                   </span>
                   {localMember.statusTempatTinggal === 'SEWA/KONTRAK' &&
                     (localMember.biayaSewaTempatTinggal || localMember.detailSewaTempatTinggal) && (
@@ -1233,15 +1249,22 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                               {anak.nama || `Anak ke-${idx + 1}`}
                             </td>
                             <td className="py-2.5 px-3 text-slate-200">
-                              {[anak.tempatLahir, anak.tanggalLahir].filter(Boolean).join(', ') || '-'}
+                              {[
+                                anak.tempatLahir,
+                                anak.tanggalLahir ? formatHumanTimestamp(anak.tanggalLahir) : '',
+                              ]
+                                .filter(Boolean)
+                                .join(', ') || '-'}
                             </td>
                             <td className="py-2.5 px-3">
                               <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-200 border border-blue-400/30 font-bold text-[10px]">
-                                {anak.status}
+                                {formatHumanEnum(anak.status)}
                               </span>
                             </td>
                             <td className="py-2.5 px-3 font-semibold text-amber-200">
-                              {anak.biayaPendidikanTahunan || '-'}
+                              {anak.biayaPendidikanTahunan
+                                ? formatHumanEnum(anak.biayaPendidikanTahunan)
+                                : '-'}
                             </td>
                           </tr>
                         ))}
@@ -1418,7 +1441,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
               </h2>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                  Tipe: {localMember.tipeSatker || 'POLDA'}
+                  Tipe: {formatHumanEnum(localMember.tipeSatker || 'POLDA')}
                 </span>
                 {canEditProfile && (
                   <button
@@ -1440,7 +1463,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                 </div>
                 <div className="space-y-1 flex-1">
                   <h3 className="text-sm font-bold text-slate-900">
-                    {localMember.jabatanTerakhir}
+                    {cleanJabatanOnly(localMember.jabatanTerakhir) || localMember.jabatanTerakhir}
                   </h3>
                   <p className="text-xs font-semibold text-slate-700">
                     {localMember.satuanKerja}
@@ -1478,28 +1501,6 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       )}
                     </div>
                   )}
-                  <p className="text-[11px] text-slate-500 pt-1">
-                    Tempat Tinggal: <b>{localMember.statusTempatTinggal}</b> (
-                    {localMember.alamatTempatTinggal})
-                  </p>
-                  {localMember.statusTempatTinggal === 'SEWA/KONTRAK' && (
-                    <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-950 space-y-0.5">
-                      <p className="font-extrabold text-amber-900">
-                        Rincian Sewa / Kontrak Tempat Tinggal Saat Ini:
-                      </p>
-                      <p>
-                        Biaya Sewa / Kontrak:{' '}
-                        <span className="font-bold">
-                          {localMember.biayaSewaTempatTinggal || 'Belum dirinci'}
-                        </span>
-                      </p>
-                      {localMember.detailSewaTempatTinggal && (
-                        <p className="text-amber-800">
-                          Keterangan: {localMember.detailSewaTempatTinggal}
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -1522,7 +1523,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       : 'bg-emerald-100 text-emerald-800'
                   }`}
                 >
-                  Kondisi Saat Ini: {localMember.kondisiSaatIni || localMember.kondisiKesehatan || 'SEHAT'}
+                  MCU: {formatHumanEnum(localMember.mcuTerakhir || '< 6 BULAN')}
                 </span>
                 {canEditProfile && (
                   <button
@@ -1539,18 +1540,17 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
 
             {(() => {
               const extHealth = localMember as unknown as Record<string, unknown>;
-              const golonganDarah = localMember.golonganDarah || (extHealth.golonganDarah as string) || 'O';
-              const rhesusDarah = localMember.rhesusDarah || 'Rh+';
               const tbCm = Number(localMember.tinggiBadan) || 172;
               const bbKg = Number(localMember.beratBadan) || 74;
               const bmiVal = tbCm > 100 && bbKg > 25 ? (bbKg / Math.pow(tbCm / 100, 2)).toFixed(1) : null;
-              const bpjsStatus =
+              const rawBpjsStatus =
                 (extHealth.bpjsStatus as string) ||
                 (localMember.asuransiAktif?.includes('BPJS')
                   ? 'AKTIF'
                   : localMember.biayaPengobatanDitanggung || 'AKTIF');
+              const bpjsStatus = formatHumanEnum(rawBpjsStatus);
               const asuransiKesehatan = Array.isArray(localMember.asuransiAktif)
-                ? localMember.asuransiAktif.join(', ')
+                ? localMember.asuransiAktif.map((a) => formatHumanEnum(a)).join(', ')
                 : (extHealth.asuransiAktif as string) || 'BPJS Kesehatan';
               const penyakitKronisText =
                 (extHealth.penyakitKronis as string) ||
@@ -1585,7 +1585,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     <div>
                       <span className="text-slate-500 block">Kondisi Kesehatan:</span>
                       <span className="font-bold text-slate-900">
-                        {localMember.kondisiKesehatan || 'BAIK'}
+                        {formatHumanEnum(localMember.kondisiKesehatan || 'BAIK')}
                       </span>
                     </div>
                     <div>
@@ -1612,7 +1612,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       <span className="text-slate-500 block">Rutin MCU:</span>
                       <span className="font-semibold text-slate-900">
                         {localMember.rutinMcu === 'YA' ? 'Ya (Rutin)' : 'Tidak'} • MCU:{' '}
-                        {localMember.mcuTerakhir || '-'}
+                        {localMember.mcuTerakhir ? formatHumanEnum(localMember.mcuTerakhir) : '-'}
                       </span>
                     </div>
                     <div>
@@ -1670,7 +1670,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       >
                         <div className="flex items-center justify-between gap-1.5">
                           <span className="font-extrabold text-red-900">
-                            {item.namaPenyakit}
+                            {formatHumanDiseaseList([item.namaPenyakit]) || item.namaPenyakit}
                           </span>
                           {item.sejakKapan && (
                             <span className="px-2 py-0.5 rounded-full bg-white text-red-800 border border-red-200 text-[10px] font-bold shrink-0">
@@ -1682,7 +1682,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                           <div className="text-[11px] text-slate-700 flex flex-wrap items-center gap-1.5">
                             {item.statusPenyakit && (
                               <span className="font-semibold text-red-800">
-                                Status: {item.statusPenyakit.replace(/_/g, ' ')}
+                                Status: {formatHumanEnum(item.statusPenyakit)}
                               </span>
                             )}
                             {item.terapiObat && (
@@ -1700,7 +1700,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                         key={i}
                         className="px-2.5 py-1 rounded-lg bg-red-50 text-red-800 border border-red-200 font-bold text-[11px]"
                       >
-                        {p}
+                        {formatHumanDiseaseList([p], { includeSince: true }) || p}
                       </span>
                     ))}
                   </div>
@@ -1732,10 +1732,11 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
               const rawRencanaAktivitas = (localMember.rencanaAktivitas || []).map((a) =>
                 a === 'USAHA SENDIRI' ? 'USAHA BERSAMA / YAYASAN' : a
               );
-              const rencanaSetelahPensiun =
+              const rencanaSetelahPensiun = formatHumanEnum(
                 (extPurna.rencanaSetelahPensiun as string) ||
-                rawRencanaAktivitas.join(', ') ||
-                'USAHA BERSAMA / YAYASAN';
+                  rawRencanaAktivitas.join(', ') ||
+                  'USAHA BERSAMA / YAYASAN'
+              );
               const targetDomisiliParts = [
                 localMember.alamatPurnaTugas,
                 extPurna.kotaPurnaTugas as string,
@@ -1743,8 +1744,9 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
               ].filter(Boolean);
               const targetDomisiliText =
                 targetDomisiliParts.length > 0 ? targetDomisiliParts.join(', ') : '—';
-              const kategoriUsahaText =
-                localMember.kategoriUsaha || 'USAHA BERSAMA ANGKATAN / YAYASAN WIRA SATYA 96';
+              const kategoriUsahaText = formatHumanEnum(
+                localMember.kategoriUsaha || 'USAHA BERSAMA ANGKATAN / YAYASAN WIRA SATYA 96'
+              );
               const namaUsahaYayasanText =
                 localMember.namaUsahaYayasan || 'Yayasan / Koperasi Wira Satya 96';
               const peranUsahaYayasanText =
@@ -1752,17 +1754,21 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
               const bidangUsahaText =
                 (extPurna.bidangUsaha as string) || localMember.jenisUsaha || '—';
               const jenisUsahaText = localMember.jenisUsaha || (extPurna.bidangUsaha as string) || '—';
-              const statusUsahaText = localMember.statusUsaha || 'MASIH RENCANA';
+              const statusUsahaText = formatHumanEnum(localMember.statusUsaha || 'MASIH RENCANA');
               const lokasiUsahaText =
                 (extPurna.lokasiUsaha as string) || localMember.alamatPurnaTugas || '—';
-              const keahlianKhususText =
+              const rawKeahlianKhusus =
                 (extPurna.keahlianKhusus as string) ||
-                (localMember.kebutuhanPembekalan || []).join(', ') ||
-                '—';
-              const minatKomunitasText =
+                (localMember.kebutuhanPembekalan || []).join(', ');
+              const keahlianKhususText = rawKeahlianKhusus
+                ? formatHumanEnum(rawKeahlianKhusus)
+                : '—';
+              const rawMinatKomunitas =
                 (extPurna.minatKomunitas as string) ||
-                (localMember.sumberPenghasilanPasca || []).join(', ') ||
-                '—';
+                (localMember.sumberPenghasilanPasca || []).join(', ');
+              const minatKomunitasText = rawMinatKomunitas
+                ? formatHumanEnum(rawMinatKomunitas)
+                : '—';
 
               return (
                 <>
@@ -1821,7 +1827,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     <div>
                       <span className="text-slate-500 block">Target Domisili Pensiun:</span>
                       <span className="font-semibold text-slate-900">
-                        {targetDomisiliText} ({localMember.statusRumahPurnaTugas || 'MILIK PRIBADI'})
+                        {targetDomisiliText} ({formatHumanEnum(localMember.statusRumahPurnaTugas || 'MILIK PRIBADI')})
                       </span>
                     </div>
                     {localMember.statusRumahPurnaTugas === 'SEWA/KONTRAK' && (
@@ -1897,16 +1903,49 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     <div>
                       <span className="text-slate-500 block">Kesiapan Pensiun:</span>
                       <span className="font-semibold text-slate-900">
-                        {localMember.kesiapanPensiun} ({localMember.perasaanPensiun})
+                        {formatHumanEnum(localMember.kesiapanPensiun || 'SIAP')} (
+                        {formatHumanEnum(localMember.perasaanPensiun || 'OPTIMIS')})
                       </span>
                     </div>
                     <div>
                       <span className="text-slate-500 block">Dana Pensiun:</span>
                       <span className="font-semibold text-slate-900">
-                        {localMember.kecukupanDanaPensiun}
+                        {formatHumanEnum(localMember.kecukupanDanaPensiun || 'CUKUP')}
                       </span>
                     </div>
                   </div>
+
+                  {localMember.daftarLowonganUsaha && localMember.daftarLowonganUsaha.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-slate-100">
+                      <span className="text-xs font-bold text-slate-700 block">
+                        Peluang Kolaborasi &amp; Lowongan Usaha Bersama:
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {localMember.daftarLowonganUsaha.map((loker, idx) => (
+                          <div
+                            key={loker.id || idx}
+                            className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs space-y-1"
+                          >
+                            <div className="flex items-center justify-between gap-1.5">
+                              <span className="font-extrabold text-emerald-950">
+                                {loker.posisi}
+                              </span>
+                              {loker.tipePekerjaan && (
+                                <span className="px-2 py-0.5 rounded-full bg-white text-emerald-800 border border-emerald-200 text-[10px] font-bold shrink-0">
+                                  {formatHumanEnum(loker.tipePekerjaan)}
+                                </span>
+                              )}
+                            </div>
+                            {loker.prioritasPelamar && (
+                              <p className="text-[11px] text-emerald-800 font-semibold">
+                                Prioritas: {formatHumanEnum(loker.prioritasPelamar)}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               );
             })()}
@@ -1939,7 +1978,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     </h2>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                        Status: {statusKeluarga}
+                        Status: {formatHumanEnum(statusKeluarga)}
                       </span>
                       {canEditProfile && (
                         <button
@@ -1978,7 +2017,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     <div className="sm:col-span-2 pt-1.5 border-t border-slate-200/70">
                       <span className="text-slate-500 block">Alamat Domisili Saat Ini:</span>
                       <span className="font-semibold text-slate-900">
-                        {alamatDomisili} ({localMember.statusTempatTinggal || 'MILIK PRIBADI'})
+                        {alamatDomisili} ({formatHumanEnum(localMember.statusTempatTinggal || 'MILIK PRIBADI')})
                       </span>
                       <span className="text-[11px] text-slate-500 block mt-0.5">
                         Kota: <b>{kotaDomisili}</b> • Provinsi / Wilayah: <b>{provinsiDomisili}</b>
@@ -2025,14 +2064,15 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                                   {anak.nama || `Anak ke-${idx + 1}`}
                                 </p>
                                 <p className="text-[11px] text-slate-500">
-                                  {anak.status} • Lahir: {anak.tanggalLahir || '-'}
+                                  {formatHumanEnum(anak.status)} • Lahir:{' '}
+                                  {anak.tanggalLahir ? formatHumanTimestamp(anak.tanggalLahir) : '-'}
                                 </p>
                               </div>
                             </div>
                             <span className="px-2.5 py-1 rounded bg-blue-50 text-blue-800 font-semibold text-[11px] border border-blue-200">
                               {anak.biayaPendidikanTahunan
-                                ? `Biaya: ${anak.biayaPendidikanTahunan}`
-                                : 'Pelajar'}
+                                ? `Biaya: ${formatHumanEnum(anak.biayaPendidikanTahunan)}`
+                                : formatHumanEnum(anak.status || 'PELAJAR')}
                             </span>
                           </div>
                         ))}
@@ -2136,7 +2176,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                   type="button"
                   onClick={() => onEditProfile(localMember, 5)}
                   className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-200 text-red-800 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Ubah Ukuran Aparel di Menu Data Diri (Lembar 5A)"
+                  title="Ubah Ukuran Aparel di Menu Data Diri"
                 >
                   <Edit3 className="w-3 h-3" />
                   <span>Edit Aparel</span>
@@ -2235,7 +2275,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                           <MetaVerifiedBadge nrp={peer.nrp} size="sm" />
                         </p>
                         <p className="text-[10px] text-slate-500 truncate">
-                          {peer.jabatanTerakhir} &bull; {peer.satuanKerja}
+                          {formatJabatanWithSatker(peer.jabatanTerakhir, peer.satuanKerja)}
                         </p>
                         {peerAngkatanLabel && (
                           <span className="mt-0.5 inline-block px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-[9px] font-bold">
@@ -2351,7 +2391,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                   Satker & Wilayah
                 </span>
                 <span className="font-bold text-slate-800">
-                  {localMember.satuanKerja} • {localMember.polda}
+                  {formatSatkerWithPolda(localMember.satuanKerja, localMember.polda)}
                 </span>
               </div>
 
@@ -2431,7 +2471,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                 </span>
                 <span className="font-semibold text-slate-800">
                   {localMember.alamatTempatTinggal || '—'} (
-                  {localMember.statusTempatTinggal})
+                  {formatHumanEnum(localMember.statusTempatTinggal || 'MILIK PRIBADI')})
                 </span>
               </div>
 

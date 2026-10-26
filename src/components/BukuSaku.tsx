@@ -12,6 +12,8 @@ import {
   getOrBuildUserProfile,
   isSuperadminAccount,
   formatHumanDiseaseList,
+  formatHumanEnum,
+  syncCampaignsWithTransactions,
 } from '@/lib/avatarUtils';
 import { LinkedInProfileView } from './LinkedInProfileView';
 import { LinkedInPostCard } from './LinkedInPostCard';
@@ -138,63 +140,77 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
 
   useEffect(() => {
     let mounted = true;
-    fetch('/api/finance')
-      .then((res) => res.json())
-      .then((res) => {
-        if (!mounted || !res) return;
-        const payload = res.data || res;
-        if (typeof payload.totalKasMasuk === 'number') {
-          setApiKasMasuk(payload.totalKasMasuk);
-        } else if (Array.isArray(payload.transactions)) {
-          const inflow = payload.transactions
-            .filter((t: KasTransaction) => t.jenis === 'MASUK')
-            .reduce((s: number, t: KasTransaction) => s + (Number(t.nominal) || 0), 0);
-          setApiKasMasuk(inflow);
-        }
-
-        if (typeof payload.totalKasKeluar === 'number') {
-          setApiKasKeluar(payload.totalKasKeluar);
-        } else if (Array.isArray(payload.transactions)) {
-          const outflow = payload.transactions
-            .filter((t: KasTransaction) => t.jenis === 'KELUAR')
-            .reduce((s: number, t: KasTransaction) => s + (Number(t.nominal) || 0), 0);
-          setApiKasKeluar(outflow);
-        }
-
-        if (payload.summary?.saldoUtama !== undefined) {
-          setApiSaldoKas(payload.summary.saldoUtama);
-        }
-        if (payload.summary?.totalValuasiAset !== undefined) {
-          setApiNilaiAset(payload.summary.totalValuasiAset);
-        } else if (typeof payload.totalValuasiAset === 'number') {
-          setApiNilaiAset(payload.totalValuasiAset);
-        }
-
-        const serverCfg = payload.financeConfig || res.financeConfig;
-        if (serverCfg) {
-          if (Array.isArray(serverCfg.campaigns) && serverCfg.campaigns.length > 0) {
-            setWidgetCampaigns(serverCfg.campaigns);
+    const fetchFinanceWidgetData = () => {
+      fetch('/api/finance')
+        .then((res) => res.json())
+        .then((res) => {
+          if (!mounted || !res) return;
+          const payload = res.data || res;
+          if (typeof payload.totalKasMasuk === 'number') {
+            setApiKasMasuk(payload.totalKasMasuk);
+          } else if (Array.isArray(payload.transactions)) {
+            const inflow = payload.transactions
+              .filter((t: KasTransaction) => t.jenis === 'MASUK')
+              .reduce((s: number, t: KasTransaction) => s + (Number(t.nominal) || 0), 0);
+            setApiKasMasuk(inflow);
           }
-          if (Array.isArray(serverCfg.investmentParticipants)) {
-            const activeInv = serverCfg.investmentParticipants.filter(
-              (p: { statusPartisipasi?: string }) => p.statusPartisipasi !== 'CAIR'
-            );
-            setWidgetInvestCount(activeInv.length);
-            setWidgetInvestTotal(
-              activeInv.reduce(
-                (s: number, p: { estimasiNilaiSaatIni?: number; nominalPenyertaan?: number }) =>
-                  s + (Number(p.estimasiNilaiSaatIni ?? p.nominalPenyertaan) || 0),
-                0
-              )
-            );
+
+          if (typeof payload.totalKasKeluar === 'number') {
+            setApiKasKeluar(payload.totalKasKeluar);
+          } else if (Array.isArray(payload.transactions)) {
+            const outflow = payload.transactions
+              .filter((t: KasTransaction) => t.jenis === 'KELUAR')
+              .reduce((s: number, t: KasTransaction) => s + (Number(t.nominal) || 0), 0);
+            setApiKasKeluar(outflow);
           }
-        }
-      })
-      .catch(() => {});
+
+          if (payload.summary?.saldoUtama !== undefined) {
+            setApiSaldoKas(payload.summary.saldoUtama);
+          }
+          if (payload.summary?.totalValuasiAset !== undefined) {
+            setApiNilaiAset(payload.summary.totalValuasiAset);
+          } else if (typeof payload.totalValuasiAset === 'number') {
+            setApiNilaiAset(payload.totalValuasiAset);
+          }
+
+          const serverCfg = payload.financeConfig || res.financeConfig;
+          if (serverCfg) {
+            if (Array.isArray(serverCfg.campaigns) && serverCfg.campaigns.length > 0) {
+              setWidgetCampaigns(serverCfg.campaigns);
+            }
+            if (Array.isArray(serverCfg.investmentParticipants)) {
+              const activeInv = serverCfg.investmentParticipants.filter(
+                (p: { statusPartisipasi?: string }) => p.statusPartisipasi !== 'CAIR'
+              );
+              setWidgetInvestCount(activeInv.length);
+              setWidgetInvestTotal(
+                activeInv.reduce(
+                  (s: number, p: { estimasiNilaiSaatIni?: number; nominalPenyertaan?: number }) =>
+                    s + (Number(p.estimasiNilaiSaatIni ?? p.nominalPenyertaan) || 0),
+                  0
+                )
+              );
+            } else {
+              setWidgetInvestCount(0);
+              setWidgetInvestTotal(0);
+            }
+          }
+        })
+        .catch(() => {});
+    };
+
+    fetchFinanceWidgetData();
+    window.addEventListener('ws96_dummy_data_changed', fetchFinanceWidgetData);
     return () => {
       mounted = false;
+      window.removeEventListener('ws96_dummy_data_changed', fetchFinanceWidgetData);
     };
   }, [financeSummary, transactions.length]);
+
+  const activeWidgetCampaigns = useMemo(
+    () => syncCampaignsWithTransactions(widgetCampaigns, transactions),
+    [widgetCampaigns, transactions]
+  );
 
   useEffect(() => {
     const syncLocalCfg = () => {
@@ -1176,7 +1192,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                 <div className="flex items-center justify-between text-slate-500">
                   <span>Hak Akses:</span>
                   <span className="font-bold text-slate-900">
-                    {myEffectiveRole === 'SEKRETARIAT' ? 'Sekretaris' : myEffectiveRole}
+                    {formatHumanEnum(myEffectiveRole)}
                   </span>
                 </div>
               </div>
@@ -1423,11 +1439,11 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                     1. Milestone Dana Sosial
                   </span>
                   <span className="text-[10px] font-bold text-emerald-700">
-                    {widgetCampaigns.filter((c) => c.status !== 'SELESAI').length} Program
+                    {activeWidgetCampaigns.filter((c) => c.status !== 'SELESAI').length} Program
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {widgetCampaigns.slice(0, 3).map((cmp) => {
+                  {activeWidgetCampaigns.slice(0, 3).map((cmp) => {
                     const pct =
                       cmp.targetAmount > 0
                         ? Math.min(100, Math.round((Number(cmp.collectedAmount || 0) / cmp.targetAmount) * 100))

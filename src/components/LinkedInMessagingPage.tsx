@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { AuthUser, AnggotaWiraSatya, ChatMessage } from '@/types';
-import { getAvatarUrl, isSuperadminAccount } from '@/lib/avatarUtils';
+import {
+  getAvatarUrl,
+  isSuperadminAccount,
+  formatJabatanWithSatker,
+  formatSatkerWithPolda,
+} from '@/lib/avatarUtils';
 import { isDummySimulationRecord, isClientDummyCleared } from '@/data/dummySimulationData';
 import { processSecureImageUpload } from '@/lib/mediaSecurity';
 import { MetaVerifiedBadge } from './MetaVerifiedBadge';
@@ -101,7 +106,20 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const dummyCleared = isClientDummyCleared();
+            return dummyCleared
+              ? parsed.filter(
+                  (m: ChatMessage) =>
+                    !isDummySimulationRecord({
+                      id: m.id,
+                      senderNrp: m.senderNrp,
+                      receiverNrp: m.receiverNrp,
+                      senderName: m.senderName,
+                    })
+                )
+              : parsed;
+          }
         } catch (e) {
           console.error('Failed to parse cached messages', e);
         }
@@ -161,6 +179,7 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
     const handleSync = () => fetchMessages();
     if (typeof window !== 'undefined') {
       window.addEventListener('ws96_messages_updated', handleSync);
+      window.addEventListener('ws96_dummy_data_changed', handleSync);
     }
 
     return () => {
@@ -168,6 +187,7 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
       clearInterval(interval);
       if (typeof window !== 'undefined') {
         window.removeEventListener('ws96_messages_updated', handleSync);
+        window.removeEventListener('ws96_dummy_data_changed', handleSync);
       }
     };
   }, [currentUser.nrp]);
@@ -228,11 +248,13 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
     // 1. Process all messages to find active chat threads
     const isSuperAdminViewer =
       currentUser.nrp === '98010710' || currentUser.role === 'SUPERADMIN';
+    const dummyCleared = isClientDummyCleared();
 
     messages.forEach((msg) => {
       const otherNrp = msg.senderNrp === currentUser.nrp ? msg.receiverNrp : msg.senderNrp;
       if (!otherNrp || otherNrp === currentUser.nrp) return;
       if (otherNrp === '98010710' && !isSuperAdminViewer) return;
+      if (dummyCleared && isDummySimulationRecord({ nrp: otherNrp })) return;
 
       const member = members.find((m) => m.nrp === otherNrp) || {
         id: 'ws-' + otherNrp,
@@ -296,6 +318,32 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
     }
   }, [contacts, messagesByContact, activePartnerNrp]);
 
+  // Reset activePartnerNrp if dummy simulation data is cleared while viewing a dummy partner
+  useEffect(() => {
+    const checkAndClearDummyPartner = () => {
+      if (!isClientDummyCleared()) return;
+      if (selectedNewChatNrp && isDummySimulationRecord({ nrp: selectedNewChatNrp })) {
+        setSelectedNewChatNrp('');
+      }
+      if (activePartnerNrp && isDummySimulationRecord({ nrp: activePartnerNrp })) {
+        const firstRealActive = contacts.find(
+          (c) =>
+            !isDummySimulationRecord({ nrp: c.member.nrp }) &&
+            (messagesByContact[c.member.nrp]?.length || 0) > 0
+        );
+        setActivePartnerNrp(firstRealActive ? firstRealActive.member.nrp : '');
+      }
+    };
+
+    checkAndClearDummyPartner();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('ws96_dummy_data_changed', checkAndClearDummyPartner);
+      return () => {
+        window.removeEventListener('ws96_dummy_data_changed', checkAndClearDummyPartner);
+      };
+    }
+  }, [activePartnerNrp, selectedNewChatNrp, contacts, messagesByContact]);
+
   // Counts for tabs
   const activeChatCount = React.useMemo(
     () =>
@@ -314,6 +362,9 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
   const activePartner: AnggotaWiraSatya | null = React.useMemo(() => {
     const targetNrp = activePartnerNrp || '';
     if (!targetNrp) return null;
+    if (isClientDummyCleared() && isDummySimulationRecord({ nrp: targetNrp })) {
+      return null;
+    }
     const fromMembers = members.find((m) => m.nrp === targetNrp);
     if (fromMembers) return fromMembers;
     const fromPartners = contacts.find((p) => p.member.nrp === targetNrp);
@@ -783,7 +834,17 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
                       </h3>
                     </div>
                     <p className="text-[10px] sm:text-xs text-slate-500 truncate">
-                      {activePartner.jabatanTerakhir} &bull; {activePartner.satuanKerja} ({activePartner.polda})
+                      {(() => {
+                        const jabSat = formatJabatanWithSatker(
+                          activePartner.jabatanTerakhir,
+                          activePartner.satuanKerja
+                        );
+                        const pol = (activePartner.polda || '').trim();
+                        if (pol && !jabSat.toLowerCase().includes(pol.toLowerCase())) {
+                          return `${jabSat} (${pol})`;
+                        }
+                        return jabSat;
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -1093,10 +1154,10 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
                         <MetaVerifiedBadge nrp={m.nrp} size="sm" />
                       </h4>
                       <p className="text-[11px] text-slate-500 truncate">
-                        {m.pangkat} &bull; {m.jabatanTerakhir}
+                        {m.pangkat} &bull; {formatJabatanWithSatker(m.jabatanTerakhir, m.satuanKerja)}
                       </p>
                       <p className="text-[10px] text-red-900 font-semibold truncate">
-                        {m.satuanKerja} ({m.polda}) &bull; NRP {m.nrp}
+                        {formatSatkerWithPolda(m.satuanKerja, m.polda)} &bull; NRP {m.nrp}
                       </p>
                     </div>
                     <span className="text-xs font-bold text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-full border border-red-200 flex-shrink-0">

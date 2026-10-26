@@ -13,7 +13,13 @@ import {
   AssetCategory,
 } from '@/types';
 import { generateLeakageTrackedFileName } from '@/lib/mediaSecurity';
-import { isSuperadminAccount, formatHumanTimestamp, formatHumanDiseaseList } from '@/lib/avatarUtils';
+import {
+  isSuperadminAccount,
+  formatHumanTimestamp,
+  formatHumanDiseaseList,
+  formatHumanEnum,
+  syncCampaignsWithTransactions,
+} from '@/lib/avatarUtils';
 import { resolveRoleForBadge } from './MetaVerifiedBadge';
 import { NON_AKTIF_IURAN_NRPS } from '@/data/akpol1996Alumni';
 import {
@@ -332,7 +338,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
     Array.isArray(financeConfig.campaigns) && financeConfig.campaigns.length > 0
       ? financeConfig.campaigns
       : DEFAULT_CAMPAIGNS;
-  const campaigns: FundraisingCampaign[] = rawCampaigns.map((c) =>
+  const baseCampaigns: FundraisingCampaign[] = rawCampaigns.map((c) =>
     c.id === 'cmp-anggota-md' && c.title.includes('Anggota yang MD')
       ? {
           ...c,
@@ -341,6 +347,10 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
             'Dana duka kehormatan untuk tali asih, karangan bunga, dan santunan keluarga rekan Wira Satya 96 yang berpulang.',
         }
       : c
+  );
+  const campaigns: FundraisingCampaign[] = syncCampaignsWithTransactions(
+    baseCampaigns,
+    localTransactions.length > 0 ? localTransactions : transactions
   );
   const investmentParticipants: InvestmentParticipant[] = Array.isArray(financeConfig.investmentParticipants)
     ? financeConfig.investmentParticipants
@@ -424,93 +434,103 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
   // Fetch latest finance state and config from API (preserving user-saved config against serverless cold starts)
   useEffect(() => {
-    let savedLocalCfg: FinanceConfig | null = null;
-    if (typeof window !== 'undefined') {
-      try {
-        const rawCfg = localStorage.getItem('ws96_finance_config_v1');
-        if (rawCfg) {
-          savedLocalCfg = JSON.parse(rawCfg);
-        } else {
-          const rawFin = localStorage.getItem('wirasatya96_finance');
-          if (rawFin) {
-            const parsedFin = JSON.parse(rawFin);
-            if (parsedFin?.financeConfig) savedLocalCfg = parsedFin.financeConfig;
+    const fetchLatestFinanceState = () => {
+      let savedLocalCfg: FinanceConfig | null = null;
+      if (typeof window !== 'undefined') {
+        try {
+          const rawCfg = localStorage.getItem('ws96_finance_config_v1');
+          if (rawCfg) {
+            savedLocalCfg = JSON.parse(rawCfg);
+          } else {
+            const rawFin = localStorage.getItem('wirasatya96_finance');
+            if (rawFin) {
+              const parsedFin = JSON.parse(rawFin);
+              if (parsedFin?.financeConfig) savedLocalCfg = parsedFin.financeConfig;
+            }
           }
+        } catch {
+          // ignore
         }
-      } catch {
-        // ignore
       }
-    }
 
-    fetch('/api/finance')
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.success) {
-          const payload = res.data || res;
-          const serverCfg: FinanceConfig | undefined = payload.financeConfig;
-          const isServerDefault =
-            !serverCfg ||
-            serverCfg.updatedBy === 'Sistem Default Kebendaharaan WS96';
-          const hasCustomLocalCfg =
-            savedLocalCfg &&
-            Number(savedLocalCfg.iuranWajibPerBulan) > 0 &&
-            savedLocalCfg.updatedBy &&
-            savedLocalCfg.updatedBy !== 'Sistem Default Kebendaharaan WS96';
+      fetch('/api/finance')
+        .then((r) => r.json())
+        .then((res) => {
+          if (res.success) {
+            const payload = res.data || res;
+            const serverCfg: FinanceConfig | undefined = payload.financeConfig;
+            const isServerDefault =
+              !serverCfg ||
+              serverCfg.updatedBy === 'Sistem Default Kebendaharaan WS96';
+            const hasCustomLocalCfg =
+              savedLocalCfg &&
+              Number(savedLocalCfg.iuranWajibPerBulan) > 0 &&
+              savedLocalCfg.updatedBy &&
+              savedLocalCfg.updatedBy !== 'Sistem Default Kebendaharaan WS96';
 
-          const effectiveCfg =
-            isServerDefault && hasCustomLocalCfg ? savedLocalCfg! : serverCfg || savedLocalCfg || DEFAULT_FINANCE_CONFIG;
+            const effectiveCfg =
+              isServerDefault && hasCustomLocalCfg ? savedLocalCfg! : serverCfg || savedLocalCfg || DEFAULT_FINANCE_CONFIG;
 
-          setFinanceConfig(effectiveCfg);
+            setFinanceConfig(effectiveCfg);
 
-          if (payload.summary) {
-            setLocalSummary({
-              ...payload.summary,
-              iuranWajibPerBulan: effectiveCfg.iuranWajibPerBulan,
-            });
+            if (payload.summary) {
+              setLocalSummary({
+                ...payload.summary,
+                iuranWajibPerBulan: effectiveCfg.iuranWajibPerBulan,
+              });
+            }
+            if (Array.isArray(payload.transactions)) setLocalTransactions(payload.transactions);
+            if (Array.isArray(payload.assets)) setLocalAssets(payload.assets);
+
+            const rawIuran: IuranAnggota[] =
+              Array.isArray(payload.iuranList) && payload.iuranList.length > 0
+                ? payload.iuranList
+                : Array.isArray(payload.iuran) && payload.iuran.length > 0
+                ? payload.iuran
+                : [];
+
+            if (rawIuran.length > 0) {
+              const annualTarget = (Number(effectiveCfg.iuranWajibPerBulan) || 250000) * 12;
+              const syncedIuran = filterOutSuperadminIuran(rawIuran).map((item) => {
+                const status: IuranAnggota['status'] =
+                  item.totalTerbayar >= annualTarget
+                    ? 'LUNAS'
+                    : item.totalTerbayar > 0
+                    ? 'SEBAGIAN'
+                    : 'BELUM_BAYAR';
+                return { ...item, totalTagihan: annualTarget, status };
+              });
+              setLocalIuranList(syncedIuran);
+            } else {
+              setLocalIuranList([]);
+            }
+
+            // Re-hydrate cold-started server with user's custom saved config
+            if (isServerDefault && hasCustomLocalCfg && savedLocalCfg) {
+              fetch('/api/finance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'UPDATE_FINANCE_CONFIG',
+                  actorRole: 'SUPERADMIN',
+                  iuranWajibPerBulan: savedLocalCfg.iuranWajibPerBulan,
+                  tahunBuku: savedLocalCfg.tahunBuku,
+                  subKategoriMasuk: savedLocalCfg.subKategoriMasuk,
+                  subKategoriKeluar: savedLocalCfg.subKategoriKeluar,
+                  updatedBy: savedLocalCfg.updatedBy,
+                }),
+              }).catch(() => {});
+            }
           }
-          if (Array.isArray(payload.transactions)) setLocalTransactions(payload.transactions);
-          if (Array.isArray(payload.assets)) setLocalAssets(payload.assets);
+        })
+        .catch(() => {});
+    };
 
-          const rawIuran: IuranAnggota[] =
-            Array.isArray(payload.iuranList) && payload.iuranList.length > 0
-              ? payload.iuranList
-              : Array.isArray(payload.iuran) && payload.iuran.length > 0
-              ? payload.iuran
-              : [];
-
-          if (rawIuran.length > 0) {
-            const annualTarget = (Number(effectiveCfg.iuranWajibPerBulan) || 250000) * 12;
-            const syncedIuran = filterOutSuperadminIuran(rawIuran).map((item) => {
-              const status: IuranAnggota['status'] =
-                item.totalTerbayar >= annualTarget
-                  ? 'LUNAS'
-                  : item.totalTerbayar > 0
-                  ? 'SEBAGIAN'
-                  : 'BELUM_BAYAR';
-              return { ...item, totalTagihan: annualTarget, status };
-            });
-            setLocalIuranList(syncedIuran);
-          }
-
-          // Re-hydrate cold-started server with user's custom saved config
-          if (isServerDefault && hasCustomLocalCfg && savedLocalCfg) {
-            fetch('/api/finance', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                action: 'UPDATE_FINANCE_CONFIG',
-                actorRole: 'SUPERADMIN',
-                iuranWajibPerBulan: savedLocalCfg.iuranWajibPerBulan,
-                tahunBuku: savedLocalCfg.tahunBuku,
-                subKategoriMasuk: savedLocalCfg.subKategoriMasuk,
-                subKategoriKeluar: savedLocalCfg.subKategoriKeluar,
-                updatedBy: savedLocalCfg.updatedBy,
-              }),
-            }).catch(() => {});
-          }
-        }
-      })
-      .catch(() => {});
+    fetchLatestFinanceState();
+    window.addEventListener('ws96_dummy_data_changed', fetchLatestFinanceState);
+    return () => {
+      window.removeEventListener('ws96_dummy_data_changed', fetchLatestFinanceState);
+    };
   }, []);
 
   // Modal State for Cascading Cashflow Input (BENDAHARA & SUPERADMIN)
@@ -1551,7 +1571,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
             >
               <span className="px-3 py-1.5 rounded-xl bg-white/10 text-slate-100 text-xs font-bold inline-flex items-center gap-1.5 border border-white/15">
                 <Eye className="w-3.5 h-3.5 text-amber-400" />
-                Read-Only
+                Mode Lihat Saja
               </span>
               <button
                 type="button"
@@ -2018,7 +2038,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                         </div>
                         {cmp.deadline && (
                           <span className="text-[10px] text-slate-400 font-semibold whitespace-nowrap">
-                            s/d {cmp.deadline}
+                            s/d {formatHumanTimestamp(cmp.deadline)}
                           </span>
                         )}
                       </div>
@@ -2422,7 +2442,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                       <tr key={ast.id} className="hover:bg-slate-50/70">
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className="font-mono font-bold text-slate-900 block">{ast.kodeAset}</span>
-                          <span className="text-[10px] text-slate-400">{ast.tanggalPerolehan}</span>
+                          <span className="text-[10px] text-slate-400">{formatHumanTimestamp(ast.tanggalPerolehan)}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="font-bold text-slate-900 block text-xs sm:text-sm">{ast.namaAset}</span>
@@ -2513,7 +2533,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                     <div className="flex items-start justify-between">
                       <div>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-100 text-red-800">
-                          {m.kondisiKesehatan}
+                          {formatHumanEnum(m.kondisiKesehatan)}
                         </span>
                         <h4 className="font-bold text-slate-900 text-sm mt-1">{m.namaLengkap}</h4>
                         <p className="text-xs text-slate-500">
@@ -2608,7 +2628,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                       <td className="px-4 py-3 text-slate-500">{c.poldaOrangTua}</td>
                       <td className="px-4 py-3">
                         <span className="px-2 py-0.5 rounded font-bold text-[10px] bg-blue-100 text-blue-800">
-                          {c.biayaPendidikanTahunan || '5.000.000 S.D. 25.000.000'}
+                          {formatHumanEnum(c.biayaPendidikanTahunan || '5.000.000 S.D. 25.000.000')}
                         </span>
                       </td>
                     </tr>
@@ -2679,7 +2699,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                       <ArrowUpRight className="w-4 h-4" />
                     </span>
                     <div>
-                      <span className="font-black block text-xs">SALDO MASUK / INFLOW</span>
+                      <span className="font-black block text-xs">SALDO MASUK / PENERIMAAN</span>
                       <span className="text-[10px] opacity-80 block">Penerimaan Kas &amp; Iuran</span>
                     </div>
                   </button>
@@ -2705,7 +2725,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                       <ArrowDownRight className="w-4 h-4" />
                     </span>
                     <div>
-                      <span className="font-black block text-xs">SALDO KELUAR / OUTFLOW</span>
+                      <span className="font-black block text-xs">SALDO KELUAR / PENGELUARAN</span>
                       <span className="text-[10px] opacity-80 block">Pengeluaran &amp; Santunan</span>
                     </div>
                   </button>
@@ -2716,7 +2736,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="block font-extrabold text-slate-800 uppercase tracking-wide text-[11px]">
-                    Step 2: Pilih Sub-Kategori Cashflow ({trxJenis === 'MASUK' ? 'Inflow' : 'Outflow'})
+                    Step 2: Pilih Sub-Kategori Cashflow ({trxJenis === 'MASUK' ? 'PENERIMAAN' : 'PENGELUARAN'})
                   </label>
                   <button
                     type="button"
@@ -2744,7 +2764,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                   {(trxJenis === 'MASUK' ? financeConfig.subKategoriMasuk : financeConfig.subKategoriKeluar).map(
                     (opt) => (
                       <option key={opt.code} value={opt.code}>
-                        {opt.label} ({opt.code})
+                        {opt.label}
                       </option>
                     )
                   )}

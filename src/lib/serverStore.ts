@@ -45,7 +45,11 @@ import {
   ZERO_FINANCE_SUMMARY,
   isDummySimulationRecord,
 } from '@/data/dummySimulationData';
-import { calculateRetirement58, stripRankFromName } from '@/lib/avatarUtils';
+import {
+  calculateRetirement58,
+  stripRankFromName,
+  syncCampaignsWithTransactions,
+} from '@/lib/avatarUtils';
 import {
   SupabaseRecordRow,
   fetchAllSupabaseRecords,
@@ -1705,6 +1709,14 @@ export const serverStore = {
 
     if (globalStore.transactions.length === 0 && globalStore.assets.length === 0) {
       globalStore.financeSummary = { ...ZERO_FINANCE_SUMMARY };
+      if (globalStore.financeConfig && Array.isArray(globalStore.financeConfig.campaigns)) {
+        globalStore.financeConfig.campaigns = globalStore.financeConfig.campaigns.map((c) => ({
+          ...c,
+          collectedAmount: 0,
+          disbursedAmount: 0,
+          donorCount: 0,
+        }));
+      }
     }
     const updatedFinanceSummary = serverStore.getFinanceSummary();
 
@@ -1825,6 +1837,7 @@ export const serverStore = {
       ...DUMMY_FINANCE_SUMMARY,
     };
     const updatedFinanceSummary = serverStore.getFinanceSummary();
+    globalStore.financeConfig = serverStore.getFinanceConfig();
 
     serverStore.addAuditLog({
       action: 'TAMBAH_USER',
@@ -3668,6 +3681,10 @@ export const serverStore = {
     if (!Array.isArray(globalStore.financeConfig.campaigns)) {
       globalStore.financeConfig.campaigns = DEFAULT_CAMPAIGNS.map((c) => ({ ...c }));
     }
+    globalStore.financeConfig.campaigns = syncCampaignsWithTransactions(
+      globalStore.financeConfig.campaigns,
+      globalStore.transactions || []
+    );
     if (!Array.isArray(globalStore.financeConfig.investmentParticipants)) {
       globalStore.financeConfig.investmentParticipants = [];
     }

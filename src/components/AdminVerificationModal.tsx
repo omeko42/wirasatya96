@@ -36,6 +36,8 @@ import {
   detectStatusKedinasan,
   getStatusKedinasanOrder,
   isSuperadminObject,
+  formatHumanEnum,
+  formatSatkerWithPolda,
 } from '@/lib/avatarUtils';
 import { 
   ShieldCheck, 
@@ -289,6 +291,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
           try {
             if (action === 'CLEAR_DUMMY') {
               localStorage.setItem('ws96_dummy_cleared_v1', 'true');
+              localStorage.removeItem('ws96_finance_config_v2');
             } else {
               localStorage.removeItem('ws96_dummy_cleared_v1');
             }
@@ -312,6 +315,11 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
               );
               if (Array.isArray(payload.finance.iuranList)) {
                 localStorage.setItem('wirasatya96_iuran', JSON.stringify(payload.finance.iuranList));
+              }
+              if (payload.finance.config) {
+                localStorage.setItem('ws96_finance_config_v2', JSON.stringify(payload.finance.config));
+              } else if (action === 'CLEAR_DUMMY') {
+                localStorage.removeItem('ws96_finance_config_v2');
               }
             }
             if (Array.isArray(payload.auditLogs)) {
@@ -1058,7 +1066,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
         targetName: stripRankFromName(targetUser.nama) || targetUser.nama,
         targetPangkat: targetUser.pangkat,
         targetRole: nextRole,
-        details: `Mengubah role akses dari ${targetUser.role} menjadi ${nextRole}`,
+        details: `Mengubah role akses dari ${formatHumanEnum(targetUser.role)} menjadi ${formatHumanEnum(nextRole)}`,
       });
     }
 
@@ -1094,14 +1102,14 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
       });
       const data = await res.json();
       if (data.success) {
-        showToast(`Role pengguna NRP ${nrp} berhasil diubah menjadi ${nextRole}.`, 'success');
+        showToast(`Role pengguna NRP ${nrp} berhasil diubah menjadi ${formatHumanEnum(nextRole)}.`, 'success');
         if (onVerificationUpdate) onVerificationUpdate();
       } else {
         showToast(data.message || 'Gagal mengubah role pengguna.', 'error');
         await fetchAllData();
       }
     } catch {
-      showToast(`Role pengguna NRP ${nrp} disimpan secara lokal (${nextRole}).`, 'success');
+      showToast(`Role pengguna NRP ${nrp} disimpan secara lokal (${formatHumanEnum(nextRole)}).`, 'success');
       if (onVerificationUpdate) onVerificationUpdate();
     } finally {
       setUpdatingUserNrp(null);
@@ -1924,7 +1932,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
       targetRole: assignedRole,
       details:
         action === 'APPROVE'
-          ? `Menyetujui pendaftaran akun sebagai ${assignedRole}`
+          ? `Menyetujui pendaftaran akun sebagai ${formatHumanEnum(assignedRole)}`
           : `Menolak pengajuan pendaftaran akun`,
     });
 
@@ -1999,7 +2007,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
       if (data.success) {
         showToast(
           action === 'APPROVE' 
-            ? `Pendaftaran ${cleanRegNama} disetujui sebagai ${assignedRole}!` 
+            ? `Pendaftaran ${cleanRegNama} disetujui sebagai ${formatHumanEnum(assignedRole)}!` 
             : `Pendaftaran ${cleanRegNama} telah ditolak.`,
           'success'
         );
@@ -2008,7 +2016,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
       } else {
         showToast(
           action === 'APPROVE'
-            ? `Pendaftaran ${cleanRegNama} disetujui sebagai ${assignedRole}!`
+            ? `Pendaftaran ${cleanRegNama} disetujui sebagai ${formatHumanEnum(assignedRole)}!`
             : `Pendaftaran ${cleanRegNama} telah ditolak.`,
           'success'
         );
@@ -2017,7 +2025,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
     } catch {
       showToast(
         action === 'APPROVE'
-          ? `Pendaftaran ${cleanRegNama} disetujui sebagai ${assignedRole}!`
+          ? `Pendaftaran ${cleanRegNama} disetujui sebagai ${formatHumanEnum(assignedRole)}!`
           : `Pendaftaran ${cleanRegNama} telah ditolak.`,
         'success'
       );
@@ -3153,7 +3161,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 pt-0.5">
                         <span className="flex items-center gap-1">
                           <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span>{cleanSatker} &bull; {u.polda || 'MABES POLRI'}</span>
+                          <span>{formatSatkerWithPolda(cleanSatker, u.polda || 'MABES POLRI')}</span>
                         </span>
                         <span className="flex items-center gap-1.5 flex-wrap">
                           <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -3439,7 +3447,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 pt-1">
                         <div className="flex items-center gap-1.5">
                           <Building2 className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                          <span className="truncate">{reg.satker} &bull; {reg.polda}</span>
+                          <span className="truncate">{formatSatkerWithPolda(reg.satker, reg.polda)}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Phone className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
@@ -3839,11 +3847,11 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 <div className="text-slate-600 font-medium">
                   NRP: <span className="font-mono font-bold text-slate-800">{userPendingDelete.nrp}</span> &bull; Role:{' '}
                   <span className="font-bold text-red-800">
-                    {userPendingDelete.role === 'SEKRETARIAT' ? 'SEKRETARIS' : userPendingDelete.role}
+                    {formatHumanEnum(userPendingDelete.role)}
                   </span>
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  Satker: {(userPendingDelete.satker || 'Mabes Polri').split(' / ')[0]} ({userPendingDelete.polda || 'MABES POLRI'})
+                  Satker: {formatSatkerWithPolda((userPendingDelete.satker || 'Mabes Polri').split(' / ')[0], userPendingDelete.polda || 'MABES POLRI')}
                 </div>
               </div>
 
@@ -4287,7 +4295,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                   >
                     <FilePlus2 className="w-3.5 h-3.5" />
                     <span className="sm:hidden">Biodata Lengkap</span>
-                    <span className="hidden sm:inline">Edit Biodata Lengkap (4 Tahap)</span>
+                    <span className="hidden sm:inline">Edit Biodata Lengkap (5 Tahap)</span>
                   </button>
                 ) : <span />}
 

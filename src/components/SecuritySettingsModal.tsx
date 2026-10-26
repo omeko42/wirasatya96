@@ -1672,7 +1672,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
                 </div>
                 <div>
                   <div className="text-[10px] font-bold uppercase text-slate-400">
-                    Kunci Rahasia Setup (Base32)
+                    Kode Kunci Manual (Aplikasi Authenticator)
                   </div>
                   <div className="font-mono font-extrabold text-xs text-slate-800 bg-white px-3 py-1 rounded border border-slate-200 mt-0.5 select-all">
                     {secConfig.totpSecret}

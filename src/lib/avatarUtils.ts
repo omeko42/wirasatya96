@@ -90,12 +90,24 @@ export function formatMemberDisplayName(
 
 
 /**
- * Strips any redundant " — <Satker>" suffix from a Jabatan string so the Jabatan field
- * only stores the organizational position title (e.g. "Lead Developer").
+ * Strips any redundant " — <Satker>" or trailing duplicate "(<Satker>)" suffix from a Jabatan string
+ * so the Jabatan field only stores the organizational position title.
  */
 export function cleanJabatanOnly(jabatan?: string | null): string {
   if (!jabatan || typeof jabatan !== 'string') return '';
-  return jabatan.split(' — ')[0].trim();
+  let base = jabatan.split(' — ')[0].trim();
+  const parenMatch = base.match(/^(.*?)\s*\(([^)]+)\)$/);
+  if (parenMatch) {
+    const mainPart = parenMatch[1].trim();
+    const insideParen = parenMatch[2].trim();
+    if (
+      insideParen &&
+      mainPart.toLowerCase().includes(insideParen.toLowerCase())
+    ) {
+      base = mainPart;
+    }
+  }
+  return base;
 }
 
 /**
@@ -106,11 +118,13 @@ export function formatJabatanWithSatker(
   satker?: string | null
 ): string {
   const cleanJab = cleanJabatanOnly(jabatan);
-  const cleanSat = (satker || '').trim();
+  const cleanSat = (satker || '').split(' / ')[0].trim();
   if (!cleanJab && !cleanSat) return 'Mabes Polri';
   if (!cleanJab) return cleanSat;
   if (!cleanSat) return cleanJab;
-  if (cleanJab.toLowerCase().includes(cleanSat.toLowerCase())) {
+  const jabLower = cleanJab.toLowerCase();
+  const satLower = cleanSat.toLowerCase();
+  if (jabLower.includes(satLower)) {
     return cleanJab;
   }
   return `${cleanJab} — ${cleanSat}`;
@@ -937,6 +951,307 @@ export function formatHumanDiseaseList(
   }
   return formatted.join(', ');
 }
+
+/**
+ * Formats blood type and rhesus cleanly as e.g. "O+", "A+", "B-", "AB+".
+ */
+export function formatBloodTypeWithRhesus(
+  golonganDarah?: string | null,
+  rhesusDarah?: string | null
+): string {
+  const gol = (golonganDarah || 'O').replace(/[^A-Za-z]/g, '').toUpperCase() || 'O';
+  const rhesusRaw = (rhesusDarah || '').toUpperCase();
+  const sign = rhesusRaw.includes('NEGATIF') || rhesusRaw.includes('-') ? '-' : '+';
+  return `${gol}${sign}`;
+}
+
+/**
+ * Combines Satker and Polda without duplicating when Satker already contains Polda or both are Mabes Polri.
+ */
+export function formatSatkerWithPolda(
+  satker?: string | null,
+  polda?: string | null
+): string {
+  const cleanSat = (satker || '').split(' / ')[0].trim();
+  const cleanPol = (polda || '').trim();
+  if (!cleanSat && !cleanPol) return 'Mabes Polri';
+  if (!cleanSat) return cleanPol;
+  if (!cleanPol) return cleanSat;
+  if (cleanSat.toLowerCase().includes(cleanPol.toLowerCase())) {
+    return cleanSat;
+  }
+  if (cleanPol.toLowerCase().includes(cleanSat.toLowerCase())) {
+    return cleanSat;
+  }
+  return `${cleanSat} (${cleanPol})`;
+}
+
+const HUMAN_ENUM_MAP: Record<string, string> = {
+  // Kesehatan
+  'SANGAT BAIK': 'Sangat Baik',
+  'BAIK': 'Sehat & Bugar',
+  'CUKUP BAIK': 'Cukup Baik',
+  'PERLU PERHATIAN KHUSUS': 'Perlu Perhatian Khusus',
+  'PERLU_PERHATIAN_KHUSUS': 'Perlu Perhatian Khusus',
+  'SAKIT': 'Dalam Perawatan / Pemulihan',
+  'ADA': 'Ada Riwayat',
+  'TIDAK ADA': 'Tidak Ada',
+  'TIDAK_ADA': 'Tidak Ada',
+  'TERKONTROL': 'Terkontrol Stabil',
+  'TERAPI_RUTIN': 'Rawat Jalan / Obat Rutin',
+  'TERAPI RUTIN': 'Rawat Jalan / Obat Rutin',
+  'PEMULIHAN': 'Masa Pemulihan',
+  'ATENSI_KHUSUS': 'Perlu Atensi Khusus',
+  'ATENSI KHUSUS': 'Perlu Atensi Khusus',
+  'RIWAYAT_SEMBUH': 'Riwayat Lama (Sembuh)',
+  'RIWAYAT SEMBUH': 'Riwayat Lama (Sembuh)',
+  '< 6 BULAN': 'Kurang dari 6 Bulan Lalu',
+  '6-12 BULAN': '6 – 12 Bulan Lalu',
+  '> 1 TAHUN': 'Lebih dari 1 Tahun Lalu',
+  'BELUM PERNAH': 'Belum Pernah',
+  'DITANGGUNG BPJS/ASURANSI': 'Ditanggung BPJS / Asuransi',
+  'BIAYA PRIBADI': 'Biaya Mandiri',
+  'CAMPURAN': 'BPJS & Biaya Mandiri',
+  // Hunian & Keluarga
+  'MILIK PRIBADI': 'Milik Pribadi',
+  'MILIK_PRIBADI': 'Milik Pribadi',
+  'RUMAH_PRIBADI_LUNAS': 'Rumah Pribadi (Lunas)',
+  'RUMAH_PRIBADI_KPR': 'Rumah Pribadi (KPR)',
+  'RUMAH KELUARGA': 'Rumah Keluarga',
+  'RUMAH_KELUARGA': 'Rumah Keluarga',
+  'DINAS': 'Rumah Dinas Polri',
+  'SEWA/KONTRAK': 'Sewa / Kontrak',
+  'SEWA_KONTRAK': 'Sewa / Kontrak',
+  'MENIKAH': 'Menikah',
+  'BELUM MENIKAH': 'Belum Menikah',
+  'BELUM_MENIKAH': 'Belum Menikah',
+  'DUDA/JANDA': 'Duda / Janda',
+  'DUDA_JANDA': 'Duda / Janda',
+  'PELAJAR': 'Pelajar / Mahasiswa',
+  'BEKERJA': 'Sudah Bekerja',
+  'BELUM BEKERJA': 'Siap Kerja / Mencari Pekerjaan',
+  'BELUM_BEKERJA': 'Siap Kerja / Mencari Pekerjaan',
+  'TNI_POLRI': 'TNI / Polri',
+  'PNS_ASN': 'PNS / ASN',
+  'S1_SARJANA': 'S1 (Sarjana)',
+  'S2_MAGISTER': 'S2 (Magister)',
+  'S3_DOKTOR': 'S3 (Doktor)',
+  '< 5.000.000': '< Rp 5 Juta / Tahun',
+  '5.000.000 S.D. 25.000.000': 'Rp 5 – 25 Juta / Tahun',
+  '25.000.000 S.D. 50.000.000': 'Rp 25 – 50 Juta / Tahun',
+  '> 25.000.000': '> Rp 25 Juta / Tahun',
+  '> 50.000.000': '> Rp 50 Juta / Tahun',
+  // Purna Tugas & Usaha
+  'SUDAH JALAN': 'Sudah Berjalan Aktif',
+  'SUDAH_JALAN': 'Sudah Berjalan Aktif',
+  'DALAM PERSIAPAN': 'Dalam Persiapan',
+  'PERSIAPAN': 'Dalam Persiapan',
+  'MASIH RENCANA': 'Tahap Perencanaan',
+  'BARU IDE': 'Tahap Perencanaan',
+  'USAHA BERSAMA LETING': 'Usaha Bersama Leting',
+  'USAHA BERSAMA / YAYASAN': 'Usaha Bersama / Yayasan',
+  'YAYASAN / SOSIAL LETING': 'Yayasan & Sosial Leting',
+  'KOPERASI / INVESTASI BERSAMA': 'Koperasi & Investasi Bersama',
+  'USAHA PRIBADI / MANDIRI': 'Usaha Pribadi / Mandiri',
+  'USAHA SENDIRI': 'Usaha Mandiri',
+  'PROFESIONAL / KONSULTAN': 'Profesional / Konsultan',
+  'SOSIAL / KEAGAMAAN': 'Kegiatan Sosial & Keagamaan',
+  'ISTIRAHAT / KELUARGA': 'Menikmati Masa Purna bersama Keluarga',
+  'DANA PENSIUN': 'Dana Pensiun Polri',
+  'USAHA': 'Hasil Usaha',
+  'INVESTASI': 'Investasi & Dividen',
+  'SANGAT SIAP': 'Sangat Siap',
+  'SIAP': 'Siap',
+  'CUKUP SIAP': 'Cukup Siap',
+  'BELUM SIAP': 'Perlu Persiapan',
+  'OPTIMIS': 'Optimis',
+  'TENANG': 'Tenang & Mantap',
+  'BIASASAJA': 'Biasa Saja',
+  'BIASA SAJA': 'Biasa Saja',
+  'KHAWATIR': 'Perlu Pendampingan',
+  'SANGAT CUKUP': 'Sangat Cukup',
+  'CUKUP': 'Cukup',
+  'KURANG': 'Perlu Penguatan Finansial',
+  'SANGAT MENDUKUNG': 'Sangat Mendukung',
+  'MENDUKUNG': 'Mendukung',
+  // Lowongan
+  'FULL_TIME': 'Penuh Waktu (Full-Time)',
+  'FULL-TIME': 'Penuh Waktu (Full-Time)',
+  'PART_TIME': 'Paruh Waktu (Part-Time)',
+  'PART-TIME': 'Paruh Waktu (Part-Time)',
+  'MAGANG': 'Magang / Internship',
+  'MITRA_PENGELOLA': 'Mitra Pengelola',
+  'MITRA-PENGELOLA': 'Mitra Pengelola',
+  'PUTRA_PUTRI_ALMARHUM_LETING': 'Prioritas Putra-Putri Almarhum Leting',
+  'PUTRA_PUTRI_LETING': 'Putra-Putri Leting WS96',
+  'KELUARGA_BESAR_WS96': 'Keluarga Besar WS96',
+  // Role & Kedinasan
+  'SUPERADMIN': 'Administrator Utama',
+  'KETUA': 'Ketua Angkatan',
+  'SEKRETARIAT': 'Sekretaris',
+  'SEKRETARIS': 'Sekretaris',
+  'BENDAHARA': 'Bendahara',
+  'ANGGOTA': 'Anggota',
+  'AKTIF': 'Aktif Berdinas',
+  'PURNA_TUGAS': 'Purna Tugas',
+  'ALMARHUM': 'In Memoriam (Almarhum)',
+  'PTDH': 'PTDH',
+  'MABES': 'Mabes Polri',
+  'POLDA': 'Kewilayahan (Polda)',
+  'KEMEN/LEMBAGA': 'Penugasan Luar Struktur',
+};
+
+/**
+ * Converts raw upper-case or underscore enum codes into clean, human-friendly Indonesian labels.
+ */
+export function formatHumanEnum(raw?: string | null): string {
+  if (!raw) return '';
+  const trimmed = String(raw).trim();
+  if (!trimmed) return '';
+  const upper = trimmed.toUpperCase();
+  if (HUMAN_ENUM_MAP[upper]) {
+    return HUMAN_ENUM_MAP[upper];
+  }
+  // If comma-separated list of enums
+  if (trimmed.includes(',')) {
+    return trimmed
+      .split(',')
+      .map((part) => formatHumanEnum(part.trim()))
+      .filter(Boolean)
+      .join(', ');
+  }
+  // Fallback: if all-caps or contains underscores, convert to Title Case
+  if (trimmed === upper || trimmed.includes('_')) {
+    return trimmed
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+      .replace(/\bPolri\b/gi, 'Polri')
+      .replace(/\bBpjs\b/gi, 'BPJS')
+      .replace(/\bMcu\b/gi, 'MCU')
+      .replace(/\bWs96\b/gi, 'WS96')
+      .replace(/\bPtdh\b/gi, 'PTDH');
+  }
+  return trimmed;
+}
+
+/**
+ * Dynamically synchronizes Milestone Dana Sosial campaigns with active KasTransactions
+ * so that `collectedAmount`, `disbursedAmount`, and `donorCount` never show Rp 0 (0%)
+ * when there are real or simulation transactions in the ledger.
+ */
+export function syncCampaignsWithTransactions<
+  TCampaign extends {
+    id: string;
+    title: string;
+    category?: string;
+    targetAmount: number;
+    collectedAmount: number;
+    disbursedAmount?: number;
+    donorCount: number;
+  },
+  TTrx extends {
+    id: string;
+    jenis: string;
+    kategori: string;
+    nominal: number;
+    keterangan?: string;
+    nrpTerkait?: string;
+    pihakTerkait?: string;
+  }
+>(campaigns: TCampaign[], transactions: TTrx[]): TCampaign[] {
+  if (!Array.isArray(campaigns) || campaigns.length === 0) return campaigns;
+  if (!Array.isArray(transactions) || transactions.length === 0) return campaigns;
+
+  let totalMasuk = 0;
+  const masukDonors = new Set<string>();
+  const keluarByCampaignId: Record<string, { amount: number; count: number }> = {};
+
+  for (const trx of transactions) {
+    const nom = Number(trx.nominal || 0);
+    if (!nom || nom <= 0) continue;
+    const kat = String(trx.kategori || '').toUpperCase();
+    const ket = String(trx.keterangan || '').toLowerCase();
+
+    if (trx.jenis === 'MASUK') {
+      totalMasuk += nom;
+      if (trx.nrpTerkait || trx.pihakTerkait) {
+        masukDonors.add(String(trx.nrpTerkait || trx.pihakTerkait));
+      } else {
+        masukDonors.add(trx.id);
+      }
+    } else if (trx.jenis === 'KELUAR') {
+      let targetCmpId = '';
+      if (
+        kat.includes('YATIM') ||
+        kat.includes('PENDIDIKAN') ||
+        ket.includes('yatim') ||
+        ket.includes('pendidikan') ||
+        ket.includes('putra-putri') ||
+        ket.includes('almarhum')
+      ) {
+        targetCmpId = 'cmp-anak-yatim';
+      } else if (
+        kat.includes('SAKIT') ||
+        kat.includes('KESEHATAN') ||
+        ket.includes('sakit') ||
+        ket.includes('medis') ||
+        ket.includes('kesehatan') ||
+        ket.includes('rawat')
+      ) {
+        targetCmpId = 'cmp-anggota-sakit';
+      } else if (
+        kat.includes('DUKA') ||
+        kat.includes('MD') ||
+        ket.includes('duka') ||
+        ket.includes('wafat') ||
+        ket.includes('meninggal')
+      ) {
+        targetCmpId = 'cmp-anggota-md';
+      } else {
+        targetCmpId = 'cmp-event-baksos';
+      }
+      const prev = keluarByCampaignId[targetCmpId] || { amount: 0, count: 0 };
+      keluarByCampaignId[targetCmpId] = {
+        amount: prev.amount + nom,
+        count: prev.count + 1,
+      };
+    }
+  }
+
+  // Distribute totalMasuk across campaigns so each campaign covers at least its disbursedAmount
+  // and any remaining surplus is allocated proportionally across primary social milestones.
+  const totalDisbursedMapped = Object.values(keluarByCampaignId).reduce(
+    (acc, v) => acc + v.amount,
+    0
+  );
+  const surplusMasuk = Math.max(0, totalMasuk - totalDisbursedMapped);
+  const weights: Record<string, number> = {
+    'cmp-anak-yatim': 0.4,
+    'cmp-anggota-sakit': 0.35,
+    'cmp-anggota-md': 0.25,
+    'cmp-event-baksos': 0.0,
+  };
+
+  return campaigns.map((cmp) => {
+    const keluarInfo = keluarByCampaignId[cmp.id] || { amount: 0, count: 0 };
+    const weight = weights[cmp.id] ?? 1 / Math.max(1, campaigns.length);
+    const derivedCollected = Math.round(keluarInfo.amount + surplusMasuk * weight);
+    const derivedDisbursed = keluarInfo.amount;
+    const derivedDonors = Math.max(
+      cmp.donorCount || 0,
+      derivedCollected > 0 ? Math.max(1, masukDonors.size) : 0
+    );
+
+    return {
+      ...cmp,
+      collectedAmount: Math.max(cmp.collectedAmount || 0, derivedCollected),
+      disbursedAmount: Math.max(cmp.disbursedAmount || 0, derivedDisbursed),
+      donorCount: derivedDonors,
+    };
+  });
+}
+
 
 
 
