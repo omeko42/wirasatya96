@@ -335,24 +335,24 @@ export const FormWizard: React.FC<FormWizardProps> = ({
   const [avatarCleared, setAvatarCleared] = useState(false);
   const [isExternalJabatan, setIsExternalJabatan] = useState(false);
 
-  // Accordion state for sub-sections (1A-1E, 2A-2D, 3A-3C, 4A-4C, 5A)
+  // Accordion state for sub-sections (1A-1E, 2A-2D, 3A-3C, 4A-4C, 5A) — Default tertutup semua agar ringkas & rapi
   const [expandedSections, setExpandedSections] = useState<Record<SubSectionId, boolean>>({
-    '1A': true,
-    '1B': true,
+    '1A': false,
+    '1B': false,
     '1C': false,
     '1D': false,
     '1E': false,
-    '2A': true,
-    '2B': true,
+    '2A': false,
+    '2B': false,
     '2C': false,
     '2D': false,
-    '3A': true,
-    '3B': true,
+    '3A': false,
+    '3B': false,
     '3C': false,
-    '4A': true,
-    '4B': true,
+    '4A': false,
+    '4B': false,
     '4C': false,
-    '5A': true,
+    '5A': false,
   });
 
   const initializedMemberKeyRef = useRef<string | null>(null);
@@ -489,6 +489,24 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     setSavedTabs({});
     setSavedBanner(null);
     setErrorMsg(null);
+    setExpandedSections({
+      '1A': false,
+      '1B': false,
+      '1C': false,
+      '1D': false,
+      '1E': false,
+      '2A': false,
+      '2B': false,
+      '2C': false,
+      '2D': false,
+      '3A': false,
+      '3B': false,
+      '3C': false,
+      '4A': false,
+      '4B': false,
+      '4C': false,
+      '5A': false,
+    });
 
     if (existingMember) {
       const isSelf = existingMember.nrp === activeUser.nrp;
@@ -2124,34 +2142,6 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         {doneCount}/{t.subSections.length}
                       </span>
                     </button>
-
-                    {/* Compact quick-jump pills only for active category */}
-                    {isActive && (
-                      <div className="flex flex-wrap gap-1 px-1 pt-0.5 pb-1">
-                        {subItems.map((sub) => {
-                          const isOpen = Boolean(expandedSections[sub.id]);
-                          return (
-                            <button
-                              key={sub.id}
-                              type="button"
-                              onClick={() => openAndFocusSubSection(step, sub.id)}
-                              className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer flex items-center gap-1 ${
-                                isOpen
-                                  ? 'bg-slate-900 text-white border-slate-900'
-                                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                              }`}
-                            >
-                              <span>{sub.shortTitle}</span>
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  sub.isComplete ? 'bg-emerald-400' : 'bg-amber-400'
-                                }`}
-                              />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
                   </div>
                 );
               })}
