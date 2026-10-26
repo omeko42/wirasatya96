@@ -103,6 +103,23 @@ export interface RiwayatPenyakitItem {
   terapiObat?: string;
 }
 
+export interface RiwayatJabatanItem {
+  id: string;
+  jabatan: string;
+  satker: string;
+  polda: string;
+  pangkatSaatMenjabat?: string;
+  tmtMulai?: string;
+  statusJabatan?: 'SAAT_INI' | 'SEBELUMNYA';
+}
+
+export interface AsuransiDetailItem {
+  id: string;
+  namaMerek: string;
+  jenisAsuransi: 'JAMINAN DINAS / NEGARA' | 'ASURANSI KESEHATAN' | 'ASURANSI JIWA' | 'ASURANSI HARI TUA';
+  statusKepesertaan?: 'AKTIF' | 'NON_AKTIF';
+}
+
 export interface AdcPersonel {
   id: string;
   nama: string;
@@ -144,6 +161,7 @@ export interface AnggotaWiraSatya {
   pangkat: string;
   jabatanTerakhir: string;
   jabatan?: string;
+  riwayatJabatan?: RiwayatJabatanItem[];
   satuanKerja: string;
   satker?: string;
   kodeSatker?: string;
@@ -252,6 +270,7 @@ export interface AnggotaWiraSatya {
   penangananPengobatan?: string;
   biayaPengobatanDitanggung?: 'DITANGGUNG BPJS/ASURANSI' | '5.000.000 S.D. 10.000.000' | 'DI ATAS 10.000.000';
   asuransiAktif: ('ASURANSI KESEHATAN' | 'ASURANSI JIWA' | 'BPJS' | 'TIDAK ADA')[];
+  daftarAsuransiDetail?: AsuransiDetailItem[];
   rutinMcu: 'YA' | 'TIDAK';
   mcuTerakhir?: '< 6 BULAN' | '6-12 BULAN' | '> 1 TAHUN';
   waktuMcuTerakhir?: string;

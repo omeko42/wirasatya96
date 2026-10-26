@@ -8,6 +8,8 @@ import {
   AuthUser,
   LowonganUsahaItem,
   RiwayatPenyakitItem,
+  RiwayatJabatanItem,
+  AsuransiDetailItem,
   DAFTAR_PANGKAT_POLRI,
 } from '@/types';
 import {
@@ -98,6 +100,7 @@ export type SubSectionId =
   | '3A'
   | '3B'
   | '3C'
+  | '3D'
   | '4A'
   | '4B'
   | '4C'
@@ -307,7 +310,7 @@ const TAB_CONFIG: {
     num: 3,
     title: 'Purna Tugas & Usaha',
     shortTitle: 'Purna Tugas',
-    subSections: ['3A', '3B', '3C'],
+    subSections: ['3A', '3B', '3C', '3D'],
     icon: Home,
   },
   {
@@ -396,6 +399,113 @@ export function formatDetailToDiseaseList(items?: RiwayatPenyakitItem[]): string
       return sejak ? `${nama} (Sejak ${sejak})` : nama;
     })
     .filter(Boolean);
+}
+
+const PRESET_ASURANSI_MEREK = [
+  'BPJS Kesehatan',
+  'ASABRI',
+  'Prudential',
+  'Allianz',
+  'Mandiri Inhealth',
+  'AXA Mandiri',
+  'BRI Life',
+  'Manulife',
+  'BNI Life',
+  'Sinarmas MSIG',
+  'AIA Financial',
+  'Cigna',
+] as const;
+
+export function parseRiwayatJabatanToDetail(
+  existingList?: RiwayatJabatanItem[],
+  jabatanTerakhir?: string,
+  satuanKerja?: string,
+  polda?: string,
+  pangkat?: string,
+  tmtPangkat?: string
+): RiwayatJabatanItem[] {
+  if (Array.isArray(existingList) && existingList.length > 0) {
+    return existingList;
+  }
+  const cleanJab = (jabatanTerakhir || '').trim();
+  if (!cleanJab && !satuanKerja) return [];
+  return [
+    {
+      id: `jab-init-0-${Date.now()}`,
+      jabatan: cleanJab || 'Perwira Menengah Polri',
+      satker: satuanKerja || 'Bareskrim Polri',
+      polda: polda || 'MABES POLRI',
+      pangkatSaatMenjabat: pangkat || 'Kombes Pol',
+      tmtMulai: tmtPangkat || '',
+      statusJabatan: 'SAAT_INI',
+    },
+  ];
+}
+
+export function parseAsuransiListToDetail(
+  existingDetail?: AsuransiDetailItem[],
+  asuransiAktif?: string[]
+): AsuransiDetailItem[] {
+  if (Array.isArray(existingDetail) && existingDetail.length > 0) {
+    return existingDetail;
+  }
+  if (!Array.isArray(asuransiAktif) || asuransiAktif.length === 0) {
+    return [
+      {
+        id: `ins-init-0`,
+        namaMerek: 'BPJS Kesehatan',
+        jenisAsuransi: 'JAMINAN DINAS / NEGARA',
+        statusKepesertaan: 'AKTIF',
+      },
+    ];
+  }
+  const valid = asuransiAktif.filter((a) => a && a !== 'TIDAK ADA');
+  if (valid.length === 0) return [];
+  return valid.map((raw, idx) => {
+    const up = raw.toUpperCase();
+    if (up === 'BPJS') {
+      return {
+        id: `ins-init-${idx}`,
+        namaMerek: 'BPJS Kesehatan',
+        jenisAsuransi: 'JAMINAN DINAS / NEGARA',
+        statusKepesertaan: 'AKTIF',
+      };
+    }
+    if (up === 'ASURANSI JIWA') {
+      return {
+        id: `ins-init-${idx}`,
+        namaMerek: 'ASABRI / Prudential',
+        jenisAsuransi: 'ASURANSI JIWA',
+        statusKepesertaan: 'AKTIF',
+      };
+    }
+    return {
+      id: `ins-init-${idx}`,
+      namaMerek: raw === 'ASURANSI KESEHATAN' ? 'Mandiri Inhealth / Swasta' : raw,
+      jenisAsuransi: 'ASURANSI KESEHATAN',
+      statusKepesertaan: 'AKTIF',
+    };
+  });
+}
+
+export function formatDetailToAsuransiLegacy(
+  items?: AsuransiDetailItem[]
+): ('BPJS' | 'ASURANSI KESEHATAN' | 'ASURANSI JIWA' | 'TIDAK ADA')[] {
+  if (!Array.isArray(items) || items.length === 0) {
+    return ['TIDAK ADA'];
+  }
+  const set = new Set<'BPJS' | 'ASURANSI KESEHATAN' | 'ASURANSI JIWA'>();
+  items.forEach((it) => {
+    const merekUp = (it.namaMerek || '').toUpperCase();
+    if (merekUp.includes('BPJS') || it.jenisAsuransi === 'JAMINAN DINAS / NEGARA') {
+      set.add('BPJS');
+    } else if (it.jenisAsuransi === 'ASURANSI JIWA' || it.jenisAsuransi === 'ASURANSI HARI TUA') {
+      set.add('ASURANSI JIWA');
+    } else {
+      set.add('ASURANSI KESEHATAN');
+    }
+  });
+  return set.size > 0 ? Array.from(set) : ['BPJS'];
 }
 
 /**
@@ -650,10 +760,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
   const [penyakitLainnya, setPenyakitLainnya] = useState('');
   const [isSatkerModalOpen, setIsSatkerModalOpen] = useState(false);
+  const [satkerModalTargetJabatanIdx, setSatkerModalTargetJabatanIdx] = useState<number | null>(null);
   const [avatarCleared, setAvatarCleared] = useState(false);
   const [isExternalJabatan, setIsExternalJabatan] = useState(false);
 
-  // Accordion state for sub-sections (1A-1E, 2A-2C, 3A-3C, 4A-4C, 5A) — Default tertutup semua agar ringkas & rapi
+  // Accordion state for sub-sections (1A-1E, 2A-2C, 3A-3D, 4A-4C, 5A) — Default tertutup semua agar ringkas & rapi
   const [expandedSections, setExpandedSections] = useState<Record<SubSectionId, boolean>>({
     '1A': false,
     '1B': false,
@@ -666,6 +777,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     '3A': false,
     '3B': false,
     '3C': false,
+    '3D': false,
     '4A': false,
     '4B': false,
     '4C': false,
@@ -824,6 +936,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       '3A': false,
       '3B': false,
       '3C': false,
+      '3D': false,
       '4A': false,
       '4B': false,
       '4C': false,
@@ -880,6 +993,20 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         existingMember.penangananPengobatan
       );
 
+      const hydratedRiwayatJabatan = parseRiwayatJabatanToDetail(
+        existingMember.riwayatJabatan,
+        cleanedJabatan,
+        existingMember.satuanKerja || 'Bareskrim Polri',
+        existingMember.polda || 'MABES POLRI',
+        existingMember.pangkat || 'Kombes Pol',
+        existingMember.tmtPangkat || ''
+      );
+
+      const hydratedAsuransiDetail = parseAsuransiListToDetail(
+        existingMember.daftarAsuransiDetail,
+        existingMember.asuransiAktif
+      );
+
       setFormData({
         ...existingMember,
         statusKedinasan: detectedStatus,
@@ -889,6 +1016,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         tahunPurnaTugas: calc58.tahunPurnaTugas,
         sisaTahunDinas: calc58.sisaTahunDinas,
         jabatanTerakhir: cleanedJabatan,
+        riwayatJabatan: hydratedRiwayatJabatan,
         jenisAnggota: resolvedKind,
         tmtPangkat: existingMember.tmtPangkat || '',
         dikbangPolri:
@@ -899,8 +1027,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           'Bintang Bhayangkara Nararya, SL Pengabdian 24 Thn',
         agama: existingMember.agama || 'ISLAM',
         sukuBangsa: existingMember.sukuBangsa || '',
-        kompi: existingMember.kompi || (isSelf ? activeUser.kompi : undefined) || 'KOMPI A',
-        pleton: existingMember.pleton || (isSelf ? activeUser.pleton : undefined) || 'PLETON 1',
+        kompi:
+          existingMember.kompi !== undefined
+            ? existingMember.kompi
+            : (isSelf ? activeUser.kompi : '') || '',
+        pleton:
+          existingMember.pleton !== undefined
+            ? existingMember.pleton
+            : (isSelf ? activeUser.pleton : '') || '',
         golonganDarah:
           existingMember.golonganDarah || (isSelf ? activeUser.golonganDarah : undefined) || 'O',
         rhesusDarah:
@@ -951,6 +1085,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         daftarLowonganUsaha: existingMember.daftarLowonganUsaha || [],
         riwayatPenyakitDetail: hydratedPenyakitDetail,
         daftarPenyakit: formatDetailToDiseaseList(hydratedPenyakitDetail),
+        daftarAsuransiDetail: hydratedAsuransiDetail,
+        asuransiAktif: formatDetailToAsuransiLegacy(hydratedAsuransiDetail),
         waktuMcuTerakhir: existingMember.waktuMcuTerakhir || '',
         kesehatanLainLain: existingMember.kesehatanLainLain || '',
         namaAdc: existingMember.namaAdc || firstAdc?.nama || '',
@@ -982,6 +1118,15 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     } else if (activeUser.role === 'ANGGOTA') {
       const resolvedKind = resolveDefaultJenisAnggota(undefined, activeUser);
       const calc58 = calculateRetirement58(undefined, activeUser.nrp);
+      const defaultRiwayatJab = parseRiwayatJabatanToDetail(
+        undefined,
+        activeUser.jabatanTerakhir || '',
+        activeUser.satker || 'Bareskrim Polri',
+        activeUser.polda || 'MABES POLRI',
+        activeUser.pangkat || 'Kombes Pol',
+        ''
+      );
+      const defaultAsuransi = parseAsuransiListToDetail(undefined, ['BPJS']);
       setFormData((prev) => ({
         ...prev,
         nrp: activeUser.nrp,
@@ -993,8 +1138,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         tahunPurnaTugas: calc58.tahunPurnaTugas,
         sisaTahunDinas: calc58.sisaTahunDinas,
         jenisAnggota: resolvedKind,
-        kompi: activeUser.kompi || 'KOMPI A',
-        pleton: activeUser.pleton || 'PLETON 1',
+        kompi: activeUser.kompi ?? '',
+        pleton: activeUser.pleton ?? '',
         golonganDarah: activeUser.golonganDarah || 'O',
         rhesusDarah: activeUser.rhesusDarah || 'Rh+',
         tinggiBadan: activeUser.tinggiBadan || 172,
@@ -1013,6 +1158,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         kesehatanLainLain: '',
         satuanKerja: activeUser.satker || 'Bareskrim Polri',
         polda: activeUser.polda || 'MABES POLRI',
+        riwayatJabatan: defaultRiwayatJab,
+        daftarAsuransiDetail: defaultAsuransi,
+        asuransiAktif: formatDetailToAsuransiLegacy(defaultAsuransi),
         fotoUrl: resolveAvatarUrl(activeUser.fotoUrl),
         coverUrl: activeUser.coverUrl,
         email: activeUser.email || (activeUser.nrp ? `${activeUser.nrp}@polri.go.id` : ''),
@@ -1023,6 +1171,15 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     } else {
       // Clean form for adding new member
       const calc58 = calculateRetirement58('1974-01-01', '');
+      const defaultRiwayatJab = parseRiwayatJabatanToDetail(
+        undefined,
+        '',
+        'Bareskrim Polri',
+        'MABES POLRI',
+        'Kombes Pol',
+        ''
+      );
+      const defaultAsuransi = parseAsuransiListToDetail(undefined, ['BPJS']);
       setFormData((prev) => ({
         ...prev,
         id: undefined,
@@ -1034,8 +1191,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         tahunPurnaTugas: calc58.tahunPurnaTugas,
         sisaTahunDinas: calc58.sisaTahunDinas,
         jenisAnggota: 'ANGGOTA POLRI',
-        kompi: 'KOMPI A',
-        pleton: 'PLETON 1',
+        kompi: '',
+        pleton: '',
         golonganDarah: 'O',
         rhesusDarah: 'Rh+',
         tinggiBadan: 172,
@@ -1057,6 +1214,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         jabatanTerakhir: '',
         satuanKerja: 'Bareskrim Polri',
         polda: 'MABES POLRI',
+        riwayatJabatan: defaultRiwayatJab,
+        daftarAsuransiDetail: defaultAsuransi,
+        asuransiAktif: formatDetailToAsuransiLegacy(defaultAsuransi),
         subSatker: '',
         pendidikanTerakhir: '',
         noHp: '',
@@ -1285,6 +1445,85 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     });
   };
 
+  // Repeatable Riwayat Jabatan & Satker handlers (like Tambah Anak)
+  const syncPrimaryJabatanFields = (
+    list: RiwayatJabatanItem[],
+    fallbackJab?: string,
+    fallbackSatker?: string,
+    fallbackPolda?: string
+  ) => {
+    const primary = list.find((j) => j.statusJabatan === 'SAAT_INI') || list[0];
+    return {
+      riwayatJabatan: list,
+      jabatanTerakhir: primary?.jabatan ?? fallbackJab ?? '',
+      satuanKerja: primary?.satker || fallbackSatker || 'Bareskrim Polri',
+      polda: primary?.polda || fallbackPolda || 'MABES POLRI',
+    };
+  };
+
+  const handleAddJabatan = () => {
+    if (errorMsg) setErrorMsg(null);
+    const existingList = formData.riwayatJabatan || [];
+    const newItem: RiwayatJabatanItem = {
+      id: 'jab-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      jabatan: '',
+      satker: formData.satuanKerja || 'Bareskrim Polri',
+      polda: formData.polda || 'MABES POLRI',
+      pangkatSaatMenjabat: formData.pangkat || 'Kombes Pol',
+      tmtMulai: String(new Date().getFullYear()),
+      statusJabatan: existingList.length === 0 ? 'SAAT_INI' : 'SEBELUMNYA',
+    };
+    setFormData((prev) => {
+      const nextList = [...(prev.riwayatJabatan || []), newItem];
+      return {
+        ...prev,
+        ...syncPrimaryJabatanFields(nextList, prev.jabatanTerakhir, prev.satuanKerja, prev.polda),
+      };
+    });
+    setExpandedSections((prev) => ({ ...prev, '1B': true }));
+  };
+
+  const handleRemoveJabatan = (index: number) => {
+    if (errorMsg) setErrorMsg(null);
+    setFormData((prev) => {
+      const nextList = [...(prev.riwayatJabatan || [])];
+      nextList.splice(index, 1);
+      if (nextList.length > 0 && !nextList.some((j) => j.statusJabatan === 'SAAT_INI')) {
+        nextList[0] = { ...nextList[0], statusJabatan: 'SAAT_INI' };
+      }
+      return {
+        ...prev,
+        ...syncPrimaryJabatanFields(nextList, prev.jabatanTerakhir, prev.satuanKerja, prev.polda),
+      };
+    });
+  };
+
+  const handleUpdateJabatan = (
+    index: number,
+    field: keyof RiwayatJabatanItem,
+    value: string
+  ) => {
+    if (errorMsg) setErrorMsg(null);
+    setFormData((prev) => {
+      const nextList = [...(prev.riwayatJabatan || [])];
+      if (!nextList[index]) return prev;
+      if (field === 'statusJabatan' && value === 'SAAT_INI') {
+        for (let i = 0; i < nextList.length; i++) {
+          nextList[i] = {
+            ...nextList[i],
+            statusJabatan: i === index ? 'SAAT_INI' : 'SEBELUMNYA',
+          };
+        }
+      } else {
+        nextList[index] = { ...nextList[index], [field]: value };
+      }
+      return {
+        ...prev,
+        ...syncPrimaryJabatanFields(nextList, prev.jabatanTerakhir, prev.satuanKerja, prev.polda),
+      };
+    });
+  };
+
   // Repeatable Riwayat Penyakit / Diagnosa handlers (like Tambah Anak)
   const handleAddPenyakit = (presetNama?: string) => {
     if (errorMsg) setErrorMsg(null);
@@ -1341,17 +1580,65 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     });
   };
 
-  const handleToggleInsurance = (ins: 'BPJS' | 'ASURANSI KESEHATAN' | 'ASURANSI JIWA' | 'TIDAK ADA') => {
+  // Repeatable Asuransi (Merek / Polis) handlers (like Tambah Anak)
+  const handleAddAsuransi = (
+    presetMerek?: string,
+    presetJenis?: AsuransiDetailItem['jenisAsuransi']
+  ) => {
+    if (errorMsg) setErrorMsg(null);
+    const upper = (presetMerek || '').toUpperCase();
+    const resolvedJenis: AsuransiDetailItem['jenisAsuransi'] =
+      presetJenis ||
+      (upper.includes('BPJS') || upper.includes('ASABRI') || upper.includes('TASPEN')
+        ? 'JAMINAN DINAS / NEGARA'
+        : upper.includes('JIWA') || upper.includes('LIFE')
+        ? 'ASURANSI JIWA'
+        : 'ASURANSI KESEHATAN');
+    const newItem: AsuransiDetailItem = {
+      id: 'ins-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      namaMerek: presetMerek || '',
+      jenisAsuransi: resolvedJenis,
+      statusKepesertaan: 'AKTIF',
+    };
     setFormData((prev) => {
-      const current = (prev.asuransiAktif || []) as ('BPJS' | 'ASURANSI KESEHATAN' | 'ASURANSI JIWA' | 'TIDAK ADA')[];
-      if (ins === 'TIDAK ADA') {
-        return { ...prev, asuransiAktif: ['TIDAK ADA'] };
-      }
-      const withoutNone = current.filter((x) => x !== 'TIDAK ADA');
-      const updated = withoutNone.includes(ins)
-        ? withoutNone.filter((x) => x !== ins)
-        : [...withoutNone, ins];
-      return { ...prev, asuransiAktif: updated.length > 0 ? updated : ['BPJS'] };
+      const nextList = [...(prev.daftarAsuransiDetail || []), newItem];
+      return {
+        ...prev,
+        daftarAsuransiDetail: nextList,
+        asuransiAktif: formatDetailToAsuransiLegacy(nextList),
+      };
+    });
+    setExpandedSections((prev) => ({ ...prev, '4C': true }));
+  };
+
+  const handleRemoveAsuransi = (index: number) => {
+    if (errorMsg) setErrorMsg(null);
+    setFormData((prev) => {
+      const nextList = [...(prev.daftarAsuransiDetail || [])];
+      nextList.splice(index, 1);
+      return {
+        ...prev,
+        daftarAsuransiDetail: nextList,
+        asuransiAktif: formatDetailToAsuransiLegacy(nextList),
+      };
+    });
+  };
+
+  const handleUpdateAsuransi = (
+    index: number,
+    field: keyof AsuransiDetailItem,
+    value: string
+  ) => {
+    if (errorMsg) setErrorMsg(null);
+    setFormData((prev) => {
+      const nextList = [...(prev.daftarAsuransiDetail || [])];
+      if (!nextList[index]) return prev;
+      nextList[index] = { ...nextList[index], [field]: value as any };
+      return {
+        ...prev,
+        daftarAsuransiDetail: nextList,
+        asuransiAktif: formatDetailToAsuransiLegacy(nextList),
+      };
     });
   };
 
@@ -1416,6 +1703,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     const penyakitCount = (formData.riwayatPenyakitDetail || []).filter((p) =>
       p.namaPenyakit?.trim()
     ).length;
+    const jabatanCount = (formData.riwayatJabatan || []).filter((j) =>
+      j.jabatan?.trim()
+    ).length;
+    const asuransiBrands = (formData.daftarAsuransiDetail || [])
+      .map((a) => a.namaMerek?.trim())
+      .filter(Boolean);
+    const lokerList = (formData.daftarLowonganUsaha || []).filter((l) => l.posisi?.trim());
 
     const list: {
       id: SubSectionId;
@@ -1443,7 +1737,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         existingDetail: `${formData.pangkat || 'Kombes Pol'} • ${formatJabatanWithSatker(
           formData.jabatanTerakhir?.trim() || 'Belum diisi',
           formData.satuanKerja || 'Bareskrim Polri'
-        )}`,
+        )}${jabatanCount > 1 ? ` (+${jabatanCount - 1} riwayat)` : ''}`,
         isComplete: Boolean(
           formData.pangkat && formData.jabatanTerakhir?.trim() && formData.satuanKerja?.trim()
         ),
@@ -1455,14 +1749,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         shortTitle: isEditingSuperadmin ? 'Identitas Pribadi' : 'Identitas & Kompi',
         existingDetail: isEditingSuperadmin
           ? `${retirementCalc.formattedTanggalLahir} (${retirementCalc.usiaTahun} Thn)`
-          : `${formData.kompi || 'KOMPI A'} • ${formData.pleton || 'PLETON 1'} • ${
-              retirementCalc.formattedTanggalLahir
-            } (${retirementCalc.usiaTahun} Thn)`,
+          : `${formData.kompi || 'Kompi Blm Dipilih'} • ${
+              formData.pleton || 'Pleton Blm Dipilih'
+            } • ${retirementCalc.formattedTanggalLahir} (${retirementCalc.usiaTahun} Thn)`,
         isComplete: Boolean(
-          formData.namaLengkap?.trim() &&
-            formData.nrp?.trim() &&
-            (isEditingSuperadmin || (formData.kompi && formData.pleton)) &&
-            formData.tanggalLahir
+          formData.namaLengkap?.trim() && formData.nrp?.trim() && formData.tanggalLahir
         ),
       },
       {
@@ -1553,26 +1844,33 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {
         id: '3B',
         tab: 3,
-        title: 'Usaha & Lowongan',
-        shortTitle: 'Usaha & Lowongan',
+        title: 'Usaha & Aktivitas',
+        shortTitle: 'Usaha & Aktivitas',
         existingDetail: `${formatHumanEnum(
           formData.kategoriUsaha || 'USAHA PRIBADI / MANDIRI'
         )} • ${
           formData.namaUsahaYayasan?.trim() || formData.jenisUsaha?.trim() || 'Belum diisi'
-        }${
-          formData.bukaLowonganKerja === 'YA' && (formData.daftarLowonganUsaha?.length || 0) > 0
-            ? ` • 💼 ${formData.daftarLowonganUsaha!.length} Lowongan (${formData.daftarLowonganUsaha!
-                .map((l) => l.posisi)
-                .filter(Boolean)
-                .join(', ')})`
-            : ''
         }`,
         isComplete: Boolean(
-          formData.namaUsahaYayasan?.trim() || formData.jenisUsaha?.trim()
+          formData.namaUsahaYayasan?.trim() ||
+            formData.jenisUsaha?.trim() ||
+            (formData.rencanaAktivitas?.length || 0) > 0
         ),
       },
       {
         id: '3C',
+        tab: 3,
+        title: 'Bursa Lowongan Kerja',
+        shortTitle: 'Lowongan Kerja',
+        existingDetail:
+          formData.bukaLowonganKerja === 'YA' && lokerList.length > 0
+            ? `${lokerList.length} Lowongan (${lokerList.map((l) => l.posisi).join(', ')})`
+            : 'Belum membuka lowongan kerja',
+        isComplete:
+          formData.bukaLowonganKerja !== 'YA' || lokerList.length > 0,
+      },
+      {
+        id: '3D',
         tab: 3,
         title: 'Kesiapan Finansial',
         shortTitle: 'Kesiapan Finansial',
@@ -1612,10 +1910,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         tab: 4,
         title: 'Asuransi & MCU',
         shortTitle: 'Asuransi & MCU',
-        existingDetail: `${(formData.asuransiAktif || ['BPJS']).join(', ')} • MCU: ${
-          formData.rutinMcu || 'YA'
-        }${formData.alergiObatMakanan?.trim() ? ` • Alergi: ${formData.alergiObatMakanan}` : ''}`,
-        isComplete: Boolean((formData.asuransiAktif?.length || 0) > 0 && formData.rutinMcu),
+        existingDetail: `${
+          asuransiBrands.length > 0 ? asuransiBrands.join(', ') : 'Belum ada asuransi'
+        } • MCU: ${formData.rutinMcu || 'YA'}${
+          formData.alergiObatMakanan?.trim() ? ` • Alergi: ${formData.alergiObatMakanan}` : ''
+        }`,
+        isComplete: Boolean(formData.rutinMcu),
       },
       {
         id: '5A',
@@ -1755,8 +2055,16 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
   // Build full AnggotaWiraSatya snapshot from current formData
   const buildFullMemberFromForm = (base?: AnggotaWiraSatya): AnggotaWiraSatya => {
-    const derivedPolda = formData.polda || base?.polda || 'MABES POLRI';
+    const validJabatanList = (formData.riwayatJabatan || []).filter(
+      (j) => j.jabatan?.trim() || j.satker?.trim()
+    );
+    const primaryJabatan =
+      validJabatanList.find((j) => j.statusJabatan === 'SAAT_INI') || validJabatanList[0];
+
+    const derivedPolda =
+      primaryJabatan?.polda || formData.polda || base?.polda || 'MABES POLRI';
     const derivedSatker =
+      primaryJabatan?.satker ||
       formData.satuanKerja ||
       (formData.subSatker
         ? `${formData.subSatker} - ${formData.satkerMabes || derivedPolda}`
@@ -1780,6 +2088,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         .join('; ') ||
       formData.penangananPengobatan ||
       '';
+
+    const validAsuransiDetail = (formData.daftarAsuransiDetail || []).filter((a) =>
+      a.namaMerek?.trim()
+    );
+    const derivedAsuransiLegacy = formatDetailToAsuransiLegacy(validAsuransiDetail);
 
     const finalFotoUrl = avatarCleared
       ? DEFAULT_AVATAR_URL
@@ -1805,20 +2118,24 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         : '';
 
     const finalCalc58 = calculateRetirement58(formData.tanggalLahir, formData.nrp);
-    const resolvedStatusKedinasan = detectStatusKedinasan(
-      formData.statusKedinasan,
-      formData.jabatanTerakhir,
-      formData.jenisAnggota
-    );
 
     const groups = getJabatanGroupsForPangkat(formData.pangkat, formData.nrp);
     const fallbackJab = groups[0]?.options[0] || 'Staf';
-    const rawJab = formData.jabatanTerakhir || (!isExternalJabatan ? fallbackJab : '');
+    const rawJab =
+      primaryJabatan?.jabatan?.trim() ||
+      formData.jabatanTerakhir ||
+      (!isExternalJabatan ? fallbackJab : '');
     const cleanJabTitle =
       extractCleanJabatanTitle(cleanJabatanOnly(rawJab) || rawJab) ||
       cleanJabatanOnly(rawJab) ||
       rawJab ||
       '';
+
+    const resolvedStatusKedinasan = detectStatusKedinasan(
+      formData.statusKedinasan,
+      cleanJabTitle,
+      formData.jenisAnggota
+    );
 
     const nowIso = new Date().toISOString();
 
@@ -1834,6 +2151,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       pangkat: formData.pangkat || base?.pangkat || 'Kombes Pol',
       tmtPangkat: formData.tmtPangkat || base?.tmtPangkat || '',
       jabatanTerakhir: cleanJabTitle,
+      riwayatJabatan: validJabatanList,
       statusKedinasan: resolvedStatusKedinasan,
       statusDinas: resolvedStatusKedinasan,
       satuanKerja: derivedSatker,
@@ -1866,8 +2184,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       fotoUrl: finalFotoUrl,
       coverUrl: formData.coverUrl,
       bio: formData.bio || '',
-      kompi: formData.kompi || base?.kompi || 'KOMPI A',
-      pleton: formData.pleton || base?.pleton || 'PLETON 1',
+      kompi: formData.kompi !== undefined ? formData.kompi : base?.kompi || '',
+      pleton: formData.pleton !== undefined ? formData.pleton : base?.pleton || '',
       golonganDarah: formData.golonganDarah || base?.golonganDarah || 'O',
       rhesusDarah: formData.rhesusDarah || base?.rhesusDarah || 'Rh+',
       tinggiBadan: Number(formData.tinggiBadan) || base?.tinggiBadan || 172,
@@ -1940,7 +2258,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       penangananPengobatan: derivedPenanganan,
       biayaPengobatanDitanggung:
         formData.biayaPengobatanDitanggung || 'DITANGGUNG BPJS/ASURANSI',
-      asuransiAktif: formData.asuransiAktif || ['BPJS'],
+      asuransiAktif: derivedAsuransiLegacy,
+      daftarAsuransiDetail: validAsuransiDetail,
       rutinMcu: formData.rutinMcu || 'YA',
       mcuTerakhir: formData.mcuTerakhir || '< 6 BULAN',
       waktuMcuTerakhir: formData.waktuMcuTerakhir || '',
@@ -1974,6 +2293,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         pangkat: fullSnapshot.pangkat,
         tmtPangkat: fullSnapshot.tmtPangkat,
         jabatanTerakhir: fullSnapshot.jabatanTerakhir,
+        riwayatJabatan: fullSnapshot.riwayatJabatan,
         statusKedinasan: fullSnapshot.statusKedinasan,
         statusDinas: fullSnapshot.statusDinas,
         satuanKerja: fullSnapshot.satuanKerja,
@@ -2088,6 +2408,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         penangananPengobatan: fullSnapshot.penangananPengobatan,
         biayaPengobatanDitanggung: fullSnapshot.biayaPengobatanDitanggung,
         asuransiAktif: fullSnapshot.asuransiAktif,
+        daftarAsuransiDetail: fullSnapshot.daftarAsuransiDetail,
         rutinMcu: fullSnapshot.rutinMcu,
         mcuTerakhir: fullSnapshot.mcuTerakhir,
         waktuMcuTerakhir: fullSnapshot.waktuMcuTerakhir,
@@ -2858,106 +3179,167 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-2.5">
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="text-[11px] font-bold text-slate-600">
-                          Satker &amp; Wilayah <span className="text-red-500">*</span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
-                            {formData.satuanKerja || 'Bareskrim Polri'}
-                          </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-polri-navy/10 text-polri-navy border border-polri-navy/20">
-                            {formData.polda || 'MABES POLRI'}
-                          </span>
-                        </div>
+                  {/* Daftar Jabatan & Satker (Repeatable seperti Tambah Anak) */}
+                  <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/80">
+                      <div className="flex items-center gap-1.5">
+                        <Briefcase className="w-4 h-4 text-polri-navy shrink-0" />
+                        <span className="text-xs font-extrabold text-slate-800">
+                          Daftar Jabatan &amp; Satker ({formData.riwayatJabatan?.length || 0} Jabatan)
+                        </span>
                       </div>
 
                       <button
                         type="button"
-                        onClick={() => setIsSatkerModalOpen(true)}
-                        className="px-3 py-2 rounded-xl bg-polri-navy hover:bg-polri-navyLight text-polri-gold text-xs font-bold inline-flex items-center justify-center gap-1.5 shadow-xs transition-all flex-shrink-0 cursor-pointer"
+                        onClick={handleAddJabatan}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-polri-navy text-polri-gold text-xs font-bold hover:bg-polri-navyLight transition-colors cursor-pointer shadow-xs"
                       >
-                        <Building2 className="w-3.5 h-3.5" />
-                        <span>Pilih Satker</span>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah Jabatan</span>
                       </button>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="block text-xs font-bold text-slate-700">
-                          {formData.statusKedinasan === 'ALMARHUM' ||
-                          formData.statusKedinasan === 'PURNA_TUGAS' ||
-                          formData.statusKedinasan === 'PTDH'
-                            ? 'Jabatan Terakhir'
-                            : 'Jabatan Saat Ini'}{' '}
-                          <span className="text-red-500">*</span>
-                        </label>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-700">
-                          {jabatanSelectConfig.isOfficer
-                            ? `Standar ${formData.pangkat}`
-                            : 'Staf / ADC'}
-                        </span>
-                      </div>
-
-                      <select
-                        value={jabatanSelectConfig.selectValue}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === EXTERNAL_JABATAN_SENTINEL) {
-                            setIsExternalJabatan(true);
-                            if (isStandardPolriJabatan(jabatanSelectConfig.curJab, formData.pangkat, formData.nrp)) {
-                              handleInputChange('jabatanTerakhir', '');
-                            }
-                          } else {
-                            setIsExternalJabatan(false);
-                            handleInputChange('jabatanTerakhir', val);
-                          }
-                        }}
-                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                      >
-                        {!isExternalJabatan &&
-                          jabatanSelectConfig.isOfficer &&
-                          jabatanSelectConfig.curJab &&
-                          !jabatanSelectConfig.isCurInStandard && (
-                            <optgroup label="Jabatan Tersimpan Saat Ini">
-                              <option value={jabatanSelectConfig.curJab}>{jabatanSelectConfig.curJab}</option>
-                            </optgroup>
-                          )}
-                        {jabatanSelectConfig.groups.map((grp) => (
-                          <optgroup key={grp.group} label={grp.group}>
-                            {grp.options.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                        <optgroup label="Penugasan Luar Struktur">
-                          <option value={EXTERNAL_JABATAN_SENTINEL}>
-                            Eksternal Polri — Tulis Sendiri
-                          </option>
-                        </optgroup>
-                      </select>
-
-                      {isExternalJabatan && (
-                        <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200 space-y-1">
-                          <label className="block text-[11px] font-bold text-amber-900">
-                            Jabatan Eksternal <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="Nama jabatan di luar struktur Polri..."
-                            value={formData.jabatanTerakhir || ''}
-                            onChange={(e) => handleInputChange('jabatanTerakhir', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                          />
-                        </div>
+                    <datalist id="ws96-jabatan-presets">
+                      {jabatanSelectConfig.groups.flatMap((grp) =>
+                        grp.options.map((opt) => (
+                          <option key={`${grp.group}-${opt}`} value={opt} />
+                        ))
                       )}
-                    </div>
+                    </datalist>
+
+                    {(!formData.riwayatJabatan || formData.riwayatJabatan.length === 0) && (
+                      <div className="p-3 rounded-xl border border-dashed border-slate-300 bg-white/80 text-center text-xs text-slate-500">
+                        Belum ada data jabatan. Klik <strong>&ldquo;+ Tambah Jabatan&rdquo;</strong> untuk mengisi jabatan saat ini maupun riwayat jabatan sebelumnya.
+                      </div>
+                    )}
+
+                    {(formData.riwayatJabatan || []).map((jabItem, idx) => (
+                      <div
+                        key={jabItem.id || idx}
+                        className="p-3.5 rounded-xl border border-slate-200 bg-white space-y-3 shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-100">
+                          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                            <span className="px-2 py-0.5 rounded bg-polri-navy text-polri-gold text-[10px] font-extrabold">
+                              Jabatan #{idx + 1}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${
+                                jabItem.statusJabatan === 'SAAT_INI'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : 'bg-slate-100 text-slate-600 border-slate-200'
+                              }`}
+                            >
+                              {jabItem.statusJabatan === 'SAAT_INI'
+                                ? 'Jabatan Saat Ini'
+                                : 'Riwayat Sebelumnya'}
+                            </span>
+                            <span className="text-xs font-extrabold text-slate-900 truncate max-w-[200px] sm:max-w-[300px]">
+                              {jabItem.jabatan?.trim() || 'Nama Jabatan Belum Diisi'}
+                            </span>
+                          </div>
+
+                          {(formData.riwayatJabatan?.length || 0) > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveJabatan(idx)}
+                              className="text-red-600 hover:text-red-800 text-[11px] font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded hover:bg-red-50 cursor-pointer shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Hapus</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-start">
+                          <div className="sm:col-span-2 lg:col-span-4">
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Nama Jabatan <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              list="ws96-jabatan-presets"
+                              placeholder="Pilih atau ketik jabatan..."
+                              value={jabItem.jabatan || ''}
+                              onChange={(e) =>
+                                handleUpdateJabatan(idx, 'jabatan', e.target.value)
+                              }
+                              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-2 lg:col-span-4">
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Satker &amp; Wilayah <span className="text-red-500">*</span>
+                            </label>
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                placeholder="Nama Satker / Polda..."
+                                value={jabItem.satker || ''}
+                                onChange={(e) =>
+                                  handleUpdateJabatan(idx, 'satker', e.target.value)
+                                }
+                                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSatkerModalTargetJabatanIdx(idx);
+                                  setIsSatkerModalOpen(true);
+                                }}
+                                className="px-2.5 py-2 rounded-lg bg-polri-navy hover:bg-polri-navyLight text-polri-gold text-[11px] font-bold inline-flex items-center gap-1 shrink-0 cursor-pointer"
+                                title="Pilih Satker Berjenjang"
+                              >
+                                <Building2 className="w-3.5 h-3.5" />
+                                <span>Pilih</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="lg:col-span-2">
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Status Jabatan
+                            </label>
+                            <select
+                              value={jabItem.statusJabatan || 'SAAT_INI'}
+                              onChange={(e) =>
+                                handleUpdateJabatan(idx, 'statusJabatan', e.target.value)
+                              }
+                              className="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                            >
+                              <option value="SAAT_INI">Jabatan Saat Ini</option>
+                              <option value="SEBELUMNYA">Jabatan Sebelumnya</option>
+                            </select>
+                          </div>
+
+                          <div className="lg:col-span-2">
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              TMT / Tahun
+                            </label>
+                            <FlexiblePeriodInput
+                              value={jabItem.tmtMulai || ''}
+                              onChange={(val) => handleUpdateJabatan(idx, 'tmtMulai', val)}
+                              defaultMode="YEAR"
+                              minYear={1996}
+                              maxYear={new Date().getFullYear() + 1}
+                              placeholder="Tahun..."
+                              compact
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                </div>,
+                <button
+                  type="button"
+                  onClick={handleAddJabatan}
+                  className="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Tambah</span>
+                </button>
               )}
 
               {/* SUB-BAGIAN 1C: IDENTITAS PRIBADI, AGAMA, SUKU, KOMPI & PLETON BATALYON */}
@@ -3083,51 +3465,43 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       </div>
                     </div>
 
-                    {/* Kelompok Kompi & Pleton Batalyon Wira Satya 96 */}
+                    {/* Pilihan Dropdown Kompi & Pleton Batalyon Wira Satya 96 */}
                     {!isEditingSuperadmin && (
                       <>
-                        <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
-                          <label className="block text-xs font-extrabold text-amber-950">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
                             Kompi Batalyon Wira Satya 96
                           </label>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                          <select
+                            value={formData.kompi ?? ''}
+                            onChange={(e) => handleInputChange('kompi', e.target.value)}
+                            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                          >
+                            <option value="">— Belum Dipilih —</option>
                             {DAFTAR_KOMPI.map((k) => (
-                              <button
-                                key={k}
-                                type="button"
-                                onClick={() => handleInputChange('kompi', k)}
-                                className={`px-2 py-2 rounded-lg text-[11px] font-extrabold border transition-colors cursor-pointer ${
-                                  (formData.kompi || 'KOMPI A') === k
-                                    ? 'bg-red-800 text-white border-red-900 shadow-xs'
-                                    : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100'
-                                }`}
-                              >
+                              <option key={k} value={k}>
                                 {k}
-                              </button>
+                              </option>
                             ))}
-                          </div>
+                          </select>
                         </div>
 
-                        <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
-                          <label className="block text-xs font-extrabold text-amber-950">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
                             Pleton Batalyon Wira Satya 96
                           </label>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                          <select
+                            value={formData.pleton ?? ''}
+                            onChange={(e) => handleInputChange('pleton', e.target.value)}
+                            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                          >
+                            <option value="">— Belum Dipilih —</option>
                             {DAFTAR_PLETON.map((pl) => (
-                              <button
-                                key={pl}
-                                type="button"
-                                onClick={() => handleInputChange('pleton', pl)}
-                                className={`px-2 py-2 rounded-lg text-[11px] font-extrabold border transition-colors cursor-pointer ${
-                                  (formData.pleton || 'PLETON 1') === pl
-                                    ? 'bg-red-800 text-white border-red-900 shadow-xs'
-                                    : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100'
-                                }`}
-                              >
+                              <option key={pl} value={pl}>
                                 {pl}
-                              </button>
+                              </option>
                             ))}
-                          </div>
+                          </select>
                         </div>
                       </>
                     )}
@@ -4138,10 +4512,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       />
                     </div>
                   </div>
+                </div>
+              )}
 
-                  {/* =========================================================== */}
-                  {/* BURSA OPEN LOWONGAN KERJA DARI USAHA PRIBADI / LETING       */}
-                  {/* =========================================================== */}
+              {/* SUB-BAGIAN 3C: BURSA LOWONGAN KERJA (DIPISAH DARI USAHA & AKTIVITAS) */}
+              {renderSubSectionCard(
+                '3C',
+                <div className="space-y-3.5">
                   <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-emerald-200/80">
                       <LabelWithTooltip
@@ -4310,12 +4687,23 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         </div>
                       )}
                   </div>
-                </div>
+                </div>,
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleAddLowongan('');
+                    setExpandedSections((prev) => ({ ...prev, '3C': true }));
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Tambah</span>
+                </button>
               )}
 
-              {/* SUB-BAGIAN 3C: KESIAPAN FINANSIAL & DUKUNGAN PURNA TUGAS */}
+              {/* SUB-BAGIAN 3D: KESIAPAN FINANSIAL & DUKUNGAN PURNA TUGAS */}
               {renderSubSectionCard(
-                '3C',
+                '3D',
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -4822,29 +5210,142 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               {renderSubSectionCard(
                 '4C',
                 <div className="space-y-3.5">
-                  <div>
-                    <LabelWithTooltip label="Asuransi Kesehatan Aktif" />
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                      {DAFTAR_ASURANSI.map((ins) => {
-                        const isChecked = formData.asuransiAktif?.includes(ins);
-                        return (
-                          <label
-                            key={ins}
-                            className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer p-1"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={Boolean(isChecked)}
-                              onChange={() => handleToggleInsurance(ins)}
-                              className="rounded text-polri-navy focus:ring-polri-navy"
-                            />
-                            <span className={isChecked ? 'font-bold text-polri-navy' : ''}>
-                              {ins}
-                            </span>
-                          </label>
-                        );
-                      })}
+                  {/* Daftar Asuransi Aktif (Repeatable seperti Tambah Anak / Tambah Item Merek) */}
+                  <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/80">
+                      <div className="flex items-center gap-1.5">
+                        <HeartPulse className="w-4 h-4 text-polri-navy shrink-0" />
+                        <span className="text-xs font-extrabold text-slate-800">
+                          Daftar Asuransi &amp; Jaminan Kesehatan ({formData.daftarAsuransiDetail?.length || 0})
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAddAsuransi('')}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-polri-navy text-polri-gold text-xs font-bold hover:bg-polri-navyLight transition-colors cursor-pointer shadow-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah Asuransi</span>
+                      </button>
                     </div>
+
+                    {/* Quick-Add Brand Pills */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-500 mr-1">
+                        + Merek Cepat:
+                      </span>
+                      {[
+                        { label: 'BPJS Kesehatan', jenis: 'JAMINAN DINAS / NEGARA' as const },
+                        { label: 'ASABRI', jenis: 'JAMINAN DINAS / NEGARA' as const },
+                        { label: 'Prudential', jenis: 'ASURANSI KESEHATAN' as const },
+                        { label: 'Allianz', jenis: 'ASURANSI KESEHATAN' as const },
+                        { label: 'Mandiri Inhealth', jenis: 'ASURANSI KESEHATAN' as const },
+                        { label: 'AXA Mandiri', jenis: 'ASURANSI JIWA' as const },
+                        { label: 'BRI Life', jenis: 'ASURANSI JIWA' as const },
+                      ].map((chip) => (
+                        <button
+                          key={chip.label}
+                          type="button"
+                          onClick={() => handleAddAsuransi(chip.label, chip.jenis)}
+                          className="px-2 py-0.5 rounded-lg bg-white hover:bg-amber-50 text-slate-700 hover:text-polri-navy border border-slate-200 hover:border-amber-300 text-[10px] font-bold transition-colors cursor-pointer"
+                        >
+                          + {chip.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <datalist id="ws96-asuransi-presets">
+                      {PRESET_ASURANSI_MEREK.map((m) => (
+                        <option key={m} value={m} />
+                      ))}
+                    </datalist>
+
+                    {(!formData.daftarAsuransiDetail ||
+                      formData.daftarAsuransiDetail.length === 0) && (
+                      <div className="p-3 rounded-xl border border-dashed border-slate-300 bg-white/80 text-center text-xs text-slate-500">
+                        Belum ada asuransi tercatat. Klik{' '}
+                        <strong>&ldquo;+ Tambah Asuransi&rdquo;</strong> atau pilih merek di atas (misal: BPJS Kesehatan, ASABRI, Prudential).
+                      </div>
+                    )}
+
+                    {(formData.daftarAsuransiDetail || []).map((insItem, idx) => (
+                      <div
+                        key={insItem.id || idx}
+                        className="p-3 rounded-xl border border-slate-200 bg-white space-y-2.5 shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded bg-polri-navy text-polri-gold text-[10px] font-extrabold">
+                              Asuransi #{idx + 1}
+                            </span>
+                            <span className="text-xs font-extrabold text-slate-900 truncate max-w-[220px] sm:max-w-[340px]">
+                              {insItem.namaMerek?.trim() || 'Nama Merek Asuransi Belum Diisi'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAsuransi(idx)}
+                            className="text-red-600 hover:text-red-800 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Hapus</span>
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Nama / Merek Asuransi <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              list="ws96-asuransi-presets"
+                              placeholder="Contoh: BPJS Kesehatan, Prudential..."
+                              value={insItem.namaMerek || ''}
+                              onChange={(e) =>
+                                handleUpdateAsuransi(idx, 'namaMerek', e.target.value)
+                              }
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Jenis Perlindungan
+                            </label>
+                            <select
+                              value={insItem.jenisAsuransi || 'ASURANSI KESEHATAN'}
+                              onChange={(e) =>
+                                handleUpdateAsuransi(idx, 'jenisAsuransi', e.target.value)
+                              }
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                            >
+                              <option value="JAMINAN DINAS / NEGARA">Jaminan Dinas / Negara</option>
+                              <option value="ASURANSI KESEHATAN">Asuransi Kesehatan</option>
+                              <option value="ASURANSI JIWA">Asuransi Jiwa</option>
+                              <option value="ASURANSI HARI TUA">Asuransi Hari Tua / Pensiun</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Status Kepesertaan
+                            </label>
+                            <select
+                              value={insItem.statusKepesertaan || 'AKTIF'}
+                              onChange={(e) =>
+                                handleUpdateAsuransi(idx, 'statusKepesertaan', e.target.value)
+                              }
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                            >
+                              <option value="AKTIF">Aktif</option>
+                              <option value="NON_AKTIF">Non-Aktif</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -4940,7 +5441,15 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       />
                     </div>
                   </div>
-                </div>
+                </div>,
+                <button
+                  type="button"
+                  onClick={() => handleAddAsuransi('')}
+                  className="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Tambah</span>
+                </button>
               )}
             </div>
           )}
@@ -5116,7 +5625,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {/* CAS-Style Satker Berjenjang Modal */}
       <SatkerBerjenjangModal
         isOpen={isSatkerModalOpen}
-        onClose={() => setIsSatkerModalOpen(false)}
+        onClose={() => {
+          setIsSatkerModalOpen(false);
+          setSatkerModalTargetJabatanIdx(null);
+        }}
         initialPolda={formData.polda || 'MABES POLRI'}
         initialSatker={formData.satkerMabes || ''}
         initialSubSatker={formData.subSatker || ''}
@@ -5128,18 +5640,40 @@ export const FormWizard: React.FC<FormWizardProps> = ({
           if (isKemen) {
             setIsExternalJabatan(true);
           }
-          setFormData((prev) => ({
-            ...prev,
-            polda: result.polda,
-            satuanKerja: result.composedSatker,
-            satkerMabes: result.satkerUtama,
-            subSatker: result.subSatker,
-            tipeSatker: isKemen
-              ? 'KEMEN/LEMBAGA'
-              : result.polda === 'MABES POLRI'
-              ? 'MABES'
-              : 'POLDA',
-          }));
+          setFormData((prev) => {
+            const nextRiwayat = [...(prev.riwayatJabatan || [])];
+            const targetIdx =
+              satkerModalTargetJabatanIdx !== null && nextRiwayat[satkerModalTargetJabatanIdx]
+                ? satkerModalTargetJabatanIdx
+                : nextRiwayat.findIndex((j) => j.statusJabatan === 'SAAT_INI') >= 0
+                ? nextRiwayat.findIndex((j) => j.statusJabatan === 'SAAT_INI')
+                : 0;
+            if (nextRiwayat[targetIdx]) {
+              nextRiwayat[targetIdx] = {
+                ...nextRiwayat[targetIdx],
+                satker: result.composedSatker,
+                polda: result.polda,
+              };
+            }
+            const synced = syncPrimaryJabatanFields(
+              nextRiwayat,
+              prev.jabatanTerakhir,
+              result.composedSatker,
+              result.polda
+            );
+            return {
+              ...prev,
+              ...synced,
+              satkerMabes: result.satkerUtama,
+              subSatker: result.subSatker,
+              tipeSatker: isKemen
+                ? 'KEMEN/LEMBAGA'
+                : result.polda === 'MABES POLRI'
+                ? 'MABES'
+                : 'POLDA',
+            };
+          });
+          setSatkerModalTargetJabatanIdx(null);
         }}
       />
     </div>

@@ -942,11 +942,11 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 font-extrabold border border-blue-200">
                         🛡️ Administrator Sistem
                       </span>
-                    ) : (
+                    ) : (localMember.kompi || localMember.pleton) ? (
                       <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-50 text-red-900 font-extrabold border border-red-200">
-                        🎖️ {localMember.kompi || 'KOMPI A'} &bull; {localMember.pleton || 'PLETON 1'}
+                        🎖️ {[localMember.kompi, localMember.pleton].filter(Boolean).join(' • ')}
                       </span>
-                    )}
+                    ) : null}
                     {(() => {
                       const st = detectStatusKedinasan(
                         localMember.statusKedinasan || localMember.statusDinas,
@@ -1076,9 +1076,9 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                 </button>
               </div>
 
-              {/* Status Purna & Kesehatan Highlights Card (alumni only; Superadmin shows only authority status) */}
+              {/* Status Purna & Kesehatan Highlights Card */}
               {!isSuperadminDev && (
-                <div className="mt-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="mt-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   {detectStatusKedinasan(
                     localMember.statusKedinasan || localMember.statusDinas,
                     localMember.jabatanTerakhir || localMember.jabatan,
@@ -1123,25 +1123,6 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       </span>
                       <span className="font-bold text-emerald-700">
                         {formatHumanEnum(localMember.kondisiKesehatan || 'BAIK')} • Gol. {formattedGolDarah}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
-                      <Award className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
-                        Status Otoritas:
-                      </span>
-                      <span className="font-bold text-amber-800 inline-flex items-center gap-1">
-                        <span>{badgeStatus.label}</span>
-                        <MetaVerifiedBadge
-                          nrp={localMember.nrp}
-                          role={effectiveRole}
-                          size="xs"
-                        />
                       </span>
                     </div>
                   </div>
@@ -1463,52 +1444,105 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-polri-navy text-amber-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5 shadow-sm">
-                  <Building2 className="w-5 h-5" />
+              {localMember.riwayatJabatan && localMember.riwayatJabatan.length > 0 ? (
+                <div className="space-y-3">
+                  {localMember.riwayatJabatan.map((rj, idx) => {
+                    const isCurrent = rj.statusJabatan === 'SAAT_INI' || idx === 0;
+                    return (
+                      <div
+                        key={rj.id || idx}
+                        className={`flex items-start gap-3.5 p-3 rounded-xl border ${
+                          isCurrent
+                            ? 'bg-slate-50/90 border-slate-200'
+                            : 'bg-white border-slate-100'
+                        }`}
+                      >
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5 shadow-sm ${
+                            isCurrent
+                              ? 'bg-polri-navy text-amber-400'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          <Building2 className="w-5 h-5" />
+                        </div>
+                        <div className="space-y-0.5 flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <h3 className="text-sm font-bold text-slate-900">
+                              {cleanJabatanOnly(rj.jabatan) || rj.jabatan}
+                            </h3>
+                            <span
+                              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                                isCurrent
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+                              }`}
+                            >
+                              {isCurrent ? 'Saat Ini' : 'Riwayat'}
+                            </span>
+                          </div>
+                          <p className="text-xs font-semibold text-slate-700">
+                            {rj.satker || localMember.satuanKerja}
+                          </p>
+                          <p className="text-[11px] text-slate-500">
+                            {rj.polda || localMember.polda}
+                            {rj.pangkatSaatMenjabat ? ` • ${rj.pangkatSaatMenjabat}` : ''}
+                            {rj.tmtMulai ? ` • Sejak ${rj.tmtMulai}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="space-y-1 flex-1">
-                  <h3 className="text-sm font-bold text-slate-900">
-                    {cleanJabatanOnly(localMember.jabatanTerakhir) || localMember.jabatanTerakhir}
-                  </h3>
-                  <p className="text-xs font-semibold text-slate-700">
-                    {localMember.satuanKerja}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    {localMember.polda} &bull; Sub Satker:{' '}
-                    <span className="font-semibold text-blue-700">
-                      {localMember.subSatker || '-'}
-                    </span>
-                  </p>
-                  {localMember.namaPolres && (
-                    <p className="text-[11px] text-slate-600">
-                      Satwil / Komando:{' '}
-                      <span className="font-semibold text-slate-800">
-                        {localMember.namaPolres}
+              ) : (
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-polri-navy text-amber-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5 shadow-sm">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <h3 className="text-sm font-bold text-slate-900">
+                      {cleanJabatanOnly(localMember.jabatanTerakhir) || localMember.jabatanTerakhir}
+                    </h3>
+                    <p className="text-xs font-semibold text-slate-700">
+                      {localMember.satuanKerja}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {localMember.polda} &bull; Sub Satker:{' '}
+                      <span className="font-semibold text-blue-700">
+                        {localMember.subSatker || '-'}
                       </span>
                     </p>
+                    {localMember.namaPolres && (
+                      <p className="text-[11px] text-slate-600">
+                        Satwil / Komando:{' '}
+                        <span className="font-semibold text-slate-800">
+                          {localMember.namaPolres}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {(localMember.dikbangPolri || localMember.tmtPangkat || localMember.tandaKehormatan) && (
+                <div className="pt-2 border-t border-slate-100 space-y-0.5 text-[11px] text-slate-600">
+                  {localMember.dikbangPolri && (
+                    <p>
+                      Dikbang Polri: <b className="text-slate-800">{localMember.dikbangPolri}</b>
+                    </p>
                   )}
-                  {(localMember.dikbangPolri || localMember.tmtPangkat || localMember.tandaKehormatan) && (
-                    <div className="pt-1 space-y-0.5 text-[11px] text-slate-600">
-                      {localMember.dikbangPolri && (
-                        <p>
-                          Dikbang Polri: <b className="text-slate-800">{localMember.dikbangPolri}</b>
-                        </p>
-                      )}
-                      {localMember.tmtPangkat && (
-                        <p>
-                          TMT Pangkat Terakhir: <b className="text-slate-800">{localMember.tmtPangkat}</b>
-                        </p>
-                      )}
-                      {localMember.tandaKehormatan && (
-                        <p>
-                          Tanda Kehormatan / Brevet: <b className="text-slate-800">{localMember.tandaKehormatan}</b>
-                        </p>
-                      )}
-                    </div>
+                  {localMember.tmtPangkat && (
+                    <p>
+                      TMT Pangkat Terakhir: <b className="text-slate-800">{localMember.tmtPangkat}</b>
+                    </p>
+                  )}
+                  {localMember.tandaKehormatan && (
+                    <p>
+                      Tanda Kehormatan / Brevet: <b className="text-slate-800">{localMember.tandaKehormatan}</b>
+                    </p>
                   )}
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -1555,9 +1589,14 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                   ? 'AKTIF'
                   : localMember.biayaPengobatanDitanggung || 'AKTIF');
               const bpjsStatus = formatHumanEnum(rawBpjsStatus);
-              const asuransiKesehatan = Array.isArray(localMember.asuransiAktif)
-                ? localMember.asuransiAktif.map((a) => formatHumanEnum(a)).join(', ')
-                : (extHealth.asuransiAktif as string) || 'BPJS Kesehatan';
+              const asuransiKesehatan =
+                localMember.daftarAsuransiDetail && localMember.daftarAsuransiDetail.length > 0
+                  ? localMember.daftarAsuransiDetail
+                      .map((a) => `${a.namaMerek} (${formatHumanEnum(a.jenisAsuransi)})`)
+                      .join(', ')
+                  : Array.isArray(localMember.asuransiAktif)
+                  ? localMember.asuransiAktif.map((a) => formatHumanEnum(a)).join(', ')
+                  : (extHealth.asuransiAktif as string) || 'BPJS Kesehatan';
               const penyakitKronisText =
                 (extHealth.penyakitKronis as string) ||
                 (localMember.daftarPenyakit && localMember.daftarPenyakit.length > 0
