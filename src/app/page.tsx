@@ -22,6 +22,11 @@ import { PRESET_USERS } from '@/data/mockUsers';
 import { PURGED_NON_1996_BASE_NAMES, NON_AKTIF_IURAN_NRPS } from '@/data/akpol1996Alumni';
 import { INITIAL_FEED_POSTS } from '@/data/mockPosts';
 import { INITIAL_FINANCE_SUMMARY, INITIAL_TRANSACTIONS, INITIAL_IURAN_LIST, INITIAL_ASSETS } from '@/data/mockFinance';
+import {
+  isDummySimulationRecord,
+  isClientDummyCleared,
+  ZERO_FINANCE_SUMMARY,
+} from '@/data/dummySimulationData';
 import { AnggotaWiraSatya, AuthUser, KasTransaction, IuranAnggota, FinanceSummary, AssetPortfolioItem, FeedPost, ChatMessage } from '@/types';
 import {
   getAvatarUrl,
@@ -284,7 +289,9 @@ export default function Home() {
               .trim()
               .toLowerCase();
 
-          // Filter out tombstoned members, Superadmin account, & purged non-1996 names
+          // Filter out tombstoned members, Superadmin account, & purged non-1996 names (and dummy records if cleared)
+          const dummyClearedNow = isClientDummyCleared();
+          let serverReturnedDummyWhenCleared = false;
           const activeServerList = (list as AnggotaWiraSatya[]).filter((m) => {
             if (isSuperadminObject(m as unknown as Record<string, unknown>)) {
               return false;
@@ -293,12 +300,23 @@ export default function Home() {
             if (bName && PURGED_NON_1996_BASE_NAMES.has(bName)) {
               return false;
             }
+            if (dummyClearedNow && isDummySimulationRecord({ id: m.id, nrp: m.nrp, namaLengkap: m.namaLengkap })) {
+              serverReturnedDummyWhenCleared = true;
+              return false;
+            }
             if (isMemberTombstoned(m)) {
               fetch(`/api/users?nrp=${encodeURIComponent(m.nrp)}`, { method: 'DELETE' }).catch(() => {});
               return false;
             }
             return true;
           });
+          if (serverReturnedDummyWhenCleared) {
+            fetch('/api/admin/dummy', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'CLEAR_DUMMY', actorRole: 'SUPERADMIN', actorNrp: '98010710' }),
+            }).catch(() => {});
+          }
 
           const consumedMemberOvNrps = new Set<string>();
           const consumedUserOvNrps = new Set<string>();
@@ -557,6 +575,7 @@ export default function Home() {
       .then((res) => res.json())
       .then((res) => {
         if (res.success && res.data) {
+          const dummyClearedFin = isClientDummyCleared();
           let localFin: any = null;
           if (typeof window !== 'undefined') {
             try {
@@ -566,27 +585,59 @@ export default function Home() {
               localFin = null;
             }
           }
-          const serverTrx: KasTransaction[] = Array.isArray(res.data.transactions) ? res.data.transactions : [];
+          const rawServerTrx: KasTransaction[] = Array.isArray(res.data.transactions) ? res.data.transactions : [];
+          const serverTrx: KasTransaction[] = dummyClearedFin
+            ? rawServerTrx.filter(
+                (t) =>
+                  !isDummySimulationRecord({
+                    id: t.id,
+                    nrpTerkait: t.nrpTerkait,
+                    nomorReferensi: t.nomorReferensi,
+                    pihakTerkait: t.pihakTerkait,
+                  })
+              )
+            : rawServerTrx;
           const localTrx: KasTransaction[] = Array.isArray(localFin?.transactions)
-            ? localFin.transactions.filter((t: KasTransaction) => !String(t?.id || '').startsWith('trx-dummy-'))
+            ? localFin.transactions.filter(
+                (t: KasTransaction) =>
+                  !isDummySimulationRecord({
+                    id: t?.id,
+                    nrpTerkait: t?.nrpTerkait,
+                    nomorReferensi: t?.nomorReferensi,
+                    pihakTerkait: t?.pihakTerkait,
+                  })
+              )
             : [];
-          // If server cold-started with 0 transactions while local browser has saved real transactions, keep local & re-sync
-          if (serverTrx.length === 0 && localTrx.length > 0) {
-            setTransactions(localTrx);
-            if (localFin?.summary) setFinanceSummary(localFin.summary);
-          } else {
-            if (res.data.summary) setFinanceSummary(res.data.summary);
-            if (Array.isArray(res.data.transactions)) setTransactions(res.data.transactions);
-          }
 
-          const serverAssets: AssetPortfolioItem[] = Array.isArray(res.data.assets) ? res.data.assets : [];
+          const rawServerAssets: AssetPortfolioItem[] = Array.isArray(res.data.assets) ? res.data.assets : [];
+          const serverAssets: AssetPortfolioItem[] = dummyClearedFin
+            ? rawServerAssets.filter((a) => !isDummySimulationRecord({ id: a.id, namaAset: a.namaAset }))
+            : rawServerAssets;
           const localAssets: AssetPortfolioItem[] = Array.isArray(localFin?.assets)
-            ? localFin.assets.filter((a: AssetPortfolioItem) => !String(a?.id || '').startsWith('ast-dummy-'))
+            ? localFin.assets.filter(
+                (a: AssetPortfolioItem) => !isDummySimulationRecord({ id: a?.id, namaAset: a?.namaAset })
+              )
             : [];
-          if (serverAssets.length === 0 && localAssets.length > 0) {
-            setAssets(localAssets);
-          } else if (Array.isArray(res.data.assets)) {
-            setAssets(res.data.assets);
+
+          if (dummyClearedFin && serverTrx.length === 0 && localTrx.length === 0 && serverAssets.length === 0 && localAssets.length === 0) {
+            setTransactions([]);
+            setAssets([]);
+            setFinanceSummary({ ...ZERO_FINANCE_SUMMARY });
+          } else {
+            // If server cold-started with 0 transactions while local browser has saved real transactions, keep local & re-sync
+            if (serverTrx.length === 0 && localTrx.length > 0) {
+              setTransactions(localTrx);
+              if (localFin?.summary) setFinanceSummary(localFin.summary);
+            } else {
+              if (res.data.summary) setFinanceSummary(res.data.summary);
+              setTransactions(serverTrx);
+            }
+
+            if (serverAssets.length === 0 && localAssets.length > 0) {
+              setAssets(localAssets);
+            } else {
+              setAssets(serverAssets);
+            }
           }
 
           let savedCfg: any = null;
@@ -619,7 +670,9 @@ export default function Home() {
             const syncedIuran = res.data.iuranList
               .filter(
                 (item: IuranAnggota) =>
-                  !isSuperadminAccount(item.nrp) && !NON_AKTIF_IURAN_NRPS.has(item.nrp)
+                  !isSuperadminAccount(item.nrp) &&
+                  !NON_AKTIF_IURAN_NRPS.has(item.nrp) &&
+                  !(dummyClearedFin && isDummySimulationRecord({ id: item.id, nrp: item.nrp, namaLengkap: item.namaLengkap }))
               )
               .map((item: IuranAnggota) => {
                 const status: IuranAnggota['status'] =
@@ -662,16 +715,12 @@ export default function Home() {
       localStorage.removeItem('wirasatya96_finance');
       localStorage.removeItem('wirasatya96_feed_posts');
       localStorage.removeItem('ws96_messages_cache');
-      localStorage.removeItem('ws96_member_overrides_v1');
-      localStorage.removeItem('ws96_user_overrides_v1');
-      localStorage.removeItem('ws96_audit_logs_v1');
-      localStorage.removeItem('ws96_deleted_nrps_v1');
       try {
         const rawDel = localStorage.getItem('ws96_deleted_nrps_v1');
         if (rawDel) {
           const parsedDel: string[] = JSON.parse(rawDel);
           const cleanedDel = parsedDel.filter(
-            (n) => String(n).trim() !== '74060709' && String(n).trim() !== '74090168'
+            (n) => String(n).trim() !== '74060709' && String(n).trim() !== '74090168' && String(n).trim() !== '98010710'
           );
           localStorage.setItem('ws96_deleted_nrps_v1', JSON.stringify(cleanedDel));
         }
@@ -679,10 +728,14 @@ export default function Home() {
         if (rawUOv) {
           const parsedUOv = JSON.parse(rawUOv) || {};
           Object.keys(parsedUOv).forEach((k) => {
-            const rawNama = parsedUOv[k]?.nama || '';
+            const item = parsedUOv[k];
+            const rawNama = item?.nama || '';
             const cleanNama = stripRankFromName(rawNama) || rawNama;
             const bName = cleanNama.split(',')[0].trim().toLowerCase();
-            if (bName && PURGED_NON_1996_BASE_NAMES.has(bName)) {
+            if (
+              (bName && PURGED_NON_1996_BASE_NAMES.has(bName)) ||
+              isDummySimulationRecord({ id: item?.id, nrp: item?.nrp || k, nama: rawNama })
+            ) {
               delete parsedUOv[k];
             } else if (parsedUOv[k]?.nama) {
               parsedUOv[k].nama = cleanNama;
@@ -706,10 +759,14 @@ export default function Home() {
         if (rawMOv) {
           const parsedMOv = JSON.parse(rawMOv) || {};
           Object.keys(parsedMOv).forEach((k) => {
-            const rawNama = parsedMOv[k]?.namaLengkap || '';
+            const item = parsedMOv[k];
+            const rawNama = item?.namaLengkap || '';
             const cleanNama = stripRankFromName(rawNama) || rawNama;
             const bName = cleanNama.split(',')[0].trim().toLowerCase();
-            if (bName && PURGED_NON_1996_BASE_NAMES.has(bName)) {
+            if (
+              (bName && PURGED_NON_1996_BASE_NAMES.has(bName)) ||
+              isDummySimulationRecord({ id: item?.id, nrp: item?.nrp || k, namaLengkap: rawNama })
+            ) {
               delete parsedMOv[k];
             } else if (parsedMOv[k]?.namaLengkap) {
               parsedMOv[k].namaLengkap = cleanNama;
@@ -873,7 +930,8 @@ export default function Home() {
     localStorage.setItem('ws96_active_user', JSON.stringify(sanitizedUser));
     localStorage.setItem('wirasatya96_current_user', JSON.stringify(sanitizedUser));
 
-    // Load Members while respecting tombstoned NRPs & purged non-1996 names
+    // Load Members while respecting tombstoned NRPs & purged non-1996 names (and dummy clearance)
+    const dummyClearedMount = isClientDummyCleared();
     const rawDeletedOnMount = localStorage.getItem('ws96_deleted_nrps_v1');
     let deletedOnMount = new Set<string>();
     if (rawDeletedOnMount) {
@@ -885,6 +943,35 @@ export default function Home() {
       }
     }
 
+    if (dummyClearedMount) {
+      setMembers((prev) =>
+        prev.filter(
+          (m) =>
+            !isSuperadminObject(m as unknown as Record<string, unknown>) &&
+            !isDummySimulationRecord({ id: m.id, nrp: m.nrp, namaLengkap: m.namaLengkap })
+        )
+      );
+      setPosts((prev) =>
+        prev.filter((p) => !isDummySimulationRecord({ id: p.id, authorNrp: p.authorNrp, authorName: p.authorName }))
+      );
+      setTransactions((prev) =>
+        prev.filter(
+          (t) =>
+            !isDummySimulationRecord({
+              id: t.id,
+              nrpTerkait: t.nrpTerkait,
+              nomorReferensi: t.nomorReferensi,
+              pihakTerkait: t.pihakTerkait,
+            })
+        )
+      );
+      setAssets((prev) => prev.filter((a) => !isDummySimulationRecord({ id: a.id, namaAset: a.namaAset })));
+      setIuranList((prev) =>
+        prev.filter((i) => !isDummySimulationRecord({ id: i.id, nrp: i.nrp, namaLengkap: i.namaLengkap }))
+      );
+      setFinanceSummary({ ...ZERO_FINANCE_SUMMARY });
+    }
+
     const savedMembers = localStorage.getItem('wirasatya96_members');
     if (savedMembers) {
       try {
@@ -893,6 +980,9 @@ export default function Home() {
           const sanitizedMembers = parsed
             .filter((m: AnggotaWiraSatya) => {
               if (isSuperadminObject(m as unknown as Record<string, unknown>)) return false;
+              if (dummyClearedMount && isDummySimulationRecord({ id: m.id, nrp: m.nrp, namaLengkap: m.namaLengkap })) {
+                return false;
+              }
               const bName = (stripRankFromName(m.namaLengkap || '') || m.namaLengkap || '')
                 .split(',')[0]
                 .trim()
@@ -920,16 +1010,41 @@ export default function Home() {
     if (savedFinance) {
       try {
         const parsed = JSON.parse(savedFinance);
-        if (parsed.summary) setFinanceSummary(parsed.summary);
-        if (parsed.transactions) setTransactions(parsed.transactions);
-        if (parsed.assets) setAssets(parsed.assets);
+        const filteredTrx = Array.isArray(parsed.transactions)
+          ? parsed.transactions.filter(
+              (t: KasTransaction) =>
+                !(
+                  dummyClearedMount &&
+                  isDummySimulationRecord({
+                    id: t?.id,
+                    nrpTerkait: t?.nrpTerkait,
+                    nomorReferensi: t?.nomorReferensi,
+                    pihakTerkait: t?.pihakTerkait,
+                  })
+                )
+            )
+          : [];
+        const filteredAst = Array.isArray(parsed.assets)
+          ? parsed.assets.filter(
+              (a: AssetPortfolioItem) =>
+                !(dummyClearedMount && isDummySimulationRecord({ id: a?.id, namaAset: a?.namaAset }))
+            )
+          : [];
+        if (dummyClearedMount && filteredTrx.length === 0 && filteredAst.length === 0) {
+          setFinanceSummary({ ...ZERO_FINANCE_SUMMARY });
+        } else if (parsed.summary) {
+          setFinanceSummary(parsed.summary);
+        }
+        setTransactions(filteredTrx);
+        setAssets(filteredAst);
         if (parsed.iuranList && parsed.iuranList.length >= 10) {
           setIuranList(
             parsed.iuranList.filter(
               (i: IuranAnggota) =>
                 !deletedOnMount.has((i.nrp || '').trim()) &&
                 !isSuperadminAccount(i.nrp) &&
-                !NON_AKTIF_IURAN_NRPS.has(i.nrp)
+                !NON_AKTIF_IURAN_NRPS.has(i.nrp) &&
+                !(dummyClearedMount && isDummySimulationRecord({ id: i.id, nrp: i.nrp, namaLengkap: i.namaLengkap }))
             )
           );
         }
@@ -956,10 +1071,14 @@ export default function Home() {
       if (rawSavedPosts) {
         const parsedPosts = JSON.parse(rawSavedPosts);
         if (Array.isArray(parsedPosts) && parsedPosts.length > 0) {
-          localFeedPosts = parsedPosts.filter((p: FeedPost) => p && p.id && !deletedPostIds.has(p.id));
-          if (localFeedPosts.length > 0) {
-            setPosts(localFeedPosts);
-          }
+          localFeedPosts = parsedPosts.filter(
+            (p: FeedPost) =>
+              p &&
+              p.id &&
+              !deletedPostIds.has(p.id) &&
+              !(dummyClearedMount && isDummySimulationRecord({ id: p.id, authorNrp: p.authorNrp, authorName: p.authorName }))
+          );
+          setPosts(localFeedPosts);
         }
       }
     } catch {
@@ -971,15 +1090,26 @@ export default function Home() {
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.posts)) {
+          const dummyClearedPosts = isClientDummyCleared();
           const serverPosts = (data.posts as FeedPost[]).filter(
-            (p) => p && p.id && !deletedPostIds.has(p.id)
+            (p) =>
+              p &&
+              p.id &&
+              !deletedPostIds.has(p.id) &&
+              !(dummyClearedPosts && isDummySimulationRecord({ id: p.id, authorNrp: p.authorNrp, authorName: p.authorName }))
           );
           const byId = new Map<string, FeedPost>();
           serverPosts.forEach((p) => byId.set(p.id, p));
           // Preserve locally created/edited posts if serverless instance cold-started (unless dummy was cleared)
           localFeedPosts.forEach((lp) => {
             if (deletedPostIds.has(lp.id)) return;
-            if (deletedOnMount.has((lp.authorNrp || '').trim()) || lp.id.startsWith('post-dummy-')) return;
+            if (
+              deletedOnMount.has((lp.authorNrp || '').trim()) ||
+              lp.id.startsWith('post-dummy-') ||
+              isDummySimulationRecord({ id: lp.id, authorNrp: lp.authorNrp, authorName: lp.authorName })
+            ) {
+              return;
+            }
             const sp = byId.get(lp.id);
             if (!sp) {
               byId.set(lp.id, lp);
@@ -1006,7 +1136,19 @@ export default function Home() {
         .then((res) => res.json())
         .then((data) => {
           if (data.success && Array.isArray(data.messages)) {
-            setMessages(data.messages);
+            const dummyClearedMsg = isClientDummyCleared();
+            const cleanMsgs = dummyClearedMsg
+              ? (data.messages as ChatMessage[]).filter(
+                  (m) =>
+                    !isDummySimulationRecord({
+                      id: m.id,
+                      senderNrp: m.senderNrp,
+                      receiverNrp: m.receiverNrp,
+                      senderName: m.senderName,
+                    })
+                )
+              : data.messages;
+            setMessages(cleanMsgs);
           }
         })
         .catch(() => {});

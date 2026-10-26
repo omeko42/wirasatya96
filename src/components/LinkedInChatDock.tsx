@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { AnggotaWiraSatya, ChatMessage } from '@/types';
 import { getAvatarUrl, formatMemberDisplayName, isSuperadminAccount } from '@/lib/avatarUtils';
+import { isDummySimulationRecord, isClientDummyCleared } from '@/data/dummySimulationData';
 import { WSLogo } from './WSLogo';
 import { MetaVerifiedBadge } from './MetaVerifiedBadge';
 
@@ -87,9 +88,21 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
       if (!res.ok) return;
       const data = await res.json();
       if (data.success && Array.isArray(data.messages)) {
-        setMessages(data.messages);
+        const dummyCleared = isClientDummyCleared();
+        const cleanMsgs = dummyCleared
+          ? (data.messages as ChatMessage[]).filter(
+              (m) =>
+                !isDummySimulationRecord({
+                  id: m.id,
+                  senderNrp: m.senderNrp,
+                  receiverNrp: m.receiverNrp,
+                  senderName: m.senderName,
+                })
+            )
+          : data.messages;
+        setMessages(cleanMsgs);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('ws96_messages_cache', JSON.stringify(data.messages));
+          localStorage.setItem('ws96_messages_cache', JSON.stringify(cleanMsgs));
         }
       }
     } catch {

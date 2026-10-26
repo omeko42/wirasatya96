@@ -14,7 +14,7 @@ import {
 } from '@/types';
 import { ROLE_PERMISSIONS, PRESET_USERS } from '@/data/mockUsers';
 import { PURGED_NON_1996_BASE_NAMES, AKPOL_1996_MEMBERS } from '@/data/akpol1996Alumni';
-import { DUMMY_NRPS, DUMMY_NRP_SET, isDummySimulationRecord } from '@/data/dummySimulationData';
+import { DUMMY_NRPS, DUMMY_NRP_SET, isDummySimulationRecord, isClientDummyCleared } from '@/data/dummySimulationData';
 import { SatkerBerjenjangModal, SatkerSelectionResult } from './SatkerBerjenjangModal';
 import { SortModalPopup, SortTriggerBar, UnifiedSortKey } from './SortModalPopup';
 import { MetaVerifiedBadge, setDynamicRoleMap, updateDynamicUserRole } from './MetaVerifiedBadge';
@@ -287,6 +287,11 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
         const payload = json.data;
         if (typeof window !== 'undefined') {
           try {
+            if (action === 'CLEAR_DUMMY') {
+              localStorage.setItem('ws96_dummy_cleared_v1', 'true');
+            } else {
+              localStorage.removeItem('ws96_dummy_cleared_v1');
+            }
             if (Array.isArray(payload.deletedNrps)) {
               localStorage.setItem('ws96_deleted_nrps_v1', JSON.stringify(payload.deletedNrps));
             }
@@ -604,10 +609,16 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             .trim()
             .toLowerCase();
 
-        // Filter out tombstoned users & non-Akpol-1996 purged names
+        // Filter out tombstoned users & non-Akpol-1996 purged names (and dummy users if cleared)
+        const dummyClearedNow = isClientDummyCleared();
+        let hadColdStartDummy = false;
         let fetchedUsers = rawServerUsers.filter((u) => {
           const bName = getBasePersonName(u.nama);
           if (bName && PURGED_NON_1996_BASE_NAMES.has(bName)) {
+            return false;
+          }
+          if (dummyClearedNow && isDummySimulationRecord({ id: u.id, nrp: u.nrp, nama: u.nama })) {
+            hadColdStartDummy = true;
             return false;
           }
           if (isUserTombstoned(u)) {
@@ -616,6 +627,13 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
           }
           return true;
         });
+        if (hadColdStartDummy) {
+          fetch('/api/admin/dummy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'CLEAR_DUMMY', actorRole: 'SUPERADMIN', actorNrp: '98010710' }),
+          }).catch(() => {});
+        }
 
         // Deduplicate & heal parsedOverrides by baseName so stale oldNrp keys never duplicate a person
         const cleanedOverridesByKey: Record<string, Partial<AuthUser> & { oldNrp?: string; name?: string; jabatan?: string; avatar?: string }> = {};
@@ -969,8 +987,13 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
       }
 
       if (regData.success && Array.isArray(regData.registrations)) {
+        const dummyClearedRegs = isClientDummyCleared();
         const syncedRegs = (regData.registrations as PendingRegistration[])
-          .filter((r) => !deletedSet.has((r.nrp || '').trim()))
+          .filter(
+            (r) =>
+              !deletedSet.has((r.nrp || '').trim()) &&
+              !(dummyClearedRegs && isDummySimulationRecord({ id: r.id, nrp: r.nrp, nama: r.nama }))
+          )
           .map((r) => {
             const rOv = regOverrides[r.nrp];
             if (rOv) {

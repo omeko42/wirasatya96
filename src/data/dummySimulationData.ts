@@ -88,6 +88,25 @@ export function isDummySimulationRecord(obj: unknown): boolean {
   return false;
 }
 
+export function isClientDummyCleared(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (localStorage.getItem('ws96_dummy_cleared_v1') === 'true') {
+      return true;
+    }
+    const rawDel = localStorage.getItem('ws96_deleted_nrps_v1');
+    if (rawDel) {
+      const parsed: string[] = JSON.parse(rawDel);
+      if (Array.isArray(parsed) && parsed.some((n) => String(n).trim() === '99960001')) {
+        return true;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
 const NOW_ISO = '2026-10-26T09:00:00.000Z';
 
 export const DUMMY_MEMBERS: AnggotaWiraSatya[] = [
