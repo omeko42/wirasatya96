@@ -21,6 +21,8 @@ import {
   getActiveAdcSessionFromStorage,
   recordAdcActivityToAuditLog,
   isSuperadminAccount,
+  formatHumanTimestamp,
+  formatHumanDiseaseList,
 } from '@/lib/avatarUtils';
 import { MetaVerifiedBadge, resolveRoleForBadge } from '@/components/MetaVerifiedBadge';
 import { SecuritySettingsPanel } from '@/components/SecuritySettingsModal';
@@ -1403,7 +1405,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                           />
                         </span>
                         <span className="text-[10px] text-slate-500 block">
-                          {post.createdAt}
+                          {formatHumanTimestamp(post.createdAt)}
                         </span>
                       </div>
                     </div>
@@ -1571,7 +1573,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
               const penyakitKronisText =
                 (extHealth.penyakitKronis as string) ||
                 (localMember.daftarPenyakit && localMember.daftarPenyakit.length > 0
-                  ? localMember.daftarPenyakit.join(', ')
+                  ? formatHumanDiseaseList(localMember.daftarPenyakit, { includeSince: true })
                   : localMember.adaPenyakitKronis === 'ADA'
                   ? 'Ada Riwayat Penyakit Kronis'
                   : 'Tidak Ada');

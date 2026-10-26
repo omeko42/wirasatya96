@@ -13,7 +13,7 @@ import {
   AssetCategory,
 } from '@/types';
 import { generateLeakageTrackedFileName } from '@/lib/mediaSecurity';
-import { isSuperadminAccount } from '@/lib/avatarUtils';
+import { isSuperadminAccount, formatHumanTimestamp, formatHumanDiseaseList } from '@/lib/avatarUtils';
 import { resolveRoleForBadge } from './MetaVerifiedBadge';
 import { NON_AKTIF_IURAN_NRPS } from '@/data/akpol1996Alumni';
 import {
@@ -2270,7 +2270,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                     return (
                       <tr key={trx.id} className="hover:bg-slate-50/70">
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="font-semibold text-slate-900 block">{trx.tanggal}</span>
+                          <span className="font-semibold text-slate-900 block">{formatHumanTimestamp(trx.tanggal)}</span>
                           <span className="text-[10px] font-mono text-slate-400">{trx.nomorReferensi}</span>
                         </td>
                         <td className="px-4 py-3">
@@ -2532,7 +2532,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                             setTrxPihak(m.namaLengkap);
                             setTrxNrp(m.nrp);
                             setTrxKeterangan(
-                              `Penyaluran santunan kesehatan untuk ${m.namaLengkap} (${m.daftarPenyakit?.join(', ') || 'Medis'})`
+                              `Penyaluran santunan kesehatan untuk ${m.namaLengkap} (${formatHumanDiseaseList(m.daftarPenyakit) || 'Medis'})`
                             );
                             setIsModalOpen(true);
                           }}
@@ -2548,7 +2548,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                       <div className="flex flex-wrap gap-1">
                         {m.daftarPenyakit?.map((p, i) => (
                           <span key={i} className="px-2 py-0.5 bg-red-100 text-red-800 rounded text-[10px] font-medium">
-                            {p}
+                            {formatHumanDiseaseList([p], { includeSince: true }) || p}
                           </span>
                         ))}
                       </div>

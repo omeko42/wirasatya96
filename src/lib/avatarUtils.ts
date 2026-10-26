@@ -807,4 +807,136 @@ export function isSuperadminObject(obj?: unknown): boolean {
   return isSuperadminAccount(nrp, role, { oldNrp, id, profileId, nama });
 }
 
+const INDONESIAN_MONTHS_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'Mei',
+  'Jun',
+  'Jul',
+  'Agu',
+  'Sep',
+  'Okt',
+  'Nov',
+  'Des',
+];
+
+/**
+ * Converts raw ISO timestamps (`2026-10-26T07:40:00.000Z`) or `YYYY-MM-DD` strings
+ * into natural, human-friendly Indonesian text (`Baru saja`, `25 menit lalu`, `Kemarin, 14.20`, `15 Okt 2026`).
+ */
+export function formatHumanTimestamp(raw?: string | null): string {
+  if (!raw) return 'Baru saja';
+  const trimmed = String(raw).trim();
+  if (!trimmed) return 'Baru saja';
+
+  // Pure HH:mm time string (e.g. "08:15")
+  if (/^\d{1,2}:\d{2}$/.test(trimmed)) {
+    return `${trimmed.replace(':', '.')} WIB`;
+  }
+
+  // Date-only string YYYY-MM-DD (e.g. "2026-10-15")
+  const dateOnlyMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const year = Number(dateOnlyMatch[1]);
+    const monthIdx = Number(dateOnlyMatch[2]) - 1;
+    const day = Number(dateOnlyMatch[3]);
+    const monthName = INDONESIAN_MONTHS_SHORT[monthIdx] || dateOnlyMatch[2];
+    return `${day} ${monthName} ${year}`;
+  }
+
+  // Only parse if it looks like an ISO timestamp or date string
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const dt = new Date(trimmed);
+  if (Number.isNaN(dt.getTime())) {
+    return trimmed;
+  }
+
+  const now = new Date();
+  const diffSec = Math.floor((now.getTime() - dt.getTime()) / 1000);
+
+  if (diffSec >= 0 && diffSec < 60) {
+    return 'Baru saja';
+  }
+  if (diffSec >= 60 && diffSec < 3600) {
+    return `${Math.floor(diffSec / 60)} menit lalu`;
+  }
+  if (diffSec >= 3600 && diffSec < 86400) {
+    return `${Math.floor(diffSec / 3600)} jam lalu`;
+  }
+
+  const hh = String(dt.getHours()).padStart(2, '0');
+  const mm = String(dt.getMinutes()).padStart(2, '0');
+
+  if (diffSec >= 86400 && diffSec < 172800) {
+    return `Kemarin, ${hh}.${mm}`;
+  }
+  if (diffSec >= 172800 && diffSec < 7 * 86400) {
+    return `${Math.floor(diffSec / 86400)} hari lalu`;
+  }
+
+  const day = dt.getDate();
+  const monthName = INDONESIAN_MONTHS_SHORT[dt.getMonth()] || '';
+  const year = dt.getFullYear();
+
+  if (year === now.getFullYear()) {
+    return `${day} ${monthName}, ${hh}.${mm}`;
+  }
+  return `${day} ${monthName} ${year}`;
+}
+
+/**
+ * Formats an array of upper-case / technical chronic disease strings into natural human Indonesian.
+ * Example:
+ *   ['PENYAKIT JANTUNG (Sejak Mei 2023)', 'HIPERTENSI (TEKANAN DARAH TINGGI) (Sejak 2021)']
+ *   -> includeSince=false: 'Penyakit Jantung & Hipertensi'
+ *   -> includeSince=true:  'Penyakit Jantung (sejak Mei 2023), Hipertensi (sejak 2021)'
+ */
+export function formatHumanDiseaseList(
+  rawList?: string[] | null,
+  options?: { includeSince?: boolean; maxItems?: number }
+): string {
+  if (!Array.isArray(rawList) || rawList.length === 0) return '';
+  const includeSince = Boolean(options?.includeSince);
+  const maxItems = options?.maxItems || rawList.length;
+
+  const formatted = rawList
+    .map((item) => {
+      const str = String(item || '').trim();
+      if (!str || str === 'TIDAK ADA') return '';
+
+      const sinceMatch = str.match(/\(\s*sejak\s+([^)]+)\)/i);
+      const sinceVal = sinceMatch ? sinceMatch[1].trim() : '';
+
+      // Strip all parenthetical notes so double parentheses like "(TEKANAN DARAH TINGGI) (Sejak 2021)" are removed
+      const baseRaw = str.replace(/\([^)]*\)/g, '').trim();
+      if (!baseRaw) return '';
+
+      const baseTitle = baseRaw
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+        .replace(/\bGerd\b/g, 'GERD')
+        .replace(/\bHnp\b/g, 'HNP');
+
+      if (includeSince && sinceVal) {
+        return `${baseTitle} (sejak ${sinceVal})`;
+      }
+      return baseTitle;
+    })
+    .filter(Boolean)
+    .slice(0, maxItems);
+
+  if (formatted.length === 0) return '';
+  if (formatted.length === 1) return formatted[0];
+  if (formatted.length === 2 && !includeSince) {
+    return `${formatted[0]} & ${formatted[1]}`;
+  }
+  return formatted.join(', ');
+}
+
+
 

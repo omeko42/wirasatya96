@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { FeedPost, PostComment, AuthUser, ReactionType } from '@/types';
-import { getAvatarUrl, resolveAvatarUrl } from '@/lib/avatarUtils';
+import { getAvatarUrl, resolveAvatarUrl, formatHumanTimestamp } from '@/lib/avatarUtils';
 import { processSecureImageUpload } from '@/lib/mediaSecurity';
 import { MetaVerifiedBadge } from './MetaVerifiedBadge';
 import {
@@ -400,7 +400,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
                   )}
                 </div>
                 <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                  {comm.createdAt}
+                  {formatHumanTimestamp(comm.createdAt)}
                   {comm.isEdited ? ' (diedit)' : ''}
                 </span>
               </div>
@@ -643,7 +643,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
 
             <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-1 flex-wrap">
               <span>
-                {post.createdAt}
+                {formatHumanTimestamp(post.createdAt)}
                 {post.isEdited ? ' (diedit)' : ''}
               </span>
               <span>&bull;</span>

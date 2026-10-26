@@ -9,7 +9,12 @@ import {
   FeedPost,
   ChatMessage,
 } from '@/types';
-import { getAvatarUrl, isSuperadminAccount } from '@/lib/avatarUtils';
+import {
+  getAvatarUrl,
+  isSuperadminAccount,
+  formatHumanTimestamp,
+  formatHumanDiseaseList,
+} from '@/lib/avatarUtils';
 import { MetaVerifiedBadge } from '@/components/MetaVerifiedBadge';
 import {
   Bell,
@@ -136,7 +141,7 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
         type: 'SOCIAL',
         title: `Pesan Masuk dari ${msg.senderName}`,
         description: `"${stripTechNoise(msg.text)}"`,
-        timeAgo: msg.timestamp || 'Baru saja',
+        timeAgo: formatHumanTimestamp(msg.createdAt || msg.timestamp),
         isRead: Boolean(msg.isRead) || readSet.has(id),
         avatarUrl: getAvatarUrl(msg.senderAvatar),
         actionLabel: 'Balas di Menu Pesan',
@@ -160,13 +165,13 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
         m.kondisiKesehatan === 'PERLU PERHATIAN KHUSUS' || m.kondisiKesehatan === 'SAKIT';
       const diagnosa =
         m.daftarPenyakit && m.daftarPenyakit.length > 0
-          ? m.daftarPenyakit.join(', ')
+          ? formatHumanDiseaseList(m.daftarPenyakit, { includeSince: true })
           : m.kondisiSaatIni || m.catatanMedis || 'Pemantauan kondisi medis rutin';
       items.push({
         id,
         type: 'HEALTH',
         title: `${isUrgent ? '🚨 Info Peduli Kesehatan:' : '❤️ Pemantauan Kesehatan:'} ${m.pangkat ? m.pangkat + ' ' : ''}${m.namaLengkap}`,
-        description: `${stripTechNoise(diagnosa)}${m.kondisiSaatIni ? ` — ${stripTechNoise(m.kondisiSaatIni)}` : ''}.`,
+        description: `${diagnosa}${m.kondisiSaatIni ? ` — ${stripTechNoise(m.kondisiSaatIni)}` : ''}.`,
         timeAgo: 'Info Kesehatan Leting',
         isRead: readSet.has(id),
         avatarUrl: getAvatarUrl(m.fotoUrl),
@@ -185,7 +190,7 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
         type: 'TREASURY',
         title: `${isMasuk ? '💰 Dana Sosial Masuk' : '🤝 Penyaluran Dana Sosial'}: ${formatRupiah(trx.nominal)}`,
         description: `${cleanKet}.`,
-        timeAgo: trx.tanggal,
+        timeAgo: formatHumanTimestamp(trx.tanggal),
         isRead: readSet.has(id),
         avatarUrl: '/default-avatar.png',
         actionLabel: 'Buka Dana Sosial & Investasi',
@@ -201,7 +206,7 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
         type: 'TREASURY',
         title: `💎 Aset Bersama WS96: ${cleanNama}`,
         description: `${ast.keterangan ? stripTechNoise(ast.keterangan) : cleanNama} (Valuasi ${formatRupiah(ast.estimasiNilaiIdr)}).`,
-        timeAgo: ast.tanggalPerolehan || ast.updatedAt.split('T')[0],
+        timeAgo: formatHumanTimestamp(ast.tanggalPerolehan || ast.updatedAt?.split('T')[0]),
         isRead: readSet.has(id),
         avatarUrl: '/default-avatar.png',
         actionLabel: 'Lihat Portofolio Aset',
@@ -219,7 +224,7 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
         title: `💬 Kabar Leting: ${post.authorName}`,
         description:
           cleanContent.length > 140 ? `${cleanContent.slice(0, 140)}...` : cleanContent,
-        timeAgo: post.createdAt,
+        timeAgo: formatHumanTimestamp(post.createdAt),
         isRead: readSet.has(id),
         avatarUrl: getAvatarUrl(post.authorAvatar),
         actionLabel: 'Lihat di Linimasa',

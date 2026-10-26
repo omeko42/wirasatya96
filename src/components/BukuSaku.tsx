@@ -11,6 +11,7 @@ import {
   formatJabatanWithSatker,
   getOrBuildUserProfile,
   isSuperadminAccount,
+  formatHumanDiseaseList,
 } from '@/lib/avatarUtils';
 import { LinkedInProfileView } from './LinkedInProfileView';
 import { LinkedInPostCard } from './LinkedInPostCard';
@@ -1334,7 +1335,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
 
                         <div className="text-[10px] text-slate-600 line-clamp-2">
                           <span className="text-slate-500 font-semibold">Diagnosa: </span>
-                          <b>{(m.daftarPenyakit || []).join(', ') || 'Dalam Pemulihan'}</b>
+                          <b>{formatHumanDiseaseList(m.daftarPenyakit, { includeSince: true }) || 'Dalam Pemulihan'}</b>
                         </div>
 
                         <div className="flex items-center justify-between pt-2 mt-1 border-t border-slate-200/60">
