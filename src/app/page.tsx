@@ -2492,74 +2492,74 @@ export default function Home() {
         isViewingOwnProfile={Boolean(viewingMember && viewingMember.nrp === currentUser.nrp)}
         impersonatorUser={impersonatorUser}
         onStopImpersonating={handleStopImpersonating}
-      />
-
-      {/* Top Red Ribbon: [Live Sync & Redis Cache Beacon] Online/Offline | Running Text Notifikasi */}
-      <div className="bg-gradient-to-r from-red-950 via-slate-900 to-red-950 border-b border-red-900/40 text-slate-200 text-xs py-1.5 relative z-20 overflow-hidden">
-        <div className="w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-2.5 sm:px-5 lg:px-8 xl:px-10 2xl:px-12 flex items-center gap-2.5 text-[11px]">
-          {/* Left: Interactive Lamp Beacon + Online/Offline Sync Status */}
-          <button
-            type="button"
-            onClick={() => setIsSyncModalOpen(true)}
-            className="flex items-center gap-1.5 shrink-0 hover:opacity-90 transition cursor-pointer"
-            title="Klik untuk membuka status Redis Cache & Mode Offline Tersinkronisasi"
-          >
-            <span className="relative flex h-2.5 w-2.5">
-              <span
-                className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                  isOnlineStatus ? 'bg-emerald-400' : 'bg-amber-400'
-                }`}
-              />
-              <span
-                className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                  isOnlineStatus
-                    ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]'
-                    : 'bg-amber-500 shadow-[0_0_8px_#f59e0b]'
-                }`}
-              />
-            </span>
-            <span
-              className={`font-extrabold tracking-wide ${
-                isOnlineStatus ? 'text-emerald-400' : 'text-amber-300'
-              }`}
-            >
-              {isOnlineStatus ? 'Online' : 'Mode Offline'}
-            </span>
-            {pendingSyncCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-extrabold text-[10px]">
-                {pendingSyncCount} Sync
-              </span>
-            )}
-          </button>
-
-          {/* Divider | */}
-          <span className="text-red-400/50 font-bold shrink-0 select-none">|</span>
-
-          {/* Right: Synchronized Notification Running Text */}
-          <div className="flex-1 overflow-hidden relative">
-            <div
-              className="ws96-marquee items-center gap-10 whitespace-nowrap"
-              style={{
-                animationDuration: `${Math.max(70, liveTickerNotifications.length * 14)}s`,
-              }}
-            >
-              {[...liveTickerNotifications, ...liveTickerNotifications].map((item, idx) => (
-                <button
-                  key={`${item.id}-${idx}`}
-                  type="button"
-                  onClick={item.onClick}
-                  className="inline-flex items-center gap-1.5 text-slate-200 hover:text-amber-300 transition-colors cursor-pointer text-[11px]"
-                  title="Klik untuk membuka berita terkait"
+        bottomRibbon={
+          <div className="bg-gradient-to-r from-red-950 via-slate-900 to-red-950 border-t border-b border-red-900/40 text-slate-200 text-xs py-1.5 relative z-20 overflow-hidden">
+            <div className="w-full max-w-[1600px] 2xl:max-w-[1720px] mx-auto px-2.5 sm:px-5 lg:px-8 xl:px-10 2xl:px-12 flex items-center gap-2.5 text-[11px]">
+              {/* Left: Interactive Lamp Beacon + Online/Offline Sync Status */}
+              <button
+                type="button"
+                onClick={() => setIsSyncModalOpen(true)}
+                className="flex items-center gap-1.5 shrink-0 hover:opacity-90 transition cursor-pointer"
+                title="Klik untuk membuka status Redis Cache & Mode Offline Tersinkronisasi"
+              >
+                <span className="relative flex h-2.5 w-2.5">
+                  <span
+                    className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                      isOnlineStatus ? 'bg-emerald-400' : 'bg-amber-400'
+                    }`}
+                  />
+                  <span
+                    className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                      isOnlineStatus
+                        ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]'
+                        : 'bg-amber-500 shadow-[0_0_8px_#f59e0b]'
+                    }`}
+                  />
+                </span>
+                <span
+                  className={`font-extrabold tracking-wide ${
+                    isOnlineStatus ? 'text-emerald-400' : 'text-amber-300'
+                  }`}
                 >
-                  <span className="font-bold text-amber-300/95">{item.badge}</span>
-                  <span>{item.text}</span>
-                  <span className="text-slate-500 mx-3 select-none">&bull;</span>
-                </button>
-              ))}
+                  {isOnlineStatus ? 'Online' : 'Mode Offline'}
+                </span>
+                {pendingSyncCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-extrabold text-[10px]">
+                    {pendingSyncCount} Sync
+                  </span>
+                )}
+              </button>
+
+              {/* Divider | */}
+              <span className="text-red-400/50 font-bold shrink-0 select-none">|</span>
+
+              {/* Right: Synchronized Notification Running Text */}
+              <div className="flex-1 overflow-hidden relative">
+                <div
+                  className="ws96-marquee items-center gap-10 whitespace-nowrap"
+                  style={{
+                    animationDuration: `${Math.max(70, liveTickerNotifications.length * 14)}s`,
+                  }}
+                >
+                  {[...liveTickerNotifications, ...liveTickerNotifications].map((item, idx) => (
+                    <button
+                      key={`${item.id}-${idx}`}
+                      type="button"
+                      onClick={item.onClick}
+                      className="inline-flex items-center gap-1.5 text-slate-200 hover:text-amber-300 transition-colors cursor-pointer text-[11px]"
+                      title="Klik untuk membuka berita terkait"
+                    >
+                      <span className="font-bold text-amber-300/95">{item.badge}</span>
+                      <span>{item.text}</span>
+                      <span className="text-slate-500 mx-3 select-none">&bull;</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Offline Sync Alert Bar & Redis Cache Telemetry Modal */}
       <OfflineSyncBanner

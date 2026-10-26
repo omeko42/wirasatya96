@@ -64,6 +64,7 @@ interface NavbarProps {
   isViewingOwnProfile?: boolean;
   impersonatorUser?: AuthUser | null;
   onStopImpersonating?: () => void;
+  bottomRibbon?: React.ReactNode;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -82,6 +83,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   isViewingOwnProfile = false,
   impersonatorUser,
   onStopImpersonating,
+  bottomRibbon,
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isAppsMenuOpen, setIsAppsMenuOpen] = useState(false);
@@ -853,6 +855,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           </div>
         </div>
+        {bottomRibbon}
       </header>
 
       {/* Bottom Mobile Tab Bar (Tanpa Beranda karena Logo WS di kiri atas sudah ke Beranda) */}
