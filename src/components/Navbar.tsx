@@ -353,7 +353,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Right: Stacked Nav Items (Bareskrim Red Active Colors) */}
-            {/* Urutan PC: 1. Beranda, 2. Data Diri, 3. Anev, 4. Pesan, 5. User, 6. Dana Sosial, 7. ToD, 8. Notif */}
+            {/* Urutan PC: 1. Beranda, 2. Data Diri, 3. Anev, 4. Dana Sosial, 5. Pesan, 6. User, 7. ToD, 8. Notif */}
             <nav className="flex items-center gap-0.5 sm:gap-1.5 lg:gap-2.5 flex-shrink-0">
               
               {/* 1. Beranda */}
@@ -406,7 +406,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-[10px] mt-0.5 whitespace-nowrap">Anev</span>
               </button>
 
-              {/* 4. Pesan */}
+              {/* 4. Dana Sosial (di HP: Dansos) */}
+              <button
+                onClick={() => setActiveTab('bendahara')}
+                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
+                  activeTab === 'bendahara'
+                    ? 'border-amber-700 text-amber-800 font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+                title="Dana Sosial & Investasi (Dansos)"
+              >
+                <Wallet className="w-5 h-5" />
+                <span className="text-[10px] mt-0.5 whitespace-nowrap">Dana Sosial</span>
+              </button>
+
+              {/* 5. Pesan */}
               <button
                 onClick={() => setActiveTab('pesan')}
                 className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
@@ -427,7 +441,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-[10px] mt-0.5 whitespace-nowrap">Pesan</span>
               </button>
 
-              {/* 5. User */}
+              {/* 6. User */}
               <button
                 onClick={() => setActiveTab('users')}
                 className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] text-center transition-all border-b-2 ${
@@ -446,20 +460,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   )}
                 </div>
                 <span className="text-[10px] mt-0.5 whitespace-nowrap">User</span>
-              </button>
-
-              {/* 6. Dana Sosial (di HP: Dansos) */}
-              <button
-                onClick={() => setActiveTab('bendahara')}
-                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
-                  activeTab === 'bendahara'
-                    ? 'border-amber-700 text-amber-800 font-bold'
-                    : 'border-transparent text-slate-500 hover:text-slate-900'
-                }`}
-                title="Dana Sosial & Investasi (Dansos)"
-              >
-                <Wallet className="w-5 h-5" />
-                <span className="text-[10px] mt-0.5 whitespace-nowrap">Dana Sosial</span>
               </button>
 
               {/* 7. ToD (Tour of Duty) */}
@@ -853,7 +853,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       </header>
 
       {/* Bottom Mobile Tab Bar (Tanpa Beranda karena Logo WS di kiri atas sudah ke Beranda) */}
-      {/* Urutan HP: 1. RH, 2. Anev, 3. Pesan, 4. User, 5. Dansos, 6. ToD, 7. Notif */}
+      {/* Urutan HP: 1. RH, 2. Anev, 3. Dansos, 4. Pesan, 5. User, 6. ToD, 7. Notif */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-1 pt-1.5 pb-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
         <div className="grid grid-cols-7 gap-0.5 text-[9px] sm:text-[9.5px]">
           {/* 1. RH (Data Diri) */}
@@ -880,7 +880,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="truncate max-w-full">Anev</span>
           </button>
 
-          {/* 3. Pesan */}
+          {/* 3. Dansos (Dana Sosial) */}
+          <button
+            onClick={() => setActiveTab('bendahara')}
+            className={`flex flex-col items-center justify-center py-1 transition-colors ${
+              activeTab === 'bendahara' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Wallet className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
+            <span className="truncate max-w-full">Dansos</span>
+          </button>
+
+          {/* 4. Pesan */}
           <button
             onClick={() => setActiveTab('pesan')}
             className={`flex flex-col items-center justify-center py-1 transition-colors ${
@@ -898,7 +909,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="truncate max-w-full">Pesan</span>
           </button>
 
-          {/* 4. User */}
+          {/* 5. User */}
           <button
             onClick={() => setActiveTab('users')}
             className={`flex flex-col items-center justify-center py-1 transition-colors ${
@@ -914,17 +925,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
             <span className="truncate max-w-full">User</span>
-          </button>
-
-          {/* 5. Dansos (Dana Sosial) */}
-          <button
-            onClick={() => setActiveTab('bendahara')}
-            className={`flex flex-col items-center justify-center py-1 transition-colors ${
-              activeTab === 'bendahara' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Wallet className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
-            <span className="truncate max-w-full">Dansos</span>
           </button>
 
           {/* 6. ToD (Tour of Duty) */}
