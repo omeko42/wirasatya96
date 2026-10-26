@@ -355,7 +355,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Right: Stacked Nav Items (Bareskrim Red Active Colors) */}
-            {/* Urutan PC: 1. Beranda, 2. Data Diri, 3. Anev, 4. Dana Sosial, 5. Pesan, 6. User, 7. ToD, 8. Notif */}
+            {/* Urutan PC: 1. Beranda, 2. Data Diri, 3. Anev, 4. Pesan, 5. Dana Sosial, 6. User, 7. ToD, 8. Notif */}
             <nav className="flex items-center gap-0.5 md:gap-0.5 lg:gap-1.5 xl:gap-2.5 2xl:gap-3.5 flex-shrink-0">
               
               {/* 1. Beranda */}
@@ -408,24 +408,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-[10px] mt-0.5 whitespace-nowrap">Anev</span>
               </button>
 
-              {/* 4. Dana Sosial (di HP: Dansos) */}
-              <button
-                onClick={() => setActiveTab('bendahara')}
-                className={`hidden md:flex flex-col items-center justify-center px-1 lg:px-2 xl:px-2.5 py-1 min-w-[44px] lg:min-w-[56px] xl:min-w-[62px] text-center transition-all border-b-2 ${
-                  activeTab === 'bendahara'
-                    ? 'border-amber-700 text-amber-800 font-bold'
-                    : 'border-transparent text-slate-500 hover:text-slate-900'
-                }`}
-                title="Dana Sosial & Investasi (Dansos)"
-              >
-                <Wallet className="w-5 h-5" />
-                <span className="text-[10px] mt-0.5 whitespace-nowrap">
-                  <span className="lg:hidden">Dansos</span>
-                  <span className="hidden lg:inline">Dana Sosial</span>
-                </span>
-              </button>
-
-              {/* 5. Pesan */}
+              {/* 4. Pesan */}
               <button
                 onClick={() => setActiveTab('pesan')}
                 className={`hidden md:flex flex-col items-center justify-center px-1 lg:px-2 xl:px-2.5 py-1 min-w-[38px] lg:min-w-[50px] xl:min-w-[54px] text-center transition-all border-b-2 ${
@@ -444,6 +427,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                   )}
                 </div>
                 <span className="text-[10px] mt-0.5 whitespace-nowrap">Pesan</span>
+              </button>
+
+              {/* 5. Dana Sosial (di HP: Dansos) */}
+              <button
+                onClick={() => setActiveTab('bendahara')}
+                className={`hidden md:flex flex-col items-center justify-center px-1 lg:px-2 xl:px-2.5 py-1 min-w-[44px] lg:min-w-[56px] xl:min-w-[62px] text-center transition-all border-b-2 ${
+                  activeTab === 'bendahara'
+                    ? 'border-amber-700 text-amber-800 font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+                title="Dana Sosial & Investasi (Dansos)"
+              >
+                <Wallet className="w-5 h-5" />
+                <span className="text-[10px] mt-0.5 whitespace-nowrap">
+                  <span className="lg:hidden">Dansos</span>
+                  <span className="hidden lg:inline">Dana Sosial</span>
+                </span>
               </button>
 
               {/* 6. User */}
@@ -481,10 +481,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-[10px] mt-0.5 whitespace-nowrap">ToD</span>
               </button>
 
-              {/* 8. Notif */}
+              {/* 8. Notif (Tampil di Atas baik di HP maupun PC, sebelah kiri Saya) */}
               <button
                 onClick={() => setActiveTab('notifikasi')}
-                className={`hidden md:flex flex-col items-center justify-center px-1 lg:px-2 xl:px-2.5 py-1 min-w-[38px] lg:min-w-[48px] xl:min-w-[52px] text-center transition-all border-b-2 ${
+                className={`flex flex-col items-center justify-center px-1.5 md:px-1 lg:px-2 xl:px-2.5 py-1 min-w-[36px] lg:min-w-[48px] xl:min-w-[52px] text-center transition-all border-b-2 ${
                   activeTab === 'notifikasi'
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -492,14 +492,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="Notifikasi"
               >
                 <div className="relative">
-                  <Bell className="w-5 h-5" />
+                  <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                   {unreadNotificationsCount > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-red-700 text-white text-[9px] font-bold flex items-center justify-center absolute -top-1 -right-2 ring-2 ring-white">
+                    <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-red-700 text-white text-[8px] sm:text-[9px] font-bold flex items-center justify-center absolute -top-1 -right-2 ring-1 sm:ring-2 ring-white">
                       {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] mt-0.5 whitespace-nowrap">Notif</span>
+                <span className="text-[9px] sm:text-[10px] mt-0.5 whitespace-nowrap">Notif</span>
               </button>
 
               {/* Vertical Divider */}
@@ -769,11 +769,29 @@ export const Navbar: React.FC<NavbarProps> = ({
         {bottomRibbon}
       </header>
 
-      {/* Bottom Mobile Tab Bar (Tanpa Beranda karena Logo WS di kiri atas sudah ke Beranda) */}
-      {/* Urutan HP: 1. RH, 2. Anev, 3. Dansos, 4. Pesan, 5. User, 6. ToD, 7. Notif */}
+      {/* Bottom Mobile Tab Bar */}
+      {/* Urutan HP: 1. Beranda, 2. RH, 3. Anev, 4. Pesan, 5. Dansos, 6. User, 7. ToD (Notif di bar atas sebelah Saya) */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-1 pt-1.5 pb-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
         <div className="grid grid-cols-7 gap-0.5 text-[9px] sm:text-[9.5px]">
-          {/* 1. RH (Data Diri) */}
+          {/* 1. Beranda */}
+          <button
+            onClick={() => {
+              setActiveTab('direktori');
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('ws96_reset_beranda'));
+              }
+            }}
+            className={`flex flex-col items-center justify-center py-1 transition-colors ${
+              activeTab === 'direktori' && !isViewingOwnProfile
+                ? 'text-red-900 font-bold'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Home className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
+            <span className="truncate max-w-full">Beranda</span>
+          </button>
+
+          {/* 2. RH (Data Diri) */}
           <button
             onClick={() => setActiveTab('form')}
             className={`flex flex-col items-center justify-center py-1 transition-colors ${
@@ -786,7 +804,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="truncate max-w-full">RH</span>
           </button>
 
-          {/* 2. Anev */}
+          {/* 3. Anev */}
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`flex flex-col items-center justify-center py-1 transition-colors ${
@@ -795,17 +813,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
             <span className="truncate max-w-full">Anev</span>
-          </button>
-
-          {/* 3. Dansos (Dana Sosial) */}
-          <button
-            onClick={() => setActiveTab('bendahara')}
-            className={`flex flex-col items-center justify-center py-1 transition-colors ${
-              activeTab === 'bendahara' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Wallet className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
-            <span className="truncate max-w-full">Dansos</span>
           </button>
 
           {/* 4. Pesan */}
@@ -826,7 +833,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="truncate max-w-full">Pesan</span>
           </button>
 
-          {/* 5. User */}
+          {/* 5. Dansos (Dana Sosial - setelah Pesan) */}
+          <button
+            onClick={() => setActiveTab('bendahara')}
+            className={`flex flex-col items-center justify-center py-1 transition-colors ${
+              activeTab === 'bendahara' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Wallet className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
+            <span className="truncate max-w-full">Dansos</span>
+          </button>
+
+          {/* 6. User */}
           <button
             onClick={() => setActiveTab('users')}
             className={`flex flex-col items-center justify-center py-1 transition-colors ${
@@ -844,7 +862,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="truncate max-w-full">User</span>
           </button>
 
-          {/* 6. ToD (Tour of Duty) */}
+          {/* 7. ToD (Tour of Duty) */}
           <button
             onClick={() => setActiveTab('purnaTugas')}
             className={`flex flex-col items-center justify-center py-1 transition-colors ${
@@ -853,24 +871,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
             <span className="truncate max-w-full">ToD</span>
-          </button>
-
-          {/* 7. Notif */}
-          <button
-            onClick={() => setActiveTab('notifikasi')}
-            className={`flex flex-col items-center justify-center py-1 transition-colors ${
-              activeTab === 'notifikasi' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <div className="relative">
-              <Bell className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
-              {unreadNotificationsCount > 0 && (
-                <span className="w-3.5 h-3.5 rounded-full bg-red-700 text-white text-[8px] font-bold flex items-center justify-center absolute -top-1 -right-2 ring-1 ring-white">
-                  {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
-                </span>
-              )}
-            </div>
-            <span className="truncate max-w-full">Notif</span>
           </button>
         </div>
       </div>

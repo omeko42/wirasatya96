@@ -135,9 +135,6 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
   const [mobileOpenHealth, setMobileOpenHealth] = useState<boolean>(false);
   const [mobileOpenDana, setMobileOpenDana] = useState<boolean>(false);
 
-  // Infinite feed scroll state so scrolling inside the feed container continuously loads more posts
-  const [feedRepeatCount, setFeedRepeatCount] = useState<number>(1);
-
   useEffect(() => {
     let mounted = true;
     const fetchFinanceWidgetData = () => {
@@ -882,10 +879,17 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
       }));
     };
 
+    const seenIds = new Set<string>();
+    const uniquePosts = posts.filter((p) => {
+      if (!p || !p.id || seenIds.has(p.id)) return false;
+      seenIds.add(p.id);
+      return true;
+    });
+
     const list = (
       feedCategoryFilter === 'SEMUA'
-        ? posts
-        : posts.filter((p) => p.category === feedCategoryFilter)
+        ? uniquePosts
+        : uniquePosts.filter((p) => p.category === feedCategoryFilter)
     ).map((p) => ({
       ...p,
       authorAvatar: resolveLiveAuthorAvatar(p.authorNrp, p.authorName, p.authorAvatar),
@@ -894,27 +898,6 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
 
     return [...list].sort((a, b) => (b.isPinned || b.pinned ? 1 : 0) - (a.isPinned || a.pinned ? 1 : 0));
   }, [posts, feedCategoryFilter, resolveLiveAuthorAvatar]);
-
-  const infiniteFeedPosts = useMemo(() => {
-    if (filteredPosts.length === 0) return [];
-    const result: Array<{ post: FeedPost; renderKey: string }> = [];
-    for (let cycle = 0; cycle < feedRepeatCount; cycle++) {
-      for (const p of filteredPosts) {
-        result.push({
-          post: cycle === 0 ? p : { ...p, isPinned: false, pinned: false },
-          renderKey: `${p.id}-cycle-${cycle}`,
-        });
-      }
-    }
-    return result;
-  }, [filteredPosts, feedRepeatCount]);
-
-  const handleFeedScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 180) {
-      setFeedRepeatCount((prev) => Math.min(prev + 1, 3));
-    }
-  };
 
   const todSummary = useMemo(() => {
     let mabes = 0;
@@ -1082,7 +1065,10 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                     <MetaVerifiedBadge role={currentUser?.role} nrp={currentUser?.nrp} size="sm" />
                   </div>
                   <div className="text-[10px] text-slate-500 truncate">
-                    {currentMemberObj?.pangkat || currentUser.pangkat} &bull; Profil Saya
+                    {isSuperadminAccount(currentUser?.nrp, currentUser?.role)
+                      ? 'Admin Sistem'
+                      : currentMemberObj?.pangkat || currentUser.pangkat}{' '}
+                    &bull; Profil Saya
                   </div>
                 </div>
               </div>
@@ -1135,9 +1121,15 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                 </h3>
                 <p
                   className="text-[11px] text-slate-500 mt-0.5 line-clamp-2"
-                  title={`${currentMemberObj?.pangkat || currentUser.pangkat} • ${formatJabatanWithSatker(currentMemberObj?.jabatanTerakhir, currentMemberObj?.satuanKerja || currentUser.satker)}`}
+                  title={
+                    isSuperadminAccount(currentUser?.nrp, currentUser?.role)
+                      ? 'Admin Sistem Wira Satya 96'
+                      : `${currentMemberObj?.pangkat || currentUser.pangkat} • ${formatJabatanWithSatker(currentMemberObj?.jabatanTerakhir, currentMemberObj?.satuanKerja || currentUser.satker)}`
+                  }
                 >
-                  {`${currentMemberObj?.pangkat || currentUser.pangkat} • ${formatJabatanWithSatker(currentMemberObj?.jabatanTerakhir, currentMemberObj?.satuanKerja || currentUser.satker)}`}
+                  {isSuperadminAccount(currentUser?.nrp, currentUser?.role)
+                    ? 'Admin Sistem Wira Satya 96'
+                    : `${currentMemberObj?.pangkat || currentUser.pangkat} • ${formatJabatanWithSatker(currentMemberObj?.jabatanTerakhir, currentMemberObj?.satuanKerja || currentUser.satker)}`}
                 </p>
               </div>
             </div>
@@ -1146,27 +1138,31 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
             <div className={`${mobileOpenProfile ? 'block ws96-accordion-body' : 'hidden'} lg:block px-4 pb-4`}>
               <div className="pt-3 border-t border-slate-100 lg:mt-3 text-left space-y-1.5 text-xs">
                 <div className="flex items-center justify-between text-slate-500">
-                  <span>NRP:</span>
+                  <span>{isSuperadminAccount(currentUser?.nrp, currentUser?.role) ? 'ID Akun:' : 'NRP:'}</span>
                   <span className="font-mono font-bold text-slate-800">{currentUser.nrp}</span>
                 </div>
-                <div className="flex items-start justify-between gap-2 text-slate-500">
-                  <span className="shrink-0">Jabatan Polri:</span>
-                  <span
-                    className="font-bold text-slate-800 line-clamp-2 text-right leading-snug"
-                    title={cleanJabatanOnly(currentMemberObj?.jabatanTerakhir) || currentUser.satker || '-'}
-                  >
-                    {cleanJabatanOnly(currentMemberObj?.jabatanTerakhir) || currentUser.satker || '-'}
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-2 text-slate-500">
-                  <span className="shrink-0">Satker / Wilayah:</span>
-                  <span
-                    className="font-bold text-slate-700 line-clamp-2 text-right leading-snug"
-                    title={currentMemberObj?.satuanKerja || currentUser.polda || 'MABES POLRI'}
-                  >
-                    {currentMemberObj?.satuanKerja || currentUser.polda || 'MABES POLRI'}
-                  </span>
-                </div>
+                {!isSuperadminAccount(currentUser?.nrp, currentUser?.role) && (
+                  <>
+                    <div className="flex items-start justify-between gap-2 text-slate-500">
+                      <span className="shrink-0">Jabatan Polri:</span>
+                      <span
+                        className="font-bold text-slate-800 line-clamp-2 text-right leading-snug"
+                        title={cleanJabatanOnly(currentMemberObj?.jabatanTerakhir) || currentUser.satker || '-'}
+                      >
+                        {cleanJabatanOnly(currentMemberObj?.jabatanTerakhir) || currentUser.satker || '-'}
+                      </span>
+                    </div>
+                    <div className="flex items-start justify-between gap-2 text-slate-500">
+                      <span className="shrink-0">Satker / Wilayah:</span>
+                      <span
+                        className="font-bold text-slate-700 line-clamp-2 text-right leading-snug"
+                        title={currentMemberObj?.satuanKerja || currentUser.polda || 'MABES POLRI'}
+                      >
+                        {currentMemberObj?.satuanKerja || currentUser.polda || 'MABES POLRI'}
+                      </span>
+                    </div>
+                  </>
+                )}
                 {(myEffectiveRole === 'KETUA' ||
                   myEffectiveRole === 'SEKRETARIAT' ||
                   myEffectiveRole === 'BENDAHARA') && (
@@ -1432,11 +1428,11 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
             )}
 
             <div className={`${mobileOpenDana ? 'block ws96-accordion-body' : 'hidden'} lg:block pt-3 mt-2.5 border-t border-slate-100 space-y-3`}>
-              {/* Active Milestone Programs (Kitabisa / Saweria style) */}
+              {/* Active Social Fund Programs */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    1. Milestone Dana Sosial
+                    1. Program Dana Sosial
                   </span>
                   <span className="text-[10px] font-bold text-emerald-700">
                     {activeWidgetCampaigns.filter((c) => c.status !== 'SELESAI').length} Program
@@ -1520,7 +1516,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                 )}
                 <span
                   className="text-[11px] text-slate-400 flex items-center justify-center gap-1"
-                  title="Penggalangan dana sosial (milestone), dana investasi, dan buku kas dikelola oleh Bendahara."
+                  title="Program penggalangan dana sosial, dana investasi, dan buku kas dikelola oleh Bendahara."
                 >
                   <span>Dikelola oleh Bendahara</span>
                   <Info className="w-3 h-3 text-slate-400 inline" />
@@ -1686,7 +1682,6 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                     key={cat.key}
                     onClick={() => {
                       setFeedCategoryFilter(cat.key);
-                      setFeedRepeatCount(1);
                     }}
                     className={`px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${
                       feedCategoryFilter === cat.key
@@ -1700,20 +1695,17 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
               </div>
             </div>
 
-            {/* Feed-feed yg kalo digulir nambah terus tanpa menghilangkan posisi paling bawah */}
+            {/* Daftar Postingan Linimasa (Tanpa duplikasi berulang di HP) */}
             {members.length === 0 ? (
               <div className="space-y-4">
                 <FeedPostSkeleton count={2} />
                 <DirectoryCardSkeleton count={3} />
               </div>
-            ) : infiniteFeedPosts.length > 0 ? (
-              <div
-                onScroll={handleFeedScroll}
-                className="max-h-[68vh] lg:max-h-none overflow-y-auto lg:overflow-visible pr-1 lg:pr-0 space-y-4 overscroll-contain rounded-xl"
-              >
-                {infiniteFeedPosts.map(({ post, renderKey }) => (
+            ) : filteredPosts.length > 0 ? (
+              <div className="space-y-4 rounded-xl">
+                {filteredPosts.map((post) => (
                   <LinkedInPostCard
-                    key={renderKey}
+                    key={post.id}
                     post={post}
                     currentUser={currentUser}
                     currentUserAvatar={myResolvedAvatarUrl}
