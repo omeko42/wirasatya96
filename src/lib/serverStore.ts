@@ -960,11 +960,14 @@ function loadInitialStore(): GlobalStore {
 
 let isInitialBoot = true;
 let lastSupabaseSyncAt = 0;
-let lastSupabaseSyncIso: string | undefined = undefined;
+// Baseline timestamp dari .data/local_db.json yang sudah terbundel agar cold-start serverless
+// tidak pernah mengunduh ulang 955 baris penuh dari Supabase (hanya delta > baseline).
+const BASELINE_LOCAL_DB_SYNC_ISO = '2026-10-26T05:15:00.000Z';
+let lastSupabaseSyncIso: string | undefined = BASELINE_LOCAL_DB_SYNC_ISO;
 const SUPABASE_SYNC_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes cooldown to prevent Supabase Egress bloat
-// Mode Hybrid Local JSON (.data/local_db.json / /tmp/ws96_local_db.json) + Delta Cloud Sync (< 1 KB per edit).
-// Jika ingin 100% offline tanpa sinkronisasi cloud sama sekali, set NEXT_PUBLIC_CLOUD_SYNC_AUTO=false di .env
-const LOCAL_JSON_PRIMARY_MODE = process.env.NEXT_PUBLIC_CLOUD_SYNC_AUTO === 'false';
+// Default ke Mode Lokalan JSON Mandiri (.data/local_db.json & /tmp/ws96_local_db.json) agar 0 Byte Egress
+// ke project Supabase lama yang sudah over-quota (118%). Set NEXT_PUBLIC_CLOUD_SYNC_AUTO=true jika pindah ke project baru.
+const LOCAL_JSON_PRIMARY_MODE = process.env.NEXT_PUBLIC_CLOUD_SYNC_AUTO !== 'true';
 let activeSyncPromise: Promise<{ synced: boolean; seeded?: boolean; rowCount?: number }> | null = null;
 const lastCloudSnapshotMap = new Map<string, string>();
 const pendingCloudPromises: Promise<unknown>[] = [];
