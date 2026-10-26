@@ -240,10 +240,10 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
   const unreadCount = messages.filter((m) => m.receiverNrp === currentUserNrp && !m.isRead).length;
 
   return (
-    <div className="hidden md:flex fixed bottom-4 right-5 z-40 items-end gap-3 font-sans">
+    <div className="hidden md:flex fixed bottom-0 right-6 z-40 items-end gap-3 font-sans">
       {/* 1. ACTIVE POPUP CONVERSATION BOX */}
       {activeChatMember && (
-        <div className="w-80 sm:w-88 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col h-[430px] overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
+        <div className="w-80 sm:w-88 bg-white rounded-t-2xl shadow-2xl border border-b-0 border-slate-200 flex flex-col h-[430px] overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
           {/* Header of Active Chat */}
           <div className="bg-slate-900 text-white px-3.5 py-2.5 flex items-center justify-between border-b border-slate-800">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -399,41 +399,40 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
         </div>
       )}
 
-      {/* 2. FLOATING MESSAGE ICON LAUNCHER OR POP-UP MESSAGING MODULE */}
+      {/* 2. DOCKED MESSAGE BAR LAUNCHER OR POP-UP MESSAGING MODULE */}
       {!isOpen ? (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="ws96-float-cta group relative flex items-center gap-2.5 pl-2.5 pr-3.5 py-2 rounded-2xl text-white shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-red-400/30"
+          className="group relative flex items-center justify-between gap-3 px-3.5 py-2 min-w-[200px] rounded-t-xl text-white shadow-lg hover:brightness-105 transition-all cursor-pointer border border-b-0 border-red-400/30"
           style={{
-            background: 'linear-gradient(180deg, #D81818 0%, #B80A0A 52%, #9E0404 100%)',
-            boxShadow:
-              '0 8px 20px rgba(184, 10, 10, 0.4), inset 0 1px 1px rgba(255,255,255,0.35)',
+            background: 'linear-gradient(180deg, #B80A0A 0%, #8B0000 100%)',
           }}
-          title="Buka Pop-up Modul Perpesanan"
+          title="Buka Modul Pesan & Obrolan Cepat"
         >
-          <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-white/15 border border-white/25">
-            <MessageSquare className="w-4 h-4 text-white fill-white/15" />
-            <span className="w-2.5 h-2.5 bg-emerald-400 border-2 border-[#9E0404] rounded-full absolute -bottom-0.5 -right-0.5" />
-          </div>
-          <div className="text-left pr-0.5">
-            <span className="font-extrabold text-xs text-white block leading-tight tracking-tight">
+          <div className="flex items-center gap-2">
+            <div className="relative flex items-center justify-center w-6 h-6 rounded-lg bg-white/15 border border-white/25">
+              <MessageSquare className="w-3.5 h-3.5 text-white fill-white/15" />
+              <span className="w-2 h-2 bg-emerald-400 border border-[#8B0000] rounded-full absolute -bottom-0.5 -right-0.5" />
+            </div>
+            <span className="font-extrabold text-xs text-white tracking-tight">
               Pesan
             </span>
-            <span className="text-[10px] text-white/85 font-medium block leading-tight">
-              {activeChatMembers.length > 0
-                ? `${activeChatMembers.length} aktif`
-                : 'Obrolan Cepat'}
-            </span>
           </div>
-          {unreadCount > 0 && (
-            <span className="ml-0.5 px-1.5 py-0.5 min-w-[20px] h-5 flex items-center justify-center rounded-full bg-white text-red-900 text-[10px] font-black shadow-sm">
-              {unreadCount}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5">
+            {unreadCount > 0 ? (
+              <span className="px-1.5 py-0.5 min-w-[18px] h-4 flex items-center justify-center rounded-full bg-white text-red-900 text-[10px] font-black shadow-2xs">
+                {unreadCount}
+              </span>
+            ) : (
+              <span className="text-[10px] text-white/80 font-medium">
+                {activeChatMembers.length > 0 ? `${activeChatMembers.length} aktif` : 'Chat'}
+              </span>
+            )}
+          </div>
         </button>
       ) : (
-        <div className="w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in slide-in-from-bottom-3 duration-150">
+        <div className="w-80 bg-white rounded-t-2xl shadow-2xl border border-b-0 border-slate-200 overflow-hidden flex flex-col animate-in slide-in-from-bottom-3 duration-150">
           {/* Pop-up Header with Official Red & White Branding Icon (WSLogo) */}
           <div
             onClick={() => setIsOpen(false)}

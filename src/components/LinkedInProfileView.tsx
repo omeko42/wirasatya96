@@ -464,11 +464,8 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
   };
 
   const getDefaultBioText = (): string => {
-    if (isSuperadminDev) {
-      return `${displayMemberNameWithRank} (NRP ${localMember.nrp}) bertugas pada ${localMember.satuanKerja} (${localMember.polda}) sebagai ${localMember.jabatanTerakhir}. Berlatar belakang pendidikan ${localMember.pendidikanTerakhir}, bertanggung jawab atas arsitektur sistem, keamanan data, dan pengelolaan infrastruktur digital portal Wira Satya 96.`;
-    }
     if (!isAkpol96Alumni) {
-      return `${displayMemberNameWithRank} (NRP ${localMember.nrp}) berdinas aktif pada ${localMember.satuanKerja} (${localMember.polda}) dengan jabatan ${localMember.jabatanTerakhir}. Lulusan ${localMember.pendidikanTerakhir || 'Pendidikan Polri'}.`;
+      return `${displayMemberNameWithRank} (NRP ${localMember.nrp}) berdinas aktif pada ${localMember.satuanKerja} (${localMember.polda}) dengan jabatan ${localMember.jabatanTerakhir}.`;
     }
     return `${displayMemberNameWithRank} adalah Perwira Polri alumni Akademi Kepolisian Negara Republik Indonesia (Akpol) Tahun 1996 Batalyon Wira Satya yang saat ini mengemban amanah sebagai ${localMember.jabatanTerakhir} pada ${localMember.satuanKerja} (${localMember.polda}).`;
   };
@@ -482,7 +479,6 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
     if (role === 'KETUA') return 'Ketua Angkatan';
     if (role === 'SEKRETARIAT') return 'Sekretaris Angkatan';
     if (role === 'BENDAHARA') return 'Bendahara Angkatan';
-    if (role === 'SUPERADMIN') return 'Lead Developer / Superadmin';
     return 'Anggota Angkatan';
   };
 
@@ -494,12 +490,12 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
   );
 
   const getPersonnelCategoryLabel = (): string => {
-    if (isSuperadminDev) return 'PERSONEL POLRI • LEAD DEVELOPER / SUPERADMIN';
-    if (effectiveRole === 'KETUA') return 'PERWIRA TINGGI POLRI • KETUA ANGKATAN';
-    if (effectiveRole === 'SEKRETARIAT') return 'PERWIRA POLRI • SEKRETARIS ANGKATAN';
-    if (effectiveRole === 'BENDAHARA') return 'PERWIRA POLRI • BENDAHARA ANGKATAN';
-    if (isAkpol96Alumni) return 'PERWIRA POLRI • ALUMNI AKPOL 1996';
-    return `${localMember.jenisAnggota || 'PERSONEL POLRI'} • STAF / PENDUKUNG`;
+    const rawJenis = (localMember.jenisAnggota || '').toUpperCase().trim();
+    if (rawJenis === 'ALUMNI AKPOL 1996') return 'Alumni Akpol 1996';
+    if (rawJenis === 'ASN / PNS POLRI') return 'ASN / PNS Polri';
+    if (rawJenis === 'PURNAWIRAWAN POLRI') return 'Purnawirawan';
+    if (rawJenis === 'ANGGOTA POLRI') return 'Personel Polri Aktif';
+    return isAkpol96Alumni ? 'Alumni Akpol 1996' : 'Personel Polri Aktif';
   };
 
   const getBadgeStatusDescription = (): { label: string; colorClass: string } => {
@@ -641,71 +637,6 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
         </div>
       )}
 
-      {/* Top Connected Navigation Bar: Lihat Profil <-> Menu Data Diri */}
-      <div className="bg-white p-3.5 sm:px-5 sm:py-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Unified Mode Switcher Pill */}
-          <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200">
-            <button
-              type="button"
-              className="px-3.5 py-1.5 rounded-lg bg-red-800 text-white text-xs font-extrabold shadow-xs flex items-center gap-1.5 cursor-default"
-            >
-              <span>👤 Lihat Profil</span>
-            </button>
-            {canEditProfile && onEditProfile && (
-              <button
-                type="button"
-                onClick={() => onEditProfile(localMember, 1)}
-                className="px-3.5 py-1.5 rounded-lg text-slate-700 hover:text-red-900 hover:bg-white/80 text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer"
-                title="Buka Lembar Pengkinian Data Diri (14 Sub-Bagian)"
-              >
-                <Edit3 className="w-3.5 h-3.5 text-red-800" />
-                <span>Data Diri (Pengkinian)</span>
-              </button>
-            )}
-          </div>
-
-          {canEditProfile && onEditProfile && (
-            <div className="hidden xl:flex items-center gap-1.5 pl-2 border-l border-slate-200">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">
-                Pintasan Lembar:
-              </span>
-              {[
-                { num: 1 as const, label: '1. Kedinasan & Kompi' },
-                { num: 2 as const, label: '2. Domisili & Keluarga' },
-                { num: 3 as const, label: '3. Purna Tugas & Usaha' },
-                { num: 4 as const, label: '4. Kesehatan & Aparel' },
-              ].map((cat) => (
-                <button
-                  key={cat.num}
-                  type="button"
-                  onClick={() => onEditProfile(localMember, cat.num)}
-                  className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 text-[11px] font-bold text-slate-700 hover:text-red-900 transition-colors cursor-pointer"
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between md:justify-end gap-2">
-          <span className="text-xs font-bold text-slate-700 inline-flex items-center gap-1 truncate">
-            {cleanMemberNameOnly}
-            <MetaVerifiedBadge nrp={localMember.nrp} role={effectiveRole} size="xs" />
-          </span>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="text-xs font-bold text-slate-600 hover:text-slate-900 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors shrink-0 cursor-pointer"
-            >
-              <span className="sm:hidden">&larr; Kembali</span>
-              <span className="hidden sm:inline">&larr; Kembali ke Beranda</span>
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* Main Grid: Left Column (Profile Canvas) + Right Column (LinkedIn Sidebar) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* ============================================================== */}
@@ -718,16 +649,18 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
             <div className="h-44 sm:h-52 w-full bg-slate-900 relative overflow-hidden rounded-t-2xl">
               {renderCoverBannerContent()}
 
-              {/* Top-left dynamic Satker • Polda overlay badge */}
-              <div className="absolute top-3 left-4 flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-black/55 backdrop-blur-md border border-white/20 text-[10px] sm:text-[11px] font-extrabold text-amber-300 flex items-center gap-1.5 shadow-lg tracking-wide">
-                  <Shield className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>
-                    {(localMember.satuanKerja || 'MABES POLRI').toUpperCase()} •{' '}
-                    {(localMember.polda || 'MABES POLRI').toUpperCase()}
-                  </span>
-                </span>
-              </div>
+              {/* Top-left compact Back button (only if opened from feed/directory) */}
+              {onClose && (
+                <div className="absolute top-3 left-4 z-20">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-3 py-1.5 rounded-full bg-black/65 hover:bg-black/85 text-white border border-white/25 backdrop-blur-md text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
+                  >
+                    <span>&larr; Kembali</span>
+                  </button>
+                </div>
+              )}
 
               {/* Top-right interactive Edit Sampul button */}
               {canManageProfile && (
@@ -948,18 +881,6 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {isSelf && (
-                    <button
-                      type="button"
-                      onClick={() => setShowSecurityModal(true)}
-                      className="px-3.5 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
-                      title="Pengaturan Profil & Keamanan (2FA, PIN, TOTP, Passkey)"
-                    >
-                      <Shield className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="sm:hidden">Keamanan</span>
-                      <span className="hidden sm:inline">Pengaturan &amp; Keamanan</span>
-                    </button>
-                  )}
                   {canEditProfile && (
                     <button
                       type="button"
@@ -1029,28 +950,19 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     {localMember.pangkat} &bull; {headlineText}
                   </p>
 
-                  {(effectiveRole === 'SUPERADMIN' ||
-                    effectiveRole === 'KETUA' ||
+                  {(effectiveRole === 'KETUA' ||
                     effectiveRole === 'SEKRETARIAT' ||
                     effectiveRole === 'BENDAHARA') && (
                     <div className="pt-0.5">
                       <span
                         className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded border text-[10px] font-extrabold uppercase tracking-wider ${
-                          effectiveRole === 'SUPERADMIN'
-                            ? 'bg-slate-900 text-white border-slate-700'
-                            : effectiveRole === 'KETUA'
+                          effectiveRole === 'KETUA'
                             ? 'bg-red-50 text-red-800 border-red-200'
                             : 'bg-amber-50 text-amber-900 border-amber-300'
                         }`}
                       >
-                        {effectiveRole === 'SUPERADMIN' ? (
-                          <span>SUPERADMIN</span>
-                        ) : (
-                          <>
-                            <span className="sm:hidden">🎖️ {jabatanAngkatanLabel}</span>
-                            <span className="hidden sm:inline">🎖️ Jabatan Angkatan: {jabatanAngkatanLabel}</span>
-                          </>
-                        )}
+                        <span className="sm:hidden">🎖️ {jabatanAngkatanLabel}</span>
+                        <span className="hidden sm:inline">🎖️ Jabatan Angkatan: {jabatanAngkatanLabel}</span>
                       </span>
                     </div>
                   )}
@@ -1096,22 +1008,6 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     <span className="sm:hidden">Pesan</span>
                     <span className="hidden sm:inline">Kirim Pesan</span>
                   </button>
-                )}
-
-                {canEditProfile ? (
-                  <button
-                    type="button"
-                    onClick={() => onEditProfile && onEditProfile(localMember, 1)}
-                    className="px-4 py-2 rounded-full bg-red-800 hover:bg-red-900 text-white font-bold text-xs sm:text-sm transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    <span className="sm:hidden">Edit</span>
-                    <span className="hidden sm:inline">Edit Profil</span>
-                  </button>
-                ) : (
-                  <span className="text-xs text-slate-500 font-medium px-3 py-1.5 bg-slate-100 rounded-full border border-slate-200">
-                    Mode Lihat
-                  </span>
                 )}
 
                 {isSelf && (
@@ -2097,7 +1993,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
         {/* RIGHT SIDEBAR (1 COL): LINKEDIN WIDGETS & REKAN DIREKTORI     */}
         {/* ============================================================== */}
         <div className="space-y-4">
-          {/* Widget 1: Info Akun (Fixes Crossed-Out Area #4) */}
+          {/* Widget 1: Info Akun (Sinkron dengan Isian Menu Data Diri 1B, 1C, 1E) */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3 text-xs">
             <div className="flex items-center justify-between border-b pb-2.5">
               <span className="font-bold text-slate-900 text-sm inline-flex items-center gap-1.5">
@@ -2108,12 +2004,24 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                   size="sm"
                 />
               </span>
-              <Shield className="w-4 h-4 text-slate-500" />
+              {canEditProfile && onEditProfile ? (
+                <button
+                  type="button"
+                  onClick={() => onEditProfile(localMember, 1)}
+                  className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-200 text-red-800 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Ubah di Menu Data Diri (Lembar 1B, 1C, 1E)"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  <span>Ubah</span>
+                </button>
+              ) : (
+                <Shield className="w-4 h-4 text-slate-500" />
+              )}
             </div>
 
             <div>
               <span className="text-slate-500 block text-[11px]">
-                Kategori Personel:
+                Kategori Personel (1B):
               </span>
               <span className="font-extrabold text-slate-900">
                 {getPersonnelCategoryLabel()}
@@ -2122,7 +2030,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
 
             <div>
               <span className="text-slate-500 block text-[11px]">
-                Jabatan Organisasi Polri:
+                Jabatan &amp; Satker (1B):
               </span>
               <span className="font-bold text-slate-900">
                 {cleanJabatanOnly(localMember.jabatanTerakhir)} ({localMember.satuanKerja})
@@ -2131,28 +2039,32 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
 
             <div>
               <span className="text-slate-500 block text-[11px]">
-                Kompi &amp; Pleton Pendidikan Akpol:
+                Kompi &amp; Pleton (1C):
               </span>
               <span className="font-extrabold text-red-900">
                 {localMember.kompi || 'KOMPI A'} &bull; {localMember.pleton || 'PLETON 1'}
               </span>
             </div>
 
-            <div>
-              <span className="text-slate-500 block text-[11px]">
-                Jabatan dalam Angkatan:
-              </span>
-              <span className="font-extrabold text-amber-800">
-                {jabatanAngkatanLabel}
-              </span>
-            </div>
+            {(effectiveRole === 'KETUA' ||
+              effectiveRole === 'SEKRETARIAT' ||
+              effectiveRole === 'BENDAHARA') && (
+              <div>
+                <span className="text-slate-500 block text-[11px]">
+                  Jabatan Angkatan:
+                </span>
+                <span className="font-extrabold text-amber-800">
+                  {jabatanAngkatanLabel}
+                </span>
+              </div>
+            )}
 
             {(() => {
               const ret58 = calculateRetirement58(localMember.tanggalLahir, localMember.nrp);
               return (
                 <div>
                   <span className="text-slate-500 block text-[11px]">
-                    Tanggal Lahir &amp; BUP {RETIREMENT_AGE_POLRI} Tahun:
+                    Tanggal Lahir &amp; BUP {RETIREMENT_AGE_POLRI} Thn (1C):
                   </span>
                   <span className="font-bold text-slate-800 block">
                     {ret58.formattedTanggalLahir} ({ret58.usiaLabel})
@@ -2166,7 +2078,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
 
             <div>
               <span className="text-slate-500 block text-[11px]">
-                Pendidikan Terakhir:
+                Pendidikan Terakhir (1C):
               </span>
               <span className="font-bold text-slate-800">
                 {localMember.pendidikanTerakhir || '-'}
@@ -2174,32 +2086,16 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
             </div>
 
             <div>
-              <span className="text-slate-500 block text-[11px]">Email Dinas:</span>
+              <span className="text-slate-500 block text-[11px]">Email Dinas (1E):</span>
               <span className="font-mono font-semibold text-slate-800 break-all">
                 {officialEmail}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-500 block text-[11px]">Email Sekunder:</span>
+              <span className="text-slate-500 block text-[11px]">Email Pribadi (1E):</span>
               <span className="font-mono font-semibold text-slate-700 break-all">
                 {secondaryEmail}
-              </span>
-            </div>
-
-            <div className="pt-1">
-              <span className="text-slate-500 block text-[11px] mb-1">
-                Status Verifikasi:
-              </span>
-              <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-bold text-[11px] ${badgeStatus.colorClass}`}
-              >
-                <MetaVerifiedBadge
-                  nrp={localMember.nrp}
-                  role={effectiveRole}
-                  size="xs"
-                />
-                <span>{badgeStatus.label}</span>
               </span>
             </div>
           </div>

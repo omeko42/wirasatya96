@@ -2543,8 +2543,8 @@ export default function Home() {
         onSuccess={fetchPendingVerificationCount}
       />
 
-      {/* Floating Messenger Launcher & Pop-up Module at Bottom Right */}
-      {activeTab !== 'pesan' && (
+      {/* Docked Messenger Launcher at Bottom Right (Hidden on Pesan & Data Diri form tabs) */}
+      {activeTab !== 'pesan' && activeTab !== 'form' && (
         <LinkedInChatDock
           members={members}
           currentUserName={currentUser.nama}

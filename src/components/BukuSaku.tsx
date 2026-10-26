@@ -284,6 +284,14 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
   const [memberOverrides, setMemberOverrides] = useState<Record<string, AnggotaWiraSatya>>({});
 
   useEffect(() => {
+    const handleResetBeranda = () => {
+      setSelectedMember(null);
+    };
+    window.addEventListener('ws96_reset_beranda', handleResetBeranda);
+    return () => window.removeEventListener('ws96_reset_beranda', handleResetBeranda);
+  }, []);
+
+  useEffect(() => {
     setMemberOverrides((prev) => {
       if (Object.keys(prev).length === 0) return prev;
       const next = { ...prev };
@@ -1525,8 +1533,8 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
                     onClick={onNavigateToJabatan}
                     className="text-red-800 font-bold hover:underline flex items-center gap-0.5 shrink-0"
                   >
-                    <span className="sm:hidden">Menu Jabatan</span>
-                    <span className="hidden sm:inline">Buka Menu Jabatan</span>
+                    <span className="sm:hidden">Menu ToD</span>
+                    <span className="hidden sm:inline">Buka Menu ToD</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 )}
