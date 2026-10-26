@@ -165,7 +165,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
   const initializedRef = useRef(false);
   const prevInitialTabRef = useRef(initialTab);
   const [users, setUsers] = useState<AuthUser[]>(getInitialInstantUsers);
-  const [visibleUserLimit, setVisibleUserLimit] = useState<number>(45);
+  const [visibleUserLimit, setVisibleUserLimit] = useState<number>(48);
   const [registrations, setRegistrations] = useState<PendingRegistration[]>([]);
   const [auditLogs, setAuditLogs] = useState<UserAuditLog[]>([]);
   const [auditSearch, setAuditSearch] = useState('');
@@ -2470,7 +2470,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
 
   // Reset progressive render limit when search or filter changes
   useEffect(() => {
-    setVisibleUserLimit(45);
+    setVisibleUserLimit(48);
   }, [userSearch, roleFilter, sortBy, sortDesc]);
 
   // Automatically load next batch when scrolling down the page in asPage mode
