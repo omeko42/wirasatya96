@@ -26,6 +26,47 @@ export interface TableMappingSpec {
   fromDbRow: (row: Record<string, unknown>) => SupabaseRecordRow;
 }
 
+/**
+ * Strips empty strings (`""`), `null`, `undefined`, empty arrays (`[]`), and keys already stored
+ * as top-level SQL columns so `payload` JSONB stays ultra-lightweight (a few hundred bytes).
+ */
+export function compactPayloadForDb(
+  raw: Record<string, unknown>,
+  excludedKeys: string[] = [],
+  options?: { stripInlineImages?: boolean; stripSnapshotMedia?: boolean }
+): Record<string, unknown> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+  const excludeSet = new Set(excludedKeys);
+  const out: Record<string, unknown> = {};
+
+  for (const [k, v] of Object.entries(raw)) {
+    if (excludeSet.has(k)) continue;
+    if (v === undefined || v === null || v === '') continue;
+    if (Array.isArray(v) && v.length === 0) continue;
+
+    if (
+      options?.stripInlineImages &&
+      (k === 'fotoUrl' || k === 'coverUrl' || k === 'authorAvatar' || k === 'senderAvatar') &&
+      typeof v === 'string' &&
+      (v.startsWith('data:image/') || v.includes('ui-avatars.com'))
+    ) {
+      continue;
+    }
+
+    if (options?.stripSnapshotMedia && k === 'snapshotUser' && typeof v === 'object' && v !== null) {
+      const snap = { ...(v as Record<string, unknown>) };
+      delete snap.fotoUrl;
+      delete snap.coverUrl;
+      delete snap.bio;
+      out[k] = snap;
+      continue;
+    }
+
+    out[k] = v;
+  }
+  return out;
+}
+
 const TABLE_SPECS: Record<string, TableMappingSpec> = {
   members: {
     table: 'ws96_members',
@@ -40,26 +81,43 @@ const TABLE_SPECS: Record<string, TableMappingSpec> = {
       status_kedinasan: String(p.statusKedinasan || p.statusDinas || 'AKTIF'),
       no_hp: String(p.noHp || ''),
       email: String(p.email || ''),
-      payload: p,
+      payload: compactPayloadForDb(p, [
+        'nrp',
+        'namaLengkap',
+        'pangkat',
+        'jabatanTerakhir',
+        'satuanKerja',
+        'polda',
+        'statusKedinasan',
+        'statusDinas',
+        'noHp',
+        'email',
+      ]),
       updated_at: nowIso,
     }),
     fromDbRow: (row) => {
       const base = (row.payload && typeof row.payload === 'object' ? row.payload : {}) as Record<string, unknown>;
+      const statusKedinasan = String(row.status_kedinasan || base.statusKedinasan || base.statusDinas || 'AKTIF');
       return {
         collection: 'members',
         record_id: String(row.nrp || base.nrp || ''),
         updated_at: String(row.updated_at || ''),
         payload: {
+          riwayatDikbang: [],
+          riwayatJabatan: [],
+          prestasiPenghargaan: [],
+          catatanTambahan: '',
           ...base,
-          nrp: row.nrp || base.nrp,
-          namaLengkap: row.nama_lengkap || base.namaLengkap,
-          pangkat: row.pangkat || base.pangkat,
-          jabatanTerakhir: row.jabatan_terakhir || base.jabatanTerakhir,
-          satuanKerja: row.satuan_kerja || base.satuanKerja,
-          polda: row.polda || base.polda,
-          statusKedinasan: row.status_kedinasan || base.statusKedinasan || 'AKTIF',
-          noHp: row.no_hp ?? base.noHp,
-          email: row.email ?? base.email,
+          nrp: String(row.nrp || base.nrp || ''),
+          namaLengkap: String(row.nama_lengkap || base.namaLengkap || ''),
+          pangkat: String(row.pangkat || base.pangkat || ''),
+          jabatanTerakhir: String(row.jabatan_terakhir || base.jabatanTerakhir || ''),
+          satuanKerja: String(row.satuan_kerja || base.satuanKerja || ''),
+          polda: String(row.polda || base.polda || ''),
+          statusKedinasan,
+          statusDinas: statusKedinasan,
+          noHp: String(row.no_hp ?? base.noHp ?? ''),
+          email: String(row.email ?? base.email ?? ''),
         },
       };
     },
@@ -78,7 +136,11 @@ const TABLE_SPECS: Record<string, TableMappingSpec> = {
       password: String(p.password || ''),
       status: String(p.status || 'AKTIF'),
       is_adc: Boolean(p.isAdcAccount),
-      payload: p,
+      payload: compactPayloadForDb(
+        p,
+        ['nrp', 'nama', 'pangkat', 'role', 'satker', 'polda', 'email', 'password', 'status', 'isAdcAccount'],
+        { stripInlineImages: true }
+      ),
       updated_at: nowIso,
     }),
     fromDbRow: (row) => {
@@ -89,15 +151,15 @@ const TABLE_SPECS: Record<string, TableMappingSpec> = {
         updated_at: String(row.updated_at || ''),
         payload: {
           ...base,
-          nrp: row.nrp || base.nrp,
-          nama: row.nama || base.nama,
-          pangkat: row.pangkat || base.pangkat,
-          role: row.role || base.role || 'ANGGOTA',
-          satker: row.satker || base.satker,
-          polda: row.polda || base.polda,
-          email: row.email || base.email,
-          password: row.password || base.password,
-          status: row.status || base.status || 'AKTIF',
+          nrp: String(row.nrp || base.nrp || ''),
+          nama: String(row.nama || base.nama || ''),
+          pangkat: String(row.pangkat || base.pangkat || ''),
+          role: String(row.role || base.role || 'ANGGOTA'),
+          satker: String(row.satker || base.satker || ''),
+          polda: String(row.polda || base.polda || ''),
+          email: String(row.email || base.email || ''),
+          password: String(row.password || base.password || ''),
+          status: String(row.status || base.status || 'AKTIF'),
           isAdcAccount: Boolean(row.is_adc ?? base.isAdcAccount),
         },
       };
@@ -115,25 +177,37 @@ const TABLE_SPECS: Record<string, TableMappingSpec> = {
       total_tagihan: Number(p.totalTagihan || 3000000),
       total_terbayar: Number(p.totalTerbayar || 0),
       status: String(p.status || 'BELUM_BAYAR'),
-      payload: p,
+      payload: compactPayloadForDb(p, [
+        'nrp',
+        'namaLengkap',
+        'pangkat',
+        'polda',
+        'tahun',
+        'totalTagihan',
+        'totalTerbayar',
+        'status',
+      ]),
       updated_at: nowIso,
     }),
     fromDbRow: (row) => {
       const base = (row.payload && typeof row.payload === 'object' ? row.payload : {}) as Record<string, unknown>;
+      const nrpStr = String(row.nrp || base.nrp || '');
       return {
         collection: 'iuran',
-        record_id: String(row.nrp || base.nrp || ''),
+        record_id: nrpStr,
         updated_at: String(row.updated_at || ''),
         payload: {
+          id: base.id || `iur-${nrpStr}`,
+          bulanTerbayar: [],
           ...base,
-          nrp: row.nrp || base.nrp,
-          namaLengkap: row.nama_lengkap || base.namaLengkap,
-          pangkat: row.pangkat || base.pangkat,
-          polda: row.polda || base.polda,
+          nrp: nrpStr,
+          namaLengkap: String(row.nama_lengkap || base.namaLengkap || ''),
+          pangkat: String(row.pangkat || base.pangkat || ''),
+          polda: String(row.polda || base.polda || ''),
           tahun: Number(row.tahun ?? base.tahun ?? 2026),
           totalTagihan: Number(row.total_tagihan ?? base.totalTagihan ?? 3000000),
           totalTerbayar: Number(row.total_terbayar ?? base.totalTerbayar ?? 0),
-          status: row.status || base.status || 'BELUM_BAYAR',
+          status: String(row.status || base.status || 'BELUM_BAYAR'),
         },
       };
     },
@@ -151,7 +225,17 @@ const TABLE_SPECS: Record<string, TableMappingSpec> = {
       keterangan: String(p.keterangan || ''),
       pihak_terkait: String(p.pihakTerkait || ''),
       dicatat_oleh: String(p.dicatatOleh || ''),
-      payload: p,
+      payload: compactPayloadForDb(p, [
+        'id',
+        'nomorReferensi',
+        'tanggal',
+        'jenis',
+        'kategori',
+        'nominal',
+        'keterangan',
+        'pihakTerkait',
+        'dicatatOleh',
+      ]),
       updated_at: nowIso,
     }),
     fromDbRow: (row) => {
@@ -188,7 +272,21 @@ const TABLE_SPECS: Record<string, TableMappingSpec> = {
       likes_count: Number(p.likesCount || 0),
       comments_count: Number(p.commentsCount || 0),
       created_at: String(p.createdAt || ''),
-      payload: p,
+      payload: compactPayloadForDb(
+        p,
+        [
+          'id',
+          'authorNrp',
+          'authorName',
+          'authorPangkat',
+          'category',
+          'content',
+          'likesCount',
+          'commentsCount',
+          'createdAt',
+        ],
+        { stripInlineImages: true }
+      ),
       updated_at: nowIso,
     }),
     fromDbRow: (row) => {
@@ -198,6 +296,11 @@ const TABLE_SPECS: Record<string, TableMappingSpec> = {
         record_id: String(row.id || base.id || ''),
         updated_at: String(row.updated_at || ''),
         payload: {
+          likedByNrps: [],
+          reactionsByNrp: {},
+          repostedByNrps: [],
+          comments: [],
+          tags: [],
           ...base,
           id: row.id || base.id,
           authorNrp: row.author_nrp || base.authorNrp,
@@ -224,7 +327,20 @@ const TABLE_SPECS: Record<string, TableMappingSpec> = {
       text: String(p.text || ''),
       timestamp: String(p.timestamp || ''),
       is_read: Boolean(p.isRead),
-      payload: p,
+      payload: compactPayloadForDb(
+        p,
+        [
+          'id',
+          'senderNrp',
+          'senderName',
+          'receiverNrp',
+          'receiverName',
+          'text',
+          'timestamp',
+          'isRead',
+        ],
+        { stripInlineImages: true }
+      ),
       updated_at: nowIso,
     }),
     fromDbRow: (row) => {
@@ -258,7 +374,15 @@ const TABLE_SPECS: Record<string, TableMappingSpec> = {
       jumlah_unit: Number(p.jumlahUnit || 1),
       estimasi_nilai_idr: Number(p.estimasiNilaiIdr || 0),
       kustodian_lokasi: String(p.kustodianLokasi || ''),
-      payload: p,
+      payload: compactPayloadForDb(p, [
+        'id',
+        'kodeAset',
+        'namaAset',
+        'kategori',
+        'jumlahUnit',
+        'estimasiNilaiIdr',
+        'kustodianLokasi',
+      ]),
       updated_at: nowIso,
     }),
     fromDbRow: (row) => {
@@ -293,7 +417,23 @@ const TABLE_SPECS: Record<string, TableMappingSpec> = {
       target_nama: String(p.targetNama || p.targetName || ''),
       details: String(p.details || ''),
       timestamp: String(p.timestamp || ''),
-      payload: p,
+      payload: compactPayloadForDb(
+        p,
+        [
+          'id',
+          'action',
+          'actorNrp',
+          'actorName',
+          'actorNama',
+          'actorRole',
+          'targetNrp',
+          'targetNama',
+          'targetName',
+          'details',
+          'timestamp',
+        ],
+        { stripSnapshotMedia: true }
+      ),
       updated_at: nowIso,
     }),
     fromDbRow: (row) => {
@@ -355,13 +495,17 @@ function getHeaders(extra?: Record<string, string>): Record<string, string> {
   };
 }
 
-async function fetchAllRowsFromTable(tableName: string): Promise<Record<string, unknown>[] | null> {
+async function fetchAllRowsFromTable(
+  tableName: string,
+  sinceIso?: string
+): Promise<Record<string, unknown>[] | null> {
   const allRows: Record<string, unknown>[] = [];
   const pageSize = 1000;
   let offset = 0;
+  const deltaFilter = sinceIso ? `&updated_at=gt.${encodeURIComponent(sinceIso)}` : '';
 
   while (true) {
-    const url = `${SUPABASE_PROJECT_URL}/rest/v1/${tableName}?select=*&offset=${offset}&limit=${pageSize}`;
+    const url = `${SUPABASE_PROJECT_URL}/rest/v1/${tableName}?select=*${deltaFilter}&offset=${offset}&limit=${pageSize}`;
     const res = await fetch(url, {
       method: 'GET',
       headers: getHeaders(),
@@ -459,14 +603,16 @@ export async function checkSupabaseTableStatus(): Promise<{
 }
 
 /**
- * Mengambil seluruh baris dari 9 tabel terpisah di Supabase (atau fallback ke ws96_records).
+ * Mengambil seluruh baris (atau delta baris yang berubah sejak `sinceIso`) dari 9 tabel terpisah di Supabase.
  */
-export async function fetchAllSupabaseRecords(): Promise<SupabaseRecordRow[] | null> {
+export async function fetchAllSupabaseRecords(
+  sinceIso?: string
+): Promise<SupabaseRecordRow[] | null> {
   try {
     const entries = Object.entries(TABLE_SPECS);
     const results = await Promise.all(
       entries.map(async ([, spec]) => {
-        const rows = await fetchAllRowsFromTable(spec.table);
+        const rows = await fetchAllRowsFromTable(spec.table, sinceIso);
         return { spec, rows };
       })
     );
@@ -483,7 +629,7 @@ export async function fetchAllSupabaseRecords(): Promise<SupabaseRecordRow[] | n
     }
 
     // Fallback ke ws96_records jika 9 tabel belum dibuat
-    const legacyRows = await fetchAllRowsFromTable('ws96_records');
+    const legacyRows = await fetchAllRowsFromTable('ws96_records', sinceIso);
     if (legacyRows !== null) {
       return legacyRows as unknown as SupabaseRecordRow[];
     }

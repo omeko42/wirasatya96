@@ -54,6 +54,8 @@ export const OfflineSyncBanner: React.FC<{
     lastStatus: 'HIT',
     lastLayer: 'L1_MEMORY',
   });
+  const [localDbKb, setLocalDbKb] = useState<number>(0);
+  const [isCleaningJunk, setIsCleaningJunk] = useState<boolean>(false);
 
   const isModalOpen = isModalOpenExternal || isInternalModalOpen;
   const closeModal = () => {
@@ -81,6 +83,9 @@ export const OfflineSyncBanner: React.FC<{
             keysCount: data.stats.keysCount ?? prev.keysCount,
             driver: data.stats.driver || prev.driver,
           }));
+        }
+        if (data?.storage?.localDbKb !== undefined) {
+          setLocalDbKb(data.storage.localDbKb);
         }
       })
       .catch(() => {});
@@ -163,6 +168,40 @@ export const OfflineSyncBanner: React.FC<{
       }
     } catch {
       // Ignore
+    }
+  };
+
+  const handleCleanupJunkAndCompact = async () => {
+    setIsCleaningJunk(true);
+    try {
+      if (typeof window !== 'undefined') {
+        const keepKeys = new Set([
+          'ws96_current_user',
+          'ws96_session_meta',
+          'ws96_offline_outbox_queue',
+        ]);
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('ws96_') && !keepKeys.has(k)) {
+            localStorage.removeItem(k);
+          }
+        }
+      }
+      const res = await fetch('/api/cache', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'CLEANUP_JUNK' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSyncToast(data.message || 'Data sampah dibersihkan & JSON dikompresi.');
+        setTimeout(() => setSyncToast(null), 5000);
+        fetchCacheStats();
+      }
+    } catch {
+      // Ignore
+    } finally {
+      setIsCleaningJunk(false);
     }
   };
 
@@ -297,7 +336,7 @@ export const OfflineSyncBanner: React.FC<{
               </div>
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[10px] text-slate-400 truncate">
-                  Driver: {cacheTelemetry.driver}
+                  JSON DB: <strong className="text-emerald-300">{localDbKb > 0 ? `${localDbKb} KB` : 'Ringkas'}</strong> • Media: <strong className="text-amber-300">3–14 KB WebP</strong>
                 </span>
                 <button
                   type="button"
@@ -307,6 +346,17 @@ export const OfflineSyncBanner: React.FC<{
                   <RefreshCw className="w-3 h-3" /> Flush Redis Cache
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={handleCleanupJunkAndCompact}
+                disabled={isCleaningJunk}
+                className="w-full mt-1 py-1.5 px-3 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-[11px] flex items-center justify-center gap-1.5 transition"
+              >
+                <Trash2 className={`w-3.5 h-3.5 ${isCleaningJunk ? 'animate-spin' : ''}`} />
+                {isCleaningJunk
+                  ? 'Mengompresi JSON & Membersihkan Sampah...'
+                  : 'Bersihkan Data Sampah & Kompres JSON (KB)'}
+              </button>
             </div>
 
             {/* Offline Mode & Outbox Queue */}

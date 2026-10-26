@@ -3,11 +3,13 @@ import { serverStore } from '@/lib/serverStore';
 import { withRedisCache, cacheInvalidatePrefix } from '@/lib/redisCache';
 
 export async function GET() {
-  await serverStore.ensureSynced();
   const { data: posts, cacheMeta } = await withRedisCache(
     'ws96:posts:all',
     45,
-    () => serverStore.getPosts()
+    async () => {
+      await serverStore.ensureSynced();
+      return serverStore.getPosts();
+    }
   );
 
   return NextResponse.json(

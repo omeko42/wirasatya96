@@ -137,7 +137,11 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
     };
 
     fetchMessages();
-    const interval = setInterval(fetchMessages, 4000);
+    const interval = setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        fetchMessages();
+      }
+    }, 15000);
     const handleSync = () => fetchMessages();
     if (typeof window !== 'undefined') {
       window.addEventListener('ws96_messages_updated', handleSync);

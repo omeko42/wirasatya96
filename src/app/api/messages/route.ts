@@ -1,20 +1,38 @@
 import { NextResponse } from 'next/server';
 import { serverStore } from '@/lib/serverStore';
+import { withRedisCache, cacheInvalidatePrefix } from '@/lib/redisCache';
 
 // GET /api/messages?user1=...&user2=... or ?userNrp=...
 export async function GET(request: Request) {
   try {
-    await serverStore.ensureSynced();
     const { searchParams } = new URL(request.url);
     const user1 = searchParams.get('user1') || searchParams.get('userNrp') || undefined;
     const user2 = searchParams.get('user2') || undefined;
+    const cacheKey = `ws96:messages:u1=${user1 || 'all'}:u2=${user2 || 'all'}`;
 
-    const messages = serverStore.getMessages(user1, user2);
-    return NextResponse.json({
-      success: true,
-      count: messages.length,
-      messages,
-    });
+    const { data: messages, cacheMeta } = await withRedisCache(
+      cacheKey,
+      15,
+      async () => {
+        await serverStore.ensureSynced();
+        return serverStore.getMessages(user1, user2);
+      }
+    );
+
+    return NextResponse.json(
+      {
+        success: true,
+        count: messages.length,
+        messages,
+        cache: cacheMeta,
+      },
+      {
+        headers: {
+          'X-WS96-Cache': cacheMeta.status,
+          'X-WS96-Cache-Layer': cacheMeta.layer,
+        },
+      }
+    );
   } catch (error) {
     return NextResponse.json(
       { success: false, error: 'Gagal memuat pesan obrolan leting', detail: String(error) },
@@ -60,6 +78,7 @@ export async function POST(request: Request) {
     });
 
     await serverStore.flushCloud();
+    await cacheInvalidatePrefix('ws96:messages:');
 
     return NextResponse.json({
       success: true,
@@ -83,6 +102,7 @@ export async function PUT(request: Request) {
     if (senderNrp && receiverNrp) {
       serverStore.markMessagesAsRead(senderNrp, receiverNrp);
       await serverStore.flushCloud();
+      await cacheInvalidatePrefix('ws96:messages:');
     }
 
     return NextResponse.json({ success: true });

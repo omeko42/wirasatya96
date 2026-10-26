@@ -3,11 +3,11 @@ import { serverStore, getFinanceConfig, updateFinanceConfig, getFinanceSummary }
 import { withRedisCache, cacheInvalidatePrefix } from '@/lib/redisCache';
 
 export async function GET() {
-  await serverStore.ensureSynced();
   const { data: bundle, cacheMeta } = await withRedisCache(
     'ws96:finance:bundle',
     45,
-    () => {
+    async () => {
+      await serverStore.ensureSynced();
       const financeData = serverStore.getFinance();
       const financeConfig = getFinanceConfig();
       const summary = getFinanceSummary();

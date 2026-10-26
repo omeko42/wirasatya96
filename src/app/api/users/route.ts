@@ -5,11 +5,13 @@ import { stripRankFromName } from '@/lib/avatarUtils';
 import { AuthUser, StatusKedinasan, UserAuditAction, UserAuditLog, UserRole } from '@/types';
 
 export async function GET() {
-  await serverStore.ensureSynced();
   const { data: users, cacheMeta } = await withRedisCache<AuthUser[]>(
     'ws96:users:all',
     90,
-    () => serverStore.getUsers()
+    async () => {
+      await serverStore.ensureSynced();
+      return serverStore.getUsers();
+    }
   );
 
   return NextResponse.json(

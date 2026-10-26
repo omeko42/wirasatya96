@@ -95,7 +95,11 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 4000);
+    const interval = setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        fetchMessages();
+      }
+    }, 20000);
     const handleSync = () => fetchMessages();
     window.addEventListener('ws96_messages_updated', handleSync);
     return () => {

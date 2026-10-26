@@ -944,9 +944,50 @@ function loadInitialStore(): GlobalStore {
 
 let isInitialBoot = true;
 let lastSupabaseSyncAt = 0;
+let lastSupabaseSyncIso: string | undefined = undefined;
+const SUPABASE_SYNC_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes cooldown to prevent Supabase Egress bloat
 let activeSyncPromise: Promise<{ synced: boolean; seeded?: boolean; rowCount?: number }> | null = null;
 const lastCloudSnapshotMap = new Map<string, string>();
 const pendingCloudPromises: Promise<unknown>[] = [];
+
+function stripEmptyJsonFields<T>(obj: T, extraOptions?: { stripUserInlineImages?: boolean; stripAuditSnapshotMedia?: boolean }): T {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+    if (v === undefined || v === null || v === '') continue;
+    if (Array.isArray(v) && v.length === 0) continue;
+    if (
+      extraOptions?.stripUserInlineImages &&
+      (k === 'fotoUrl' || k === 'coverUrl') &&
+      typeof v === 'string' &&
+      (v.startsWith('data:image/') || v.includes('ui-avatars.com'))
+    ) {
+      continue;
+    }
+    if (extraOptions?.stripAuditSnapshotMedia && k === 'snapshotUser' && typeof v === 'object' && v !== null) {
+      const snap = { ...(v as Record<string, unknown>) };
+      delete snap.fotoUrl;
+      delete snap.coverUrl;
+      delete snap.bio;
+      out[k] = snap;
+      continue;
+    }
+    out[k] = v;
+  }
+  return out as T;
+}
+
+function getCompactRegistrations(regs: PendingRegistration[]): PendingRegistration[] {
+  return (regs || []).filter((r) => {
+    const rec = r as unknown as Record<string, unknown>;
+    const bukti = String(rec.buktiBayarUrl || '');
+    const catatan = String(rec.catatanAdmin || '');
+    const statusStr = String(r.status || '');
+    const hasCustomBukti = Boolean(bukti && bukti !== '/bukti-dummy-verified.jpg');
+    const hasCustomNote = Boolean(catatan && !catatan.includes('Otomatis Terverifikasi'));
+    return (statusStr !== 'DISETUJUI' && statusStr !== 'AKTIF') || hasCustomBukti || hasCustomNote;
+  });
+}
 
 function buildCloudSnapshotMap(
   store: GlobalStore
@@ -960,19 +1001,25 @@ function buildCloudSnapshotMap(
     map.set(key, { collection, record_id: cleanId, payload, json });
   };
 
-  (store.members || []).forEach((m) => addEntry('members', m.nrp, m));
-  (store.users || []).forEach((u) => addEntry('users', u.nrp, u));
-  (store.posts || []).forEach((p) => addEntry('posts', p.id, p));
-  (store.transactions || []).forEach((t) => addEntry('transactions', t.id, t));
-  (store.iuranList || []).forEach((i) => addEntry('iuran', i.nrp, i));
-  (store.messages || []).forEach((msg) => addEntry('messages', msg.id, msg));
-  (store.assets || []).forEach((ast) => addEntry('assets', ast.id, ast));
-  (store.auditLogs || []).slice(0, 250).forEach((log) => addEntry('audit_logs', log.id, log));
+  (store.members || []).forEach((m) => addEntry('members', m.nrp, stripEmptyJsonFields(m)));
+  (store.users || []).forEach((u) =>
+    addEntry('users', u.nrp, stripEmptyJsonFields(u, { stripUserInlineImages: true }))
+  );
+  (store.posts || []).forEach((p) => addEntry('posts', p.id, stripEmptyJsonFields(p)));
+  (store.transactions || []).forEach((t) => addEntry('transactions', t.id, stripEmptyJsonFields(t)));
+  (store.iuranList || []).forEach((i) => addEntry('iuran', i.nrp, stripEmptyJsonFields(i)));
+  (store.messages || []).forEach((msg) => addEntry('messages', msg.id, stripEmptyJsonFields(msg)));
+  (store.assets || []).forEach((ast) => addEntry('assets', ast.id, stripEmptyJsonFields(ast)));
+  (store.auditLogs || [])
+    .slice(0, 50)
+    .forEach((log) =>
+      addEntry('audit_logs', log.id, stripEmptyJsonFields(log, { stripAuditSnapshotMedia: true }))
+    );
 
   addEntry('meta', 'financeSummary', store.financeSummary);
   addEntry('meta', 'financeConfig', store.financeConfig);
   addEntry('meta', 'deletedNrps', store.deletedNrps || []);
-  addEntry('meta', 'registrations', store.registrations || []);
+  addEntry('meta', 'registrations', getCompactRegistrations(store.registrations || []));
 
   return map;
 }
@@ -983,7 +1030,27 @@ function writeDiskSnapshotOnly(store: GlobalStore) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(store, null, 2), 'utf-8');
+    const compactStore = {
+      members: (store.members || []).map((m) => stripEmptyJsonFields(m)),
+      users: (store.users || []).map((u) => stripEmptyJsonFields(u, { stripUserInlineImages: true })),
+      transactions: (store.transactions || []).map((t) => stripEmptyJsonFields(t)),
+      assets: (store.assets || []).map((a) => stripEmptyJsonFields(a)),
+      iuranList: (store.iuranList || []).map((i) => stripEmptyJsonFields(i)),
+      financeSummary: store.financeSummary,
+      financeConfig: store.financeConfig,
+      activeSession: store.activeSession
+        ? stripEmptyJsonFields(store.activeSession, { stripUserInlineImages: true })
+        : null,
+      messages: (store.messages || []).slice(-200).map((m) => stripEmptyJsonFields(m)),
+      registrations: getCompactRegistrations(store.registrations || []),
+      posts: (store.posts || []).map((p) => stripEmptyJsonFields(p)),
+      deletedNrps: store.deletedNrps || [],
+      auditLogs: (store.auditLogs || [])
+        .slice(0, 50)
+        .map((l) => stripEmptyJsonFields(l, { stripAuditSnapshotMedia: true })),
+    };
+    // Write minified JSON (no indentation whitespace bloat)
+    fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(compactStore), 'utf-8');
   } catch {
     // Ignore write errors in read-only serverless environments
   }
@@ -1054,7 +1121,7 @@ async function syncFromSupabaseCloud(
 ): Promise<{ synced: boolean; seeded?: boolean; rowCount?: number }> {
   await flushCloudWrites();
 
-  if (!force && Date.now() - lastSupabaseSyncAt < 2000) {
+  if (!force && lastSupabaseSyncAt > 0 && Date.now() - lastSupabaseSyncAt < SUPABASE_SYNC_COOLDOWN_MS) {
     return { synced: true, rowCount: lastCloudSnapshotMap.size };
   }
 
@@ -1064,13 +1131,15 @@ async function syncFromSupabaseCloud(
 
   activeSyncPromise = (async () => {
     try {
-      const rows = await fetchAllSupabaseRecords();
+      const sinceIso = !force && lastSupabaseSyncIso ? lastSupabaseSyncIso : undefined;
+      const syncStartedIso = new Date().toISOString();
+      const rows = await fetchAllSupabaseRecords(sinceIso);
       if (rows === null) {
         return { synced: false };
       }
 
-      // Jika seluruh tabel di Supabase masih kosong (0 baris), lakukan Initial Seed otomatis!
-      if (rows.length === 0) {
+      // Jika seluruh tabel di Supabase masih kosong pada full sync pertama (0 baris), lakukan Initial Seed otomatis!
+      if (!sinceIso && rows.length === 0) {
         const snapshotMap = buildCloudSnapshotMap(globalStore);
         const seedRows: SupabaseRecordRow[] = [];
         snapshotMap.forEach((v, k) => {
@@ -1084,8 +1153,16 @@ async function syncFromSupabaseCloud(
         const ok = await upsertSupabaseBatch(seedRows);
         if (ok) {
           lastSupabaseSyncAt = Date.now();
+          lastSupabaseSyncIso = syncStartedIso;
         }
         return { synced: ok, seeded: ok, rowCount: seedRows.length };
+      }
+
+      // Jika delta sync menghasilkan 0 perubahan baru di Supabase, langsung selesai (0 KB overhead!)
+      if (sinceIso && rows.length === 0) {
+        lastSupabaseSyncAt = Date.now();
+        lastSupabaseSyncIso = syncStartedIso;
+        return { synced: true, rowCount: 0 };
       }
 
       // Hydrate globalStore dari baris-baris yang tersimpan di 9 tabel Supabase
@@ -1130,23 +1207,39 @@ async function syncFromSupabaseCloud(
               ...(r.payload as FinanceConfig),
             };
           } else if (r.record_id === 'auditLogs' && Array.isArray(r.payload) && cloudAuditLogs.length === 0) {
-            globalStore.auditLogs = r.payload as UserAuditLog[];
+            globalStore.auditLogs = (r.payload as UserAuditLog[]).slice(0, 50);
           } else if (r.record_id === 'assets' && Array.isArray(r.payload) && cloudAssets.length === 0) {
             globalStore.assets = r.payload as AssetPortfolioItem[];
           } else if (r.record_id === 'registrations' && Array.isArray(r.payload)) {
-            globalStore.registrations = r.payload as PendingRegistration[];
+            const incomingRegs = r.payload as PendingRegistration[];
+            const regByNrp = new Map<string, PendingRegistration>();
+            (globalStore.registrations || []).forEach((reg) => {
+              if (reg?.nrp) regByNrp.set(reg.nrp, reg);
+            });
+            incomingRegs.forEach((reg) => {
+              if (reg?.nrp) regByNrp.set(reg.nrp, { ...(regByNrp.get(reg.nrp) || {}), ...reg });
+            });
+            globalStore.registrations = Array.from(regByNrp.values());
           }
         }
       }
 
       if (cloudAssets.length > 0) {
-        globalStore.assets = cloudAssets;
+        const byId = new Map((globalStore.assets || []).map((a) => [a.id, a]));
+        cloudAssets.forEach((a) => {
+          if (a?.id) byId.set(a.id, a);
+        });
+        globalStore.assets = Array.from(byId.values());
       }
 
       if (cloudAuditLogs.length > 0) {
-        globalStore.auditLogs = cloudAuditLogs.sort((a, b) =>
-          String(b.timestamp || '').localeCompare(String(a.timestamp || ''))
-        );
+        const byId = new Map((globalStore.auditLogs || []).map((l) => [l.id, l]));
+        cloudAuditLogs.forEach((l) => {
+          if (l?.id) byId.set(l.id, l);
+        });
+        globalStore.auditLogs = Array.from(byId.values())
+          .sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')))
+          .slice(0, 50);
       }
 
       const deletedSet = new Set(globalStore.deletedNrps || []);
@@ -1193,8 +1286,33 @@ async function syncFromSupabaseCloud(
         globalStore.users = Array.from(byNrp.values());
       }
 
-      globalStore.posts = cloudPosts;
-      globalStore.transactions = cloudTransactions;
+      if (!sinceIso) {
+        globalStore.posts = cloudPosts;
+        globalStore.transactions = cloudTransactions;
+        globalStore.messages = cloudMessages;
+      } else {
+        if (cloudPosts.length > 0) {
+          const byId = new Map((globalStore.posts || []).map((p) => [p.id, p]));
+          cloudPosts.forEach((p) => {
+            if (p?.id) byId.set(p.id, p);
+          });
+          globalStore.posts = Array.from(byId.values());
+        }
+        if (cloudTransactions.length > 0) {
+          const byId = new Map((globalStore.transactions || []).map((t) => [t.id, t]));
+          cloudTransactions.forEach((t) => {
+            if (t?.id) byId.set(t.id, t);
+          });
+          globalStore.transactions = Array.from(byId.values());
+        }
+        if (cloudMessages.length > 0) {
+          const byId = new Map((globalStore.messages || []).map((m) => [m.id, m]));
+          cloudMessages.forEach((m) => {
+            if (m?.id) byId.set(m.id, m);
+          });
+          globalStore.messages = Array.from(byId.values());
+        }
+      }
 
       if (cloudIuran.length > 0) {
         const byNrp = new Map<string, IuranAnggota>();
@@ -1209,8 +1327,6 @@ async function syncFromSupabaseCloud(
         globalStore.iuranList = Array.from(byNrp.values());
       }
 
-      globalStore.messages = cloudMessages;
-
       const refreshedMap = buildCloudSnapshotMap(globalStore);
       lastCloudSnapshotMap.clear();
       refreshedMap.forEach((v, k) => {
@@ -1218,6 +1334,7 @@ async function syncFromSupabaseCloud(
       });
       writeDiskSnapshotOnly(globalStore);
       lastSupabaseSyncAt = Date.now();
+      lastSupabaseSyncIso = syncStartedIso;
 
       return { synced: true, rowCount: rows.length };
     } catch {
@@ -1240,6 +1357,74 @@ export const serverStore = {
   flushCloud: () => flushCloudWrites(),
   checkCloudStatus: () => checkSupabaseTableStatus(),
 
+  compactAndCleanJunkData: async (): Promise<{
+    beforeBytes: number;
+    afterBytes: number;
+    beforeKb: number;
+    afterKb: number;
+    purgedAuditLogs: number;
+    purgedStaticRegs: number;
+  }> => {
+    let beforeBytes = 0;
+    try {
+      if (fs.existsSync(LOCAL_DB_PATH)) {
+        beforeBytes = fs.statSync(LOCAL_DB_PATH).size;
+      }
+    } catch {
+      // ignore
+    }
+
+    const prevAuditCount = (globalStore.auditLogs || []).length;
+    globalStore.auditLogs = (globalStore.auditLogs || [])
+      .slice(0, 50)
+      .map((l) => stripEmptyJsonFields(l, { stripAuditSnapshotMedia: true }));
+    const purgedAuditLogs = Math.max(0, prevAuditCount - globalStore.auditLogs.length);
+
+    const prevRegCount = (globalStore.registrations || []).length;
+    const compactRegs = getCompactRegistrations(globalStore.registrations || []);
+    const purgedStaticRegs = Math.max(0, prevRegCount - compactRegs.length);
+
+    // Ensure members & users are deduplicated
+    serverStore.getMembers();
+    serverStore.getUsers();
+
+    writeDiskSnapshotOnly(globalStore);
+
+    let afterBytes = 0;
+    try {
+      if (fs.existsSync(LOCAL_DB_PATH)) {
+        afterBytes = fs.statSync(LOCAL_DB_PATH).size;
+      }
+    } catch {
+      // ignore
+    }
+
+    return {
+      beforeBytes,
+      afterBytes,
+      beforeKb: Math.round((beforeBytes / 1024) * 10) / 10,
+      afterKb: Math.round((afterBytes / 1024) * 10) / 10,
+      purgedAuditLogs,
+      purgedStaticRegs,
+    };
+  },
+
+  getStorageStatsKb: (): { localDbKb: number; lastSyncAt: number; syncCooldownMinutes: number } => {
+    let bytes = 0;
+    try {
+      if (fs.existsSync(LOCAL_DB_PATH)) {
+        bytes = fs.statSync(LOCAL_DB_PATH).size;
+      }
+    } catch {
+      // ignore
+    }
+    return {
+      localDbKb: Math.round((bytes / 1024) * 10) / 10,
+      lastSyncAt: lastSupabaseSyncAt,
+      syncCooldownMinutes: Math.round(SUPABASE_SYNC_COOLDOWN_MS / 60000),
+    };
+  },
+
   getDeletedNrps: (): string[] => globalStore.deletedNrps || [],
 
   getAuditLogs: (): UserAuditLog[] => {
@@ -1256,6 +1441,9 @@ export const serverStore = {
     const resolvedActorName = entry.actorName || entry.actorNama || 'Superadmin';
     const rawTargetNama = entry.targetNama || entry.targetName || `Personel ${entry.targetNrp}`;
     const resolvedTargetNama = stripRankFromName(rawTargetNama) || rawTargetNama;
+    const leanSnapshot = entry.snapshotUser
+      ? stripEmptyJsonFields(entry.snapshotUser, { stripUserInlineImages: true })
+      : undefined;
     const newEntry: UserAuditLog = {
       id: entry.id || `audit-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       timestamp: entry.timestamp || new Date().toISOString(),
@@ -1271,12 +1459,12 @@ export const serverStore = {
       targetRole: entry.targetRole,
       reason: entry.reason,
       details: entry.details,
-      snapshotUser: entry.snapshotUser,
+      snapshotUser: leanSnapshot,
     };
     globalStore.auditLogs = [
       newEntry,
       ...globalStore.auditLogs.filter((l) => l.id !== newEntry.id),
-    ].slice(0, 250);
+    ].slice(0, 50);
     persistLocalStore(globalStore);
     return newEntry;
   },

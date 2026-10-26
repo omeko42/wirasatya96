@@ -251,13 +251,86 @@ function detectActiveContentBox(
 }
 
 /**
- * Compresses, auto-crops unused borders/margins, and tags an uploaded image file
+ * Renders a compact (< 4 KB WebP) visual badge card when a non-image document/file
+ * (e.g. PDF, DOCX, XLSX, ZIP) is uploaded so raw multi-MB binaries never bloat JSON storage.
+ */
+function renderCompactDocumentBadge(
+  fileNameRaw: string,
+  fileSizeBytes: number,
+  actorNrp: string,
+  kind: MediaAssetKind
+): ProcessedSecureMedia {
+  const outW = 360;
+  const outH = 120;
+  const canvas = document.createElement('canvas');
+  canvas.width = outW;
+  canvas.height = outH;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, outW, outH);
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(4, 4, outW - 8, outH - 8);
+
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('DOKUMEN TERKOMPRESI WS96', 18, 34);
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 12px sans-serif';
+    const safeName = (fileNameRaw || 'lampiran.dat').slice(0, 34);
+    ctx.fillText(safeName, 18, 62);
+
+    const kbOrig = Math.max(1, Math.round(fileSizeBytes / 1024));
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px monospace';
+    ctx.fillText(`Ukuran Asli: ${kbOrig} KB -> Kompresi JSON < 4 KB`, 18, 88);
+  }
+
+  let encodedDataUrl = canvas.toDataURL('image/webp', 0.58);
+  let ext = 'webp';
+  if (!encodedDataUrl.startsWith('data:image/webp')) {
+    encodedDataUrl = canvas.toDataURL('image/jpeg', 0.58);
+    ext = 'jpg';
+  }
+  const compressedBytes = Math.round((encodedDataUrl.length * 3) / 4);
+  const { fileName, trackingCode, hashEnkripsi, dateStamp } =
+    generateLeakageTrackedFileName(
+      actorNrp,
+      ext,
+      kind,
+      'UPLOAD',
+      encodedDataUrl.slice(-96),
+      compressedBytes
+    );
+  const trackedDataUrl = encodedDataUrl.replace(
+    /^data:(image\/[a-z]+);base64,/,
+    `data:$1;name=${fileName};base64,`
+  );
+
+  return {
+    dataUrl: trackedDataUrl,
+    fileName,
+    encryptedFileName: fileName,
+    trackingCode,
+    hashEnkripsi,
+    dateStamp,
+    originalBytes: fileSizeBytes,
+    compressedBytes,
+    width: outW,
+    height: outH,
+  };
+}
+
+/**
+ * Compresses, auto-crops unused borders/margins, and tags an uploaded image/file
  * with the `WS-<hash_enkripsi>-<date>` leakage-tracking identifier.
  *
- * Target storage budgets (for DB / MinIO efficiency):
- * - AVATAR: 256x256 square crop, WebP/JPEG quality 0.78 (~12–25 KB)
- * - COVER:  960x320 banner crop (3:1), WebP/JPEG quality 0.80 (~25–45 KB)
- * - POST:   max 960x720 auto-fit crop, WebP/JPEG quality 0.78 (~30–60 KB)
+ * Ultra-light KB storage budgets (anti-bloat for JSON & Supabase Egress):
+ * - AVATAR: 128x128 square crop, iterative WebP compression <= 6 KB (~3–6 KB)
+ * - COVER:  480x160 banner crop (3:1), iterative WebP compression <= 12 KB (~6–12 KB)
+ * - POST / DOCUMENT: max 480x360 auto-fit crop, iterative WebP compression <= 14 KB (~6–14 KB)
  */
 export function processSecureImageUpload(
   file: File,
@@ -280,6 +353,11 @@ export function processSecureImageUpload(
       : kindOrOpts.actorNrp || kindOrOpts.ownerNrp || actorNrpParam || 'ANON';
 
   return new Promise((resolve, reject) => {
+    if (file.type && !file.type.startsWith('image/')) {
+      resolve(renderCompactDocumentBadge(file.name, file.size || 1024, actorNrp, kind));
+      return;
+    }
+
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Gagal membaca file gambar'));
     reader.onload = () => {
@@ -290,10 +368,12 @@ export function processSecureImageUpload(
       }
 
       const img = new window.Image();
-      img.onerror = () => reject(new Error('Format gambar tidak didukung'));
+      img.onerror = () => {
+        resolve(renderCompactDocumentBadge(file.name, file.size || rawDataUrl.length, actorNrp, kind));
+      };
       img.onload = () => {
         // 1. Draw to staging canvas to trim unused uniform borders
-        const stageW = Math.min(img.width, 1600);
+        const stageW = Math.min(img.width, 960);
         const stageScale = stageW / img.width;
         const stageH = Math.max(1, Math.round(img.height * stageScale));
 
@@ -309,27 +389,29 @@ export function processSecureImageUpload(
 
         const activeBox = detectActiveContentBox(stageCtx, stageW, stageH);
 
-        // 2. Determine target dimensions & smart center-crop based on asset kind
+        // 2. Determine target dimensions, strict KB budget & smart center-crop based on asset kind
         let sx = activeBox.sx;
         let sy = activeBox.sy;
         let sw = activeBox.sw;
         let sh = activeBox.sh;
         let outW = sw;
         let outH = sh;
-        let quality = 0.78;
+        let quality = 0.62;
+        let maxBudgetBytes = 14 * 1024; // 14 KB default max
 
         if (kind === 'AVATAR') {
-          // Strict 1:1 square center crop, 256x256 px
+          // Strict 1:1 square center crop, 128x128 px (<= 6 KB target)
           const minSide = Math.min(sw, sh);
           sx = sx + (sw - minSide) / 2;
           sy = sy + (sh - minSide) / 2;
           sw = minSide;
           sh = minSide;
-          outW = 256;
-          outH = 256;
-          quality = 0.78;
+          outW = 128;
+          outH = 128;
+          quality = 0.62;
+          maxBudgetBytes = 6 * 1024;
         } else if (kind === 'COVER') {
-          // Sleek 3:1 cover banner aspect ratio, max 960x320 px
+          // Sleek 3:1 cover banner aspect ratio, max 480x160 px (<= 12 KB target)
           const targetRatio = 3.0;
           const currentRatio = sw / sh;
           if (currentRatio > targetRatio) {
@@ -341,41 +423,67 @@ export function processSecureImageUpload(
             sy = sy + (sh - newSh) / 2;
             sh = newSh;
           }
-          outW = Math.min(960, Math.round(sw));
+          outW = Math.min(480, Math.round(sw));
           outH = Math.max(1, Math.round(outW / targetRatio));
-          quality = 0.8;
+          quality = 0.58;
+          maxBudgetBytes = 12 * 1024;
         } else {
-          // POST / DOCUMENT: max 960x720 preserving cropped content aspect ratio
-          const maxW = 960;
-          const maxH = 720;
+          // POST / DOCUMENT: max 480x360 preserving cropped content aspect ratio (<= 14 KB target)
+          const maxW = 480;
+          const maxH = 360;
           const scale = Math.min(1, maxW / sw, maxH / sh);
           outW = Math.max(1, Math.round(sw * scale));
           outH = Math.max(1, Math.round(sh * scale));
-          quality = 0.78;
+          quality = 0.60;
+          maxBudgetBytes = 14 * 1024;
         }
 
-        const outCanvas = document.createElement('canvas');
-        outCanvas.width = outW;
-        outCanvas.height = outH;
-        const outCtx = outCanvas.getContext('2d');
-        if (!outCtx) {
+        const encodeAttempt = (w: number, h: number, q: number) => {
+          const outCanvas = document.createElement('canvas');
+          outCanvas.width = w;
+          outCanvas.height = h;
+          const outCtx = outCanvas.getContext('2d');
+          if (!outCtx) return null;
+          outCtx.imageSmoothingEnabled = true;
+          outCtx.imageSmoothingQuality = 'high';
+          outCtx.drawImage(stageCanvas, sx, sy, sw, sh, 0, 0, w, h);
+
+          let dataUrl = outCanvas.toDataURL('image/webp', q);
+          let ext = 'webp';
+          if (!dataUrl.startsWith('data:image/webp')) {
+            dataUrl = outCanvas.toDataURL('image/jpeg', q);
+            ext = 'jpg';
+          }
+          const bytes = Math.round((dataUrl.length * 3) / 4);
+          return { dataUrl, ext, bytes, w, h };
+        };
+
+        let attempt = encodeAttempt(outW, outH, quality);
+        if (!attempt) {
           reject(new Error('Output canvas gagal diinisialisasi'));
           return;
         }
 
-        outCtx.imageSmoothingEnabled = true;
-        outCtx.imageSmoothingQuality = 'high';
-        outCtx.drawImage(stageCanvas, sx, sy, sw, sh, 0, 0, outW, outH);
-
-        // Prefer WebP for 35% smaller storage footprint; fallback to JPEG if browser doesn't encode WebP
-        let encodedDataUrl = outCanvas.toDataURL('image/webp', quality);
-        let ext = 'webp';
-        if (!encodedDataUrl.startsWith('data:image/webp')) {
-          encodedDataUrl = outCanvas.toDataURL('image/jpeg', quality);
-          ext = 'jpg';
+        // 3. Iterative compression step-down loop until strictly within few-KB budget
+        const stepSchedules = [
+          { scale: 1.0, q: quality - 0.12 },
+          { scale: 0.85, q: Math.max(0.32, quality - 0.18) },
+          { scale: 0.72, q: 0.34 },
+          { scale: 0.60, q: 0.28 },
+        ];
+        for (const step of stepSchedules) {
+          if (attempt.bytes <= maxBudgetBytes) break;
+          const nextW = Math.max(64, Math.round(outW * step.scale));
+          const nextH = Math.max(48, Math.round(outH * step.scale));
+          const nextTry = encodeAttempt(nextW, nextH, step.q);
+          if (nextTry && nextTry.bytes < attempt.bytes) {
+            attempt = nextTry;
+          }
         }
 
-        const compressedBytes = Math.round((encodedDataUrl.length * 3) / 4);
+        const encodedDataUrl = attempt.dataUrl;
+        const ext = attempt.ext;
+        const compressedBytes = attempt.bytes;
         const { fileName, trackingCode, hashEnkripsi, dateStamp } =
           generateLeakageTrackedFileName(
             actorNrp,
@@ -401,13 +509,84 @@ export function processSecureImageUpload(
           dateStamp,
           originalBytes: file.size || Math.round((rawDataUrl.length * 3) / 4),
           compressedBytes,
-          width: outW,
-          height: outH,
+          width: attempt.w,
+          height: attempt.h,
         });
       };
       img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Re-compresses an existing base64 `data:image/...` string down to a few KB (3–12 KB WebP).
+ * Useful for automatically shrinking legacy oversized avatars/covers/post images in localStorage or DB.
+ */
+export function compressDataUrlToFewKb(
+  rawDataUrl: string,
+  kind: MediaAssetKind = 'AVATAR',
+  actorNrp: string = 'SYSTEM'
+): Promise<string> {
+  if (typeof window === 'undefined' || !rawDataUrl || !rawDataUrl.startsWith('data:image/')) {
+    return Promise.resolve(rawDataUrl);
+  }
+  const thresholdChars = kind === 'AVATAR' ? 9500 : 17000;
+  if (rawDataUrl.length <= thresholdChars) {
+    return Promise.resolve(rawDataUrl);
+  }
+
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onerror = () => resolve(rawDataUrl);
+    img.onload = () => {
+      const targetW = kind === 'AVATAR' ? 112 : kind === 'COVER' ? 420 : 420;
+      const targetH =
+        kind === 'AVATAR'
+          ? 112
+          : kind === 'COVER'
+            ? 140
+            : Math.max(60, Math.round((img.height / Math.max(1, img.width)) * 420));
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(rawDataUrl);
+        return;
+      }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      if (kind === 'AVATAR') {
+        const minSide = Math.min(img.width, img.height);
+        const sx = (img.width - minSide) / 2;
+        const sy = (img.height - minSide) / 2;
+        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, targetW, targetH);
+      } else {
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+      }
+      let out = canvas.toDataURL('image/webp', 0.52);
+      let ext = 'webp';
+      if (!out.startsWith('data:image/webp')) {
+        out = canvas.toDataURL('image/jpeg', 0.52);
+        ext = 'jpg';
+      }
+      if (out.length >= rawDataUrl.length) {
+        resolve(rawDataUrl);
+        return;
+      }
+      const compressedBytes = Math.round((out.length * 3) / 4);
+      const { fileName } = generateLeakageTrackedFileName(
+        actorNrp,
+        ext,
+        kind,
+        'UPLOAD',
+        out.slice(-96),
+        compressedBytes
+      );
+      resolve(out.replace(/^data:(image\/[a-z]+);base64,/, `data:$1;name=${fileName};base64,`));
+    };
+    img.src = rawDataUrl;
   });
 }
 

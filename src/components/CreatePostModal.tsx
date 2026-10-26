@@ -83,14 +83,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       setSelectedImage(processed.dataUrl);
       setCustomImageUrl('');
     } catch {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setSelectedImage(reader.result);
-          setCustomImageUrl('');
-        }
-      };
-      reader.readAsDataURL(file);
+      // Never fallback to raw uncompressed FileReader to prevent multi-MB base64 DB bloat
     } finally {
       setIsUploadingImage(false);
     }

@@ -4,7 +4,6 @@ import { withRedisCache, cacheInvalidatePrefix } from '@/lib/redisCache';
 import { AnggotaWiraSatya } from '@/types';
 
 export async function GET(req: NextRequest) {
-  await serverStore.ensureSynced();
   const { searchParams } = new URL(req.url);
   const polda = searchParams.get('polda') || 'SEMUA';
   const search = searchParams.get('q')?.toLowerCase() || '';
@@ -13,7 +12,8 @@ export async function GET(req: NextRequest) {
   const { data: members, cacheMeta } = await withRedisCache<AnggotaWiraSatya[]>(
     cacheKey,
     90,
-    () => {
+    async () => {
+      await serverStore.ensureSynced();
       let list = serverStore.getMembers();
 
       if (polda && polda !== 'SEMUA') {

@@ -197,13 +197,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
       });
       setEditPostImage(processed.dataUrl);
     } catch {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setEditPostImage(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      showToast('Gagal mengompresi gambar');
     }
   };
 
@@ -240,13 +234,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
       });
       setNewCommentImage(processed.dataUrl);
     } catch {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setNewCommentImage(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      showToast('Gagal mengompresi lampiran');
     }
   };
 
