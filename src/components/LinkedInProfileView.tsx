@@ -641,26 +641,70 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
         </div>
       )}
 
-      {/* Top Breadcrumb / Back button if presented inside a modal */}
-      {onClose && (
-        <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span>Direktori Personel</span>
-            <span>/</span>
-            <span className="font-bold text-slate-900 inline-flex items-center gap-1">
-              {cleanMemberNameOnly}
-              <MetaVerifiedBadge nrp={localMember.nrp} role={effectiveRole} size="xs" />
-            </span>
+      {/* Top Connected Navigation Bar: Lihat Profil <-> Menu Data Diri */}
+      <div className="bg-white p-3.5 sm:px-5 sm:py-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Unified Mode Switcher Pill */}
+          <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200">
+            <button
+              type="button"
+              className="px-3.5 py-1.5 rounded-lg bg-red-800 text-white text-xs font-extrabold shadow-xs flex items-center gap-1.5 cursor-default"
+            >
+              <span>👤 Lihat Profil</span>
+            </button>
+            {canEditProfile && onEditProfile && (
+              <button
+                type="button"
+                onClick={() => onEditProfile(localMember, 1)}
+                className="px-3.5 py-1.5 rounded-lg text-slate-700 hover:text-red-900 hover:bg-white/80 text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Buka Lembar Pengkinian Data Diri (14 Sub-Bagian)"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-red-800" />
+                <span>Data Diri (Pengkinian)</span>
+              </button>
+            )}
           </div>
-          <button
-            onClick={onClose}
-            className="text-xs font-bold text-slate-600 hover:text-slate-900 px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-          >
-            <span className="sm:hidden">&larr; Kembali</span>
-            <span className="hidden sm:inline">&larr; Kembali ke Direktori</span>
-          </button>
+
+          {canEditProfile && onEditProfile && (
+            <div className="hidden xl:flex items-center gap-1.5 pl-2 border-l border-slate-200">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+                Pintasan Lembar:
+              </span>
+              {[
+                { num: 1 as const, label: '1. Kedinasan & Kompi' },
+                { num: 2 as const, label: '2. Domisili & Keluarga' },
+                { num: 3 as const, label: '3. Purna Tugas & Usaha' },
+                { num: 4 as const, label: '4. Kesehatan & Aparel' },
+              ].map((cat) => (
+                <button
+                  key={cat.num}
+                  type="button"
+                  onClick={() => onEditProfile(localMember, cat.num)}
+                  className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 text-[11px] font-bold text-slate-700 hover:text-red-900 transition-colors cursor-pointer"
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+
+        <div className="flex items-center justify-between md:justify-end gap-2">
+          <span className="text-xs font-bold text-slate-700 inline-flex items-center gap-1 truncate">
+            {cleanMemberNameOnly}
+            <MetaVerifiedBadge nrp={localMember.nrp} role={effectiveRole} size="xs" />
+          </span>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="text-xs font-bold text-slate-600 hover:text-slate-900 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors shrink-0 cursor-pointer"
+            >
+              <span className="sm:hidden">&larr; Kembali</span>
+              <span className="hidden sm:inline">&larr; Kembali ke Beranda</span>
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Main Grid: Left Column (Profile Canvas) + Right Column (LinkedIn Sidebar) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -920,10 +964,11 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     <button
                       type="button"
                       onClick={() => onEditProfile && onEditProfile(localMember, 1)}
-                      className="p-2 rounded-full border border-slate-300 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
-                      title="Edit Profil"
+                      className="px-3.5 py-2 rounded-full bg-red-800 hover:bg-red-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                      title="Buka Menu Data Diri & Pengkinian Lembar Data"
                     >
-                      <Edit3 className="w-4 h-4" />
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Data Diri</span>
                     </button>
                   )}
                 </div>

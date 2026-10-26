@@ -1723,12 +1723,51 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto space-y-5 pb-24 md:pb-12">
-      {/* Top Bar: Title + Access Rights Badge */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Top Bar: Connected Mode Switcher (Lihat Profil <-> Data Diri) + Access Rights Badge */}
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          {/* Unified Mode Switcher Pill */}
+          <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200 self-start">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-3.5 py-1.5 rounded-lg text-slate-700 hover:text-red-900 hover:bg-white/80 text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Beralih ke tampilan Lihat Profil"
+            >
+              <span>👤 Lihat Profil</span>
+            </button>
+            <button
+              type="button"
+              className="px-3.5 py-1.5 rounded-lg bg-red-800 text-white text-xs font-extrabold shadow-xs flex items-center gap-1.5 cursor-default"
+            >
+              <span>📝 Data Diri (Pengkinian)</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700 transition-colors cursor-pointer"
+            >
+              &larr; Kembali ke Lihat Profil
+            </button>
+            <button
+              type="button"
+              disabled={!hasEditPermission}
+              onClick={() => handleSaveTab(step, false)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Simpan &amp; Lihat Profil</span>
+            </button>
+          </div>
+        </div>
+
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base sm:text-lg font-extrabold text-polri-navy">
-              {baselineMember ? 'Manajemen & Pembaruan Lembar Data Personel' : 'Registrasi Lembar Data Personel Baru'}
+              {baselineMember ? 'Menu Data Diri — Pengkinian Lembar Data Personel' : 'Registrasi Lembar Data Personel Baru'}
             </h2>
             {canEditAnyMember ? (
               <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-slate-900 text-amber-300 border border-slate-700 inline-flex items-center gap-1">
@@ -1748,27 +1787,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             )}
           </div>
           <p className="text-xs text-slate-500">
-            Pilih kategori di panel kiri, lalu klik masing-masing lembar isian di sebelah kanan untuk melihat data existing atau memperbaharuinya.
+            Pilih kategori di panel kiri, lalu klik masing-masing lembar isian di sebelah kanan untuk melihat data existing atau memperbaharuinya. Seluruh perubahan langsung terhubung dengan menu Lihat Profil.
           </p>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700 transition-colors cursor-pointer"
-          >
-            &larr; Kembali ke Profil
-          </button>
-          <button
-            type="button"
-            disabled={!hasEditPermission}
-            onClick={() => handleSaveTab(step, false)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span>Simpan &amp; Lihat Profil</span>
-          </button>
         </div>
       </div>
 
@@ -1879,6 +1899,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   style={{ width: `${completionPercentage}%` }}
                 />
               </div>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="w-full mt-2 py-2 px-3 rounded-xl border border-red-800/40 text-red-900 hover:bg-red-50 font-extrabold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Lihat Profil Lengkap ({formData.namaLengkap?.split(',')[0] || 'Personel'})</span>
+              </button>
             </div>
           </div>
 

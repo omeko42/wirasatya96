@@ -61,6 +61,7 @@ interface NavbarProps {
   onLogout?: () => void;
   onSearchChange?: (query: string) => void;
   onViewMyProfile?: () => void;
+  isViewingOwnProfile?: boolean;
   impersonatorUser?: AuthUser | null;
   onStopImpersonating?: () => void;
 }
@@ -78,6 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogout,
   onSearchChange,
   onViewMyProfile,
+  isViewingOwnProfile = false,
   impersonatorUser,
   onStopImpersonating,
 }) => {
@@ -379,18 +381,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-[10px] mt-0.5 whitespace-nowrap">Jabatan</span>
               </button>
 
-              {/* 3. Profil (Pengkinian Data Mandiri) */}
+              {/* 3. Data Diri (Terhubung dengan Lihat Profil & Pengkinian Data Mandiri) */}
               <button
                 onClick={() => setActiveTab('form')}
-                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[52px] text-center transition-all border-b-2 ${
-                  activeTab === 'form'
+                className={`hidden md:flex flex-col items-center justify-center px-1.5 lg:px-2 py-1 min-w-[46px] lg:min-w-[56px] text-center transition-all border-b-2 ${
+                  activeTab === 'form' || isViewingOwnProfile
                     ? 'border-red-900 text-red-900 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
                 }`}
-                title="Pengkinian Data & Profil Mandiri"
+                title="Menu Data Diri & Lihat Profil Mandiri"
               >
                 <User className="w-5 h-5" />
-                <span className="text-[10px] mt-0.5 whitespace-nowrap">Profil</span>
+                <span className="text-[10px] mt-0.5 whitespace-nowrap">Data Diri</span>
               </button>
 
               {/* 4. Pesan */}
@@ -542,16 +544,34 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </div>
                     </div>
 
-                    <div className="p-3 border-b border-slate-100">
+                    <div className="p-3 border-b border-slate-100 grid grid-cols-2 gap-2">
                       <button
                         onClick={() => {
                           setIsUserMenuOpen(false);
                           if (onViewMyProfile) onViewMyProfile();
                           else setActiveTab('direktori');
                         }}
-                        className="w-full py-1.5 px-3 rounded-full border border-red-800 text-red-900 hover:bg-red-50 font-bold text-xs transition-colors text-center"
+                        className={`py-1.5 px-2.5 rounded-full border font-bold text-xs transition-colors text-center ${
+                          isViewingOwnProfile
+                            ? 'bg-red-800 text-white border-red-800'
+                            : 'border-red-800 text-red-900 hover:bg-red-50'
+                        }`}
                       >
                         Lihat Profil
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          setActiveTab('form');
+                        }}
+                        className={`py-1.5 px-2.5 rounded-full border font-bold text-xs transition-colors text-center flex items-center justify-center gap-1 ${
+                          activeTab === 'form' && !isViewingOwnProfile
+                            ? 'bg-red-800 text-white border-red-800'
+                            : 'border-slate-300 text-slate-800 hover:bg-slate-100'
+                        }`}
+                      >
+                        <User className="w-3.5 h-3.5 text-red-800 shrink-0" />
+                        <span>Data Diri</span>
                       </button>
                     </div>
 
@@ -561,7 +581,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         Akun
                       </div>
                       
-                      {/* Profil / Pengkinian Data Mandiri */}
+                      {/* Data Diri / Pengkinian Data Mandiri */}
                       <button
                         onClick={() => {
                           setIsUserMenuOpen(false);
@@ -571,7 +591,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       >
                         <span className="flex items-center gap-2">
                           <User className="w-3.5 h-3.5 text-red-800" />
-                          <span className="font-semibold text-slate-900">Pengkinian Data Profil</span>
+                          <span className="font-semibold text-slate-900">Data Diri &amp; Pengkinian Profil</span>
                         </span>
                       </button>
 
@@ -729,8 +749,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                           className="p-2.5 rounded-xl border border-slate-100 hover:border-red-800/40 hover:bg-red-50/50 text-left transition-all"
                         >
                           <User className="w-4 h-4 text-blue-700 mb-1" />
-                          <div className="font-bold text-slate-800 text-[11px] truncate">Profil</div>
-                          <div className="text-[10px] text-slate-500 truncate">Pengkinian Data</div>
+                          <div className="font-bold text-slate-800 text-[11px] truncate">Data Diri</div>
+                          <div className="text-[10px] text-slate-500 truncate">Profil &amp; Pengkinian</div>
                         </button>
 
                         <button
@@ -851,15 +871,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="truncate max-w-full">Jabatan</span>
           </button>
 
-          {/* 3. Profil */}
+          {/* 3. Data Diri */}
           <button
             onClick={() => setActiveTab('form')}
             className={`flex flex-col items-center justify-center py-1 transition-colors ${
-              activeTab === 'form' ? 'text-red-900 font-bold' : 'text-slate-500 hover:text-slate-800'
+              activeTab === 'form' || isViewingOwnProfile
+                ? 'text-red-900 font-bold'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <User className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
-            <span className="truncate max-w-full">Profil</span>
+            <span className="truncate max-w-full">Data Diri</span>
           </button>
 
           {/* 4. Pesan */}

@@ -2216,6 +2216,7 @@ export default function Home() {
           const myProfile = getOrBuildUserProfile(currentUser, members);
           setViewingMember(myProfile);
         }}
+        isViewingOwnProfile={Boolean(viewingMember && viewingMember.nrp === currentUser.nrp)}
         impersonatorUser={impersonatorUser}
         onStopImpersonating={handleStopImpersonating}
       />
