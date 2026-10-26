@@ -26,7 +26,6 @@ import { AnggotaWiraSatya, AuthUser, KasTransaction, IuranAnggota, FinanceSummar
 import {
   getAvatarUrl,
   resolveAvatarUrl,
-  isCustomAvatarUrl,
   getOrBuildUserProfile,
   calculateRetirement58,
   stripRankFromName,
@@ -35,10 +34,13 @@ import {
   isSuperadminAccount,
 } from '@/lib/avatarUtils';
 
-const STORAGE_VERSION = 'ws96_akpol96_real_v18';
+const STORAGE_VERSION = 'ws96_akpol96_real_v20';
+const MAX_SESSION_DURATION_MS = 4 * 60 * 60 * 1000; // 4 jam batas sesi maksimal
+const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 jam tanpa aktivitas otomatis logout
 
 export default function Home() {
   const router = useRouter();
+  const [isAuthVerified, setIsAuthVerified] = useState(false);
   const [activeTab, setActiveTab] = useState<AppTab>('direktori');
   const [members, setMembers] = useState<AnggotaWiraSatya[]>(INITIAL_MEMBERS);
   const [currentUser, setCurrentUser] = useState<AuthUser>(PRESET_USERS[0]); // Default Superadmin
@@ -217,7 +219,7 @@ export default function Home() {
                   ? mergedSource.coverUrl
                   : prev.coverUrl || mergedSource.coverUrl,
             };
-            if (typeof window !== 'undefined') {
+            if (typeof window !== 'undefined' && localStorage.getItem('ws96_auth_user')) {
               localStorage.setItem('ws96_auth_user', JSON.stringify(nextUser));
               localStorage.setItem('ws96_active_user', JSON.stringify(nextUser));
               localStorage.setItem('wirasatya96_current_user', JSON.stringify(nextUser));
@@ -377,7 +379,7 @@ export default function Home() {
             if (uOverride) {
               const memberOvTime = localOverride?.updatedAt ? new Date(localOverride.updatedAt).getTime() : 0;
               const userOvTime = uOverride?.updatedAt ? new Date(uOverride.updatedAt).getTime() : 0;
-              const preferLocalMemberOv = Boolean(localOverride && memberOvTime > userOvTime);
+              const preferLocalMemberOv = Boolean(localOverride && memberOvTime >= userOvTime);
 
               const effectiveNrp = (preferLocalMemberOv ? baseMember.nrp : uOverride.nrp) || baseMember.nrp;
               const effectiveBirth =
@@ -411,6 +413,25 @@ export default function Home() {
                   uOverride.secondaryEmail !== undefined ? uOverride.secondaryEmail : baseMember.secondaryEmail,
                 noHp: (preferLocalMemberOv ? baseMember.noHp : uOverride.noHp) || baseMember.noHp,
                 bio: (preferLocalMemberOv ? baseMember.bio : uOverride.bio) ?? baseMember.bio,
+                golonganDarah:
+                  (preferLocalMemberOv ? baseMember.golonganDarah : uOverride.golonganDarah) ||
+                  baseMember.golonganDarah,
+                ukuranBaju:
+                  (preferLocalMemberOv ? baseMember.ukuranBaju : uOverride.ukuranBaju) || baseMember.ukuranBaju,
+                ukuranCelana:
+                  (preferLocalMemberOv ? baseMember.ukuranCelana : uOverride.ukuranCelana) || baseMember.ukuranCelana,
+                ukuranSepatu:
+                  (preferLocalMemberOv ? baseMember.ukuranSepatu : uOverride.ukuranSepatu) || baseMember.ukuranSepatu,
+                biayaSewaTempatTinggal:
+                  localOverride?.biayaSewaTempatTinggal ?? baseMember.biayaSewaTempatTinggal,
+                detailSewaTempatTinggal:
+                  localOverride?.detailSewaTempatTinggal ?? baseMember.detailSewaTempatTinggal,
+                biayaSewaTahunan: localOverride?.biayaSewaTahunan ?? baseMember.biayaSewaTahunan,
+                detailSewaPurnaTugas: localOverride?.detailSewaPurnaTugas ?? baseMember.detailSewaPurnaTugas,
+                namaIstri: localOverride?.namaIstri ?? baseMember.namaIstri,
+                kontakIstri: localOverride?.kontakIstri ?? baseMember.kontakIstri,
+                daftarAnak: localOverride?.daftarAnak ?? baseMember.daftarAnak,
+                jumlahAnak: localOverride?.jumlahAnak ?? baseMember.jumlahAnak,
               };
             }
 
@@ -423,63 +444,28 @@ export default function Home() {
             }
 
             if (authUser && (baseMember.nrp === authUser.nrp || (authUser.oldNrp && baseMember.nrp === authUser.oldNrp))) {
+              const memberOvTime = localOverride?.updatedAt ? new Date(localOverride.updatedAt).getTime() : 0;
+              const authTime = authUser.updatedAt ? new Date(authUser.updatedAt).getTime() : 0;
+              const preferMemberOverAuth = Boolean(localOverride && memberOvTime >= authTime);
               const merged: AnggotaWiraSatya = {
                 ...baseMember,
-                nrp: authUser.nrp || baseMember.nrp,
-                pangkat: authUser.pangkat || baseMember.pangkat,
-                satuanKerja: authUser.satker || baseMember.satuanKerja,
-                polda: authUser.polda || baseMember.polda,
+                nrp: (preferMemberOverAuth ? baseMember.nrp : authUser.nrp) || baseMember.nrp,
+                namaLengkap:
+                  (preferMemberOverAuth ? baseMember.namaLengkap : authUser.nama) || baseMember.namaLengkap,
+                pangkat: (preferMemberOverAuth ? baseMember.pangkat : authUser.pangkat) || baseMember.pangkat,
+                satuanKerja:
+                  (preferMemberOverAuth ? baseMember.satuanKerja : authUser.satker) || baseMember.satuanKerja,
+                polda: (preferMemberOverAuth ? baseMember.polda : authUser.polda) || baseMember.polda,
+                jabatanTerakhir:
+                  (preferMemberOverAuth ? baseMember.jabatanTerakhir : authUser.jabatanTerakhir) ||
+                  baseMember.jabatanTerakhir,
                 fotoUrl: resolveAvatarUrl(baseMember.fotoUrl, authUser.fotoUrl),
                 coverUrl:
                   baseMember.coverUrl && baseMember.coverUrl !== '/default-cover.jpg'
                     ? baseMember.coverUrl
                     : authUser.coverUrl || baseMember.coverUrl,
               };
-              if (
-                localOverride ||
-                uOverride ||
-                (isCustomAvatarUrl(authUser.fotoUrl) &&
-                  (!m.fotoUrl || m.fotoUrl === '/default-avatar.png' || !isCustomAvatarUrl(m.fotoUrl)))
-              ) {
-                fetch('/api/members', {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(merged),
-                }).catch(() => {});
-              }
               return merged;
-            }
-
-            if (localOverride || uOverride) {
-              const memberChanged =
-                baseMember.nrp !== m.nrp ||
-                baseMember.namaLengkap !== m.namaLengkap ||
-                baseMember.pangkat !== m.pangkat ||
-                baseMember.satuanKerja !== m.satuanKerja ||
-                baseMember.jabatanTerakhir !== m.jabatanTerakhir;
-              if (memberChanged) {
-                fetch('/api/members', {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(baseMember),
-                }).catch(() => {});
-              }
-              if (uOverride && memberChanged) {
-                fetch('/api/users', {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    ...uOverride,
-                    nrp: m.nrp,
-                    originalNrp: canonicalOldNrp,
-                    oldNrp: canonicalOldNrp,
-                    newNrp: baseMember.nrp,
-                    id: m.id ? m.id.replace(/^ws-/, 'u-') : undefined,
-                    profileId: m.id,
-                    isBackgroundSync: true,
-                  }),
-                }).catch(() => {});
-              }
             }
 
             return {
@@ -705,6 +691,88 @@ export default function Home() {
       localStorage.setItem('ws96_storage_version', STORAGE_VERSION);
     }
 
+    const clearAuthStorage = () => {
+      localStorage.removeItem('ws96_auth_user');
+      localStorage.removeItem('ws96_active_user');
+      localStorage.removeItem('wirasatya96_current_user');
+      localStorage.removeItem('ws96_session_meta');
+      localStorage.removeItem('ws96_impersonator_user');
+      localStorage.removeItem('ws96_mfa_verified');
+      localStorage.removeItem('ws96_adc_session');
+    };
+
+    // Strict Session & Login Verification on Mount
+    const savedUser =
+      localStorage.getItem('ws96_auth_user') ||
+      localStorage.getItem('ws96_active_user') ||
+      localStorage.getItem('wirasatya96_current_user');
+
+    if (!savedUser) {
+      clearAuthStorage();
+      router.replace('/login');
+      return;
+    }
+
+    let parsedUser: AuthUser | null = null;
+    try {
+      const parsed = JSON.parse(savedUser);
+      if (parsed && parsed.nrp) {
+        parsedUser = parsed;
+      }
+    } catch {
+      parsedUser = null;
+    }
+
+    if (!parsedUser || !parsedUser.nrp) {
+      clearAuthStorage();
+      router.replace('/login');
+      return;
+    }
+
+    const now = Date.now();
+    const rawSessionMeta = localStorage.getItem('ws96_session_meta');
+    if (!rawSessionMeta) {
+      clearAuthStorage();
+      router.replace('/login?reason=expired');
+      return;
+    }
+
+    try {
+      const meta = JSON.parse(rawSessionMeta);
+      const loginAt = Number(meta?.loginAt || 0);
+      const lastActivityAt = Number(meta?.lastActivityAt || 0);
+      const currentUa = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+      const isInvalidMeta =
+        !meta ||
+        meta.nrp !== parsedUser.nrp ||
+        (meta.ua && currentUa && meta.ua !== currentUa) ||
+        !loginAt ||
+        !lastActivityAt ||
+        now - loginAt > MAX_SESSION_DURATION_MS ||
+        now - lastActivityAt > IDLE_TIMEOUT_MS;
+
+      if (isInvalidMeta) {
+        clearAuthStorage();
+        const reason = now - lastActivityAt > IDLE_TIMEOUT_MS ? 'idle' : 'expired';
+        router.replace(`/login?reason=${reason}`);
+        return;
+      }
+
+      localStorage.setItem(
+        'ws96_session_meta',
+        JSON.stringify({
+          ...meta,
+          nrp: parsedUser.nrp,
+          lastActivityAt: now,
+        })
+      );
+      setIsAuthVerified(true);
+    } catch {
+      clearAuthStorage();
+      router.replace('/login?reason=expired');
+      return;
+    }
+
     // Load Impersonator User if Superadmin is currently impersonating someone
     const savedImpersonator = localStorage.getItem('ws96_impersonator_user');
     if (savedImpersonator) {
@@ -721,54 +789,45 @@ export default function Home() {
       }
     }
 
-    // Load User and sanitize any legacy Unsplash avatar URL
-    const savedUser =
-      localStorage.getItem('ws96_auth_user') ||
-      localStorage.getItem('ws96_active_user') ||
-      localStorage.getItem('wirasatya96_current_user');
-    let activeNrp = PRESET_USERS[0].nrp;
-    if (savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        if (parsed && parsed.nrp) {
-          activeNrp = parsed.nrp;
-          if (
-            parsed.nrp === '98010710' &&
-            (parsed.nama === 'Eko Agung' || parsed.nama === 'Eko Agung')
-          ) {
-            parsed.nama = 'Eko Agung';
-            parsed.pangkat = parsed.pangkat || 'Briptu';
-          }
-          if (parsed.nama) {
-            parsed.nama = stripRankFromName(parsed.nama) || parsed.nama;
-          }
-          const presetUserMatch = PRESET_USERS.find(
-            (pu) =>
-              pu.nrp === parsed.nrp ||
-              (pu.oldNrp && pu.oldNrp === parsed.nrp) ||
-              (parsed.oldNrp && pu.nrp === parsed.oldNrp) ||
-              (pu.id && pu.id === parsed.id)
-          );
-          if (presetUserMatch && presetUserMatch.role !== 'ANGGOTA' && (!parsed.role || parsed.role === 'ANGGOTA')) {
-            parsed.role = presetUserMatch.role;
-          }
-          if (parsed.nrp && parsed.email && /^74090\d{3}@polri\.go\.id$/i.test(parsed.email) && !/^74090\d{3}$/.test(parsed.nrp)) {
-            parsed.email = `${parsed.nrp}@polri.go.id`;
-          }
-          const sanitizedUser: AuthUser = {
-            ...parsed,
-            fotoUrl: getAvatarUrl(parsed.fotoUrl),
-            coverUrl: parsed.coverUrl,
-          };
-          setCurrentUser(sanitizedUser);
-          localStorage.setItem('ws96_auth_user', JSON.stringify(sanitizedUser));
-          localStorage.setItem('ws96_active_user', JSON.stringify(sanitizedUser));
-          localStorage.setItem('wirasatya96_current_user', JSON.stringify(sanitizedUser));
-        }
-      } catch (err) {
-        console.error('Failed to parse user session', err);
-      }
+    // Sanitize active user & legacy Unsplash avatar URL
+    const activeNrp = parsedUser.nrp;
+    if (
+      parsedUser.nrp === '98010710' &&
+      (parsedUser.nama === 'Eko Agung' || parsedUser.nama === 'Eko Agung')
+    ) {
+      parsedUser.nama = 'Eko Agung';
+      parsedUser.pangkat = parsedUser.pangkat || 'Briptu';
     }
+    if (parsedUser.nama) {
+      parsedUser.nama = stripRankFromName(parsedUser.nama) || parsedUser.nama;
+    }
+    const presetUserMatch = PRESET_USERS.find(
+      (pu) =>
+        pu.nrp === parsedUser!.nrp ||
+        (pu.oldNrp && pu.oldNrp === parsedUser!.nrp) ||
+        (parsedUser!.oldNrp && pu.nrp === parsedUser!.oldNrp) ||
+        (pu.id && pu.id === parsedUser!.id)
+    );
+    if (presetUserMatch && presetUserMatch.role !== 'ANGGOTA' && (!parsedUser.role || parsedUser.role === 'ANGGOTA')) {
+      parsedUser.role = presetUserMatch.role;
+    }
+    if (
+      parsedUser.nrp &&
+      parsedUser.email &&
+      /^74090\d{3}@polri\.go\.id$/i.test(parsedUser.email) &&
+      !/^74090\d{3}$/.test(parsedUser.nrp)
+    ) {
+      parsedUser.email = `${parsedUser.nrp}@polri.go.id`;
+    }
+    const sanitizedUser: AuthUser = {
+      ...parsedUser,
+      fotoUrl: getAvatarUrl(parsedUser.fotoUrl),
+      coverUrl: parsedUser.coverUrl,
+    };
+    setCurrentUser(sanitizedUser);
+    localStorage.setItem('ws96_auth_user', JSON.stringify(sanitizedUser));
+    localStorage.setItem('ws96_active_user', JSON.stringify(sanitizedUser));
+    localStorage.setItem('wirasatya96_current_user', JSON.stringify(sanitizedUser));
 
     // Load Members while respecting tombstoned NRPs & purged non-1996 names
     const rawDeletedOnMount = localStorage.getItem('ws96_deleted_nrps_v1');
@@ -912,11 +971,107 @@ export default function Home() {
       const latestAuth = localStorage.getItem('ws96_auth_user');
       if (latestAuth) {
         try {
-          const parsedLatest = JSON.parse(latestAuth);
+          const parsedLatest: AuthUser = JSON.parse(latestAuth);
           if (parsedLatest && parsedLatest.nrp) {
+            const cleanAvatar = getAvatarUrl(parsedLatest.fotoUrl);
+            const nowIso = parsedLatest.updatedAt || new Date().toISOString();
             setCurrentUser({
               ...parsedLatest,
-              fotoUrl: getAvatarUrl(parsedLatest.fotoUrl),
+              fotoUrl: cleanAvatar,
+            });
+
+            setMembers((prevMembers) => {
+              let matchedMember: AnggotaWiraSatya | null = null;
+              const nextMembers = prevMembers.map((m) => {
+                if (
+                  m.nrp === parsedLatest.nrp ||
+                  (parsedLatest.oldNrp && m.nrp === parsedLatest.oldNrp) ||
+                  (m.oldNrp && m.oldNrp === parsedLatest.nrp)
+                ) {
+                  const updatedM: AnggotaWiraSatya = {
+                    ...m,
+                    nrp: parsedLatest.nrp || m.nrp,
+                    namaLengkap: parsedLatest.nama || m.namaLengkap,
+                    pangkat: parsedLatest.pangkat || m.pangkat,
+                    satuanKerja: parsedLatest.satker || m.satuanKerja,
+                    satker: parsedLatest.satker || m.satker,
+                    polda: parsedLatest.polda || m.polda,
+                    jabatanTerakhir: parsedLatest.jabatanTerakhir || m.jabatanTerakhir,
+                    ...(parsedLatest.statusKedinasan
+                      ? {
+                          statusKedinasan: parsedLatest.statusKedinasan,
+                          statusDinas: parsedLatest.statusKedinasan,
+                        }
+                      : {}),
+                    email: parsedLatest.email || m.email,
+                    secondaryEmail:
+                      parsedLatest.secondaryEmail !== undefined
+                        ? parsedLatest.secondaryEmail
+                        : m.secondaryEmail,
+                    noHp: parsedLatest.noHp || m.noHp,
+                    fotoUrl: resolveAvatarUrl(parsedLatest.fotoUrl, m.fotoUrl),
+                    coverUrl: parsedLatest.coverUrl || m.coverUrl,
+                    bio: parsedLatest.bio !== undefined ? parsedLatest.bio : m.bio,
+                    updatedAt: nowIso,
+                  };
+                  matchedMember = updatedM;
+                  return updatedM;
+                }
+                return m;
+              });
+
+              if (matchedMember) {
+                try {
+                  localStorage.setItem('wirasatya96_members', JSON.stringify(nextMembers));
+                  const rawMOv = localStorage.getItem('ws96_member_overrides_v1');
+                  const parsedMOv = rawMOv ? JSON.parse(rawMOv) : {};
+                  parsedMOv[parsedLatest.nrp] = {
+                    ...(parsedMOv[parsedLatest.nrp] || {}),
+                    ...(matchedMember as AnggotaWiraSatya),
+                    updatedAt: nowIso,
+                  };
+                  localStorage.setItem('ws96_member_overrides_v1', JSON.stringify(parsedMOv));
+                } catch {
+                  // ignore
+                }
+              }
+              return nextMembers;
+            });
+
+            setViewingMember((prevViewing) => {
+              if (
+                prevViewing &&
+                (prevViewing.nrp === parsedLatest.nrp ||
+                  (parsedLatest.oldNrp && prevViewing.nrp === parsedLatest.oldNrp))
+              ) {
+                return {
+                  ...prevViewing,
+                  nrp: parsedLatest.nrp || prevViewing.nrp,
+                  namaLengkap: parsedLatest.nama || prevViewing.namaLengkap,
+                  pangkat: parsedLatest.pangkat || prevViewing.pangkat,
+                  satuanKerja: parsedLatest.satker || prevViewing.satuanKerja,
+                  satker: parsedLatest.satker || prevViewing.satker,
+                  polda: parsedLatest.polda || prevViewing.polda,
+                  jabatanTerakhir: parsedLatest.jabatanTerakhir || prevViewing.jabatanTerakhir,
+                  ...(parsedLatest.statusKedinasan
+                    ? {
+                        statusKedinasan: parsedLatest.statusKedinasan,
+                        statusDinas: parsedLatest.statusKedinasan,
+                      }
+                    : {}),
+                  email: parsedLatest.email || prevViewing.email,
+                  secondaryEmail:
+                    parsedLatest.secondaryEmail !== undefined
+                      ? parsedLatest.secondaryEmail
+                      : prevViewing.secondaryEmail,
+                  noHp: parsedLatest.noHp || prevViewing.noHp,
+                  fotoUrl: resolveAvatarUrl(parsedLatest.fotoUrl, prevViewing.fotoUrl),
+                  coverUrl: parsedLatest.coverUrl || prevViewing.coverUrl,
+                  bio: parsedLatest.bio !== undefined ? parsedLatest.bio : prevViewing.bio,
+                  updatedAt: nowIso,
+                };
+              }
+              return prevViewing;
             });
           }
         } catch {
@@ -951,7 +1106,94 @@ export default function Home() {
       window.removeEventListener('ws96_user_updated', handleUserUpdatedEvent);
       window.removeEventListener('ws96_user_deleted', handleUserDeletedEvent);
     };
-  }, [fetchPendingVerificationCount]);
+  }, [fetchPendingVerificationCount, router]);
+
+  // Session activity tracker & automatic expiration / idle logout
+  useEffect(() => {
+    if (!isAuthVerified || typeof window === 'undefined') return;
+
+    let lastWriteTime = 0;
+
+    const triggerExpiredLogout = (reason: 'expired' | 'idle' = 'expired') => {
+      try {
+        fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+      } catch {
+        // ignore
+      }
+      localStorage.removeItem('ws96_auth_user');
+      localStorage.removeItem('ws96_active_user');
+      localStorage.removeItem('wirasatya96_current_user');
+      localStorage.removeItem('ws96_session_meta');
+      localStorage.removeItem('ws96_impersonator_user');
+      localStorage.removeItem('ws96_mfa_verified');
+      localStorage.removeItem('ws96_adc_session');
+      setIsAuthVerified(false);
+      router.replace(`/login?reason=${reason}`);
+    };
+
+    const verifyAndTouchSession = (isUserActivity: boolean) => {
+      const now = Date.now();
+      const rawAuth = localStorage.getItem('ws96_auth_user');
+      const rawMeta = localStorage.getItem('ws96_session_meta');
+      if (!rawAuth || !rawMeta) {
+        triggerExpiredLogout('expired');
+        return;
+      }
+      try {
+        const meta = JSON.parse(rawMeta);
+        const loginAt = Number(meta?.loginAt || 0);
+        const lastActivityAt = Number(meta?.lastActivityAt || 0);
+        if (!loginAt || now - loginAt > MAX_SESSION_DURATION_MS) {
+          triggerExpiredLogout('expired');
+          return;
+        }
+        if (!lastActivityAt || now - lastActivityAt > IDLE_TIMEOUT_MS) {
+          triggerExpiredLogout('idle');
+          return;
+        }
+        if (isUserActivity && now - lastWriteTime >= 30_000) {
+          lastWriteTime = now;
+          localStorage.setItem(
+            'ws96_session_meta',
+            JSON.stringify({
+              ...meta,
+              lastActivityAt: now,
+            })
+          );
+        }
+      } catch {
+        triggerExpiredLogout('expired');
+      }
+    };
+
+    const onUserActivity = () => verifyAndTouchSession(true);
+    const onVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        verifyAndTouchSession(false);
+      }
+    };
+
+    window.addEventListener('mousedown', onUserActivity, { passive: true });
+    window.addEventListener('keydown', onUserActivity, { passive: true });
+    window.addEventListener('touchstart', onUserActivity, { passive: true });
+    window.addEventListener('scroll', onUserActivity, { passive: true });
+    window.addEventListener('focus', onVisibilityOrFocus);
+    document.addEventListener('visibilitychange', onVisibilityOrFocus);
+
+    const intervalId = setInterval(() => {
+      verifyAndTouchSession(false);
+    }, 30_000);
+
+    return () => {
+      window.removeEventListener('mousedown', onUserActivity);
+      window.removeEventListener('keydown', onUserActivity);
+      window.removeEventListener('touchstart', onUserActivity);
+      window.removeEventListener('scroll', onUserActivity);
+      window.removeEventListener('focus', onVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', onVisibilityOrFocus);
+      clearInterval(intervalId);
+    };
+  }, [isAuthVerified, router]);
 
   // Superadmin Impersonate User handler
   const handleImpersonateUser = (targetUser: AuthUser) => {
@@ -970,6 +1212,21 @@ export default function Home() {
       localStorage.setItem('ws96_auth_user', JSON.stringify(sanitizedTarget));
       localStorage.setItem('ws96_active_user', JSON.stringify(sanitizedTarget));
       localStorage.setItem('wirasatya96_current_user', JSON.stringify(sanitizedTarget));
+      try {
+        const rawMeta = localStorage.getItem('ws96_session_meta');
+        const parsedMeta = rawMeta ? JSON.parse(rawMeta) : {};
+        localStorage.setItem(
+          'ws96_session_meta',
+          JSON.stringify({
+            ...parsedMeta,
+            nrp: sanitizedTarget.nrp,
+            loginAt: parsedMeta.loginAt || Date.now(),
+            lastActivityAt: Date.now(),
+          })
+        );
+      } catch {
+        // ignore
+      }
     }
     setViewingMember(null);
     setEditingMember(null);
@@ -1000,6 +1257,21 @@ export default function Home() {
       localStorage.setItem('ws96_auth_user', JSON.stringify(restoredUser));
       localStorage.setItem('ws96_active_user', JSON.stringify(restoredUser));
       localStorage.setItem('wirasatya96_current_user', JSON.stringify(restoredUser));
+      try {
+        const rawMeta = localStorage.getItem('ws96_session_meta');
+        const parsedMeta = rawMeta ? JSON.parse(rawMeta) : {};
+        localStorage.setItem(
+          'ws96_session_meta',
+          JSON.stringify({
+            ...parsedMeta,
+            nrp: restoredUser.nrp,
+            loginAt: parsedMeta.loginAt || Date.now(),
+            lastActivityAt: Date.now(),
+          })
+        );
+      } catch {
+        // ignore
+      }
     }
     setViewingMember(null);
     fetchPendingVerificationCount();
@@ -1063,6 +1335,14 @@ export default function Home() {
         usia: calc58.usiaTahun,
         tahunPurnaTugas: calc58.tahunPurnaTugas,
         sisaTahunDinas: calc58.sisaTahunDinas,
+        golonganDarah: member.golonganDarah,
+        ukuranBaju: member.ukuranBaju,
+        ukuranCelana: member.ukuranCelana,
+        ukuranSepatu: member.ukuranSepatu,
+        biayaSewaTempatTinggal: member.biayaSewaTempatTinggal,
+        detailSewaTempatTinggal: member.detailSewaTempatTinggal,
+        biayaSewaTahunan: member.biayaSewaTahunan,
+        detailSewaPurnaTugas: member.detailSewaPurnaTugas,
         updatedAt: nowIso,
       };
       const raw = localStorage.getItem('ws96_member_overrides_v1');
@@ -1099,6 +1379,10 @@ export default function Home() {
         statusKedinasan: resolvedStatusKedinasan,
         tanggalLahir: calc58.tanggalLahir,
         tempatLahir: normalizedMember.tempatLahir,
+        golonganDarah: normalizedMember.golonganDarah,
+        ukuranBaju: normalizedMember.ukuranBaju,
+        ukuranCelana: normalizedMember.ukuranCelana,
+        ukuranSepatu: normalizedMember.ukuranSepatu,
         email: normalizedMember.email || existingUOv.email || `${normalizedMember.nrp}@polri.go.id`,
         secondaryEmail:
           normalizedMember.secondaryEmail !== undefined
@@ -1253,7 +1537,7 @@ export default function Home() {
       });
       if (changed && typeof window !== 'undefined') {
         try {
-          localStorage.setItem('wirasatya96_posts', JSON.stringify(nextPosts));
+          localStorage.setItem('wirasatya96_feed_posts', JSON.stringify(nextPosts));
         } catch {
           // ignore
         }
@@ -1271,6 +1555,7 @@ export default function Home() {
       prevEditing?.oldNrp ||
       (prevEditing && prevEditing.nrp !== newMember.nrp ? prevEditing.nrp : undefined);
     const resolvedStatus = newMember.statusKedinasan || newMember.statusDinas || 'AKTIF';
+    const nowIso = new Date().toISOString();
 
     const cleanMember: AnggotaWiraSatya = {
       ...newMember,
@@ -1281,8 +1566,16 @@ export default function Home() {
       usia: calc58.usiaTahun,
       tahunPurnaTugas: calc58.tahunPurnaTugas,
       sisaTahunDinas: calc58.sisaTahunDinas,
+      golonganDarah: newMember.golonganDarah,
+      ukuranBaju: newMember.ukuranBaju,
+      ukuranCelana: newMember.ukuranCelana,
+      ukuranSepatu: newMember.ukuranSepatu,
+      biayaSewaTempatTinggal: newMember.biayaSewaTempatTinggal,
+      detailSewaTempatTinggal: newMember.detailSewaTempatTinggal,
+      biayaSewaTahunan: newMember.biayaSewaTahunan,
+      detailSewaPurnaTugas: newMember.detailSewaPurnaTugas,
       fotoUrl: getAvatarUrl(newMember.fotoUrl),
-      updatedAt: new Date().toISOString(),
+      updatedAt: nowIso,
     };
     const existingIndex = members.findIndex(
       (m) =>
@@ -1344,6 +1637,10 @@ export default function Home() {
         statusKedinasan: resolvedStatus,
         tanggalLahir: savedMemberRecord.tanggalLahir,
         tempatLahir: savedMemberRecord.tempatLahir,
+        golonganDarah: savedMemberRecord.golonganDarah,
+        ukuranBaju: savedMemberRecord.ukuranBaju,
+        ukuranCelana: savedMemberRecord.ukuranCelana,
+        ukuranSepatu: savedMemberRecord.ukuranSepatu,
         email: savedMemberRecord.email || currentUser.email,
         secondaryEmail:
           savedMemberRecord.secondaryEmail !== undefined
@@ -1353,12 +1650,29 @@ export default function Home() {
         fotoUrl: getAvatarUrl(savedMemberRecord.fotoUrl),
         coverUrl: savedMemberRecord.coverUrl || currentUser.coverUrl,
         bio: savedMemberRecord.bio !== undefined ? savedMemberRecord.bio : currentUser.bio,
+        updatedAt: nowIso,
       };
       setCurrentUser(updatedUser);
       if (typeof window !== 'undefined') {
         localStorage.setItem('ws96_auth_user', JSON.stringify(updatedUser));
         localStorage.setItem('ws96_active_user', JSON.stringify(updatedUser));
         localStorage.setItem('wirasatya96_current_user', JSON.stringify(updatedUser));
+        try {
+          const rawMeta = localStorage.getItem('ws96_session_meta');
+          if (rawMeta) {
+            const parsedMeta = JSON.parse(rawMeta);
+            localStorage.setItem(
+              'ws96_session_meta',
+              JSON.stringify({
+                ...parsedMeta,
+                nrp: updatedUser.nrp,
+                lastActivityAt: Date.now(),
+              })
+            );
+          }
+        } catch {
+          // ignore
+        }
       }
     }
 
@@ -1403,12 +1717,17 @@ export default function Home() {
           statusKedinasan: resolvedStatus,
           tanggalLahir: savedMemberRecord.tanggalLahir,
           tempatLahir: savedMemberRecord.tempatLahir,
+          golonganDarah: savedMemberRecord.golonganDarah,
+          ukuranBaju: savedMemberRecord.ukuranBaju,
+          ukuranCelana: savedMemberRecord.ukuranCelana,
+          ukuranSepatu: savedMemberRecord.ukuranSepatu,
           email: savedMemberRecord.email,
           secondaryEmail: savedMemberRecord.secondaryEmail,
           noHp: savedMemberRecord.noHp,
           fotoUrl: savedMemberRecord.fotoUrl,
           coverUrl: savedMemberRecord.coverUrl,
           bio: savedMemberRecord.bio,
+          updatedAt: nowIso,
         }),
       }).catch(() => {});
     } catch (err) {
@@ -1581,7 +1900,7 @@ export default function Home() {
   };
 
   // Logout
-  const handleLogout = async () => {
+  const handleLogout = async (reason?: 'expired' | 'idle') => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch {
@@ -1590,10 +1909,12 @@ export default function Home() {
     localStorage.removeItem('ws96_auth_user');
     localStorage.removeItem('ws96_active_user');
     localStorage.removeItem('wirasatya96_current_user');
+    localStorage.removeItem('ws96_session_meta');
     localStorage.removeItem('ws96_impersonator_user');
     localStorage.removeItem('ws96_mfa_verified');
     localStorage.removeItem('ws96_adc_session');
-    router.push('/login');
+    setIsAuthVerified(false);
+    router.replace(reason ? `/login?reason=${reason}` : '/login');
   };
 
   // Find or construct logged-in user profile
@@ -1806,59 +2127,21 @@ export default function Home() {
     }
   };
 
-  // Smooth Scroll-Reveal & Staggered Card Entrance Observer
-  React.useEffect(() => {
-    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const el = entry.target as HTMLElement;
-            el.classList.add('ws96-reveal-visible');
-            el.classList.remove('ws96-reveal-init');
-            el.style.transitionDelay = '';
-            io.unobserve(el);
-          }
-        });
-      },
-      { threshold: 0.01, rootMargin: '24px 0px 0px 0px' }
+  if (!isAuthVerified) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f2ee] px-4 text-center">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 sm:p-8 max-w-sm w-full space-y-3">
+          <div className="w-11 h-11 rounded-full border-3 border-slate-200 border-t-red-800 animate-spin mx-auto" />
+          <div className="text-sm font-extrabold text-slate-900">
+            Memverifikasi Sesi Keamanan Wira Satya 96...
+          </div>
+          <p className="text-xs text-slate-500">
+            Memastikan otorisasi perangkat dan masa berlaku sesi aktif Anda.
+          </p>
+        </div>
+      </div>
     );
-
-    const registerCards = () => {
-      const mainEl = document.querySelector('main');
-      if (!mainEl) return;
-      const cards = mainEl.querySelectorAll<HTMLElement>(
-        '.bg-white.rounded-xl, .bg-white.rounded-2xl, .ws96-gold-card'
-      );
-      cards.forEach((card, idx) => {
-        if (card.dataset.ws96RevealBound) return;
-        card.dataset.ws96RevealBound = '1';
-        if (card.closest('[data-no-reveal="true"]') || card.offsetHeight > 900) {
-          return;
-        }
-        card.style.transitionDelay = `${(idx % 5) * 35}ms`;
-        card.classList.add('ws96-reveal-init');
-        io.observe(card);
-      });
-    };
-
-    registerCards();
-    const mainNode = document.querySelector('main');
-    const mo = mainNode
-      ? new MutationObserver(() => {
-          registerCards();
-        })
-      : null;
-    if (mainNode && mo) {
-      mo.observe(mainNode, { childList: true });
-    }
-
-    return () => {
-      io.disconnect();
-      mo?.disconnect();
-    };
-  }, [activeTab, viewingMember]);
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f4f2ee] selection:bg-red-800 selection:text-white">

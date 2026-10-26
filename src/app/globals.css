@@ -18,7 +18,7 @@ body {
     radial-gradient(at 12% 8%, rgba(185, 28, 28, 0.045) 0px, transparent 48%),
     radial-gradient(at 88% 14%, rgba(217, 119, 6, 0.05) 0px, transparent 45%),
     radial-gradient(at 50% 90%, rgba(16, 185, 129, 0.035) 0px, transparent 50%);
-  background-attachment: fixed;
+  background-attachment: scroll;
   font-family: Arial, Helvetica, sans-serif;
   overflow-x: hidden;
 }

@@ -87,6 +87,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   const userMenuRef = useRef<HTMLDivElement>(null);
   const appsMenuRef = useRef<HTMLDivElement>(null);
   const searchBoxRef = useRef<HTMLDivElement>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, []);
+
   const effectiveRole: UserRole = React.useMemo(() => {
     if (currentUser.role && currentUser.role !== 'ANGGOTA') return currentUser.role;
     const cleanNrp = (currentUser.nrp || '').trim();
@@ -116,12 +124,19 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   // Sanitize name for compact single-line display while preserving degrees
   const myMember = React.useMemo(
-    () => members.find((m) => m.nrp === currentUser.nrp),
-    [members, currentUser.nrp]
+    () =>
+      members.find(
+        (m) =>
+          m.nrp === currentUser.nrp ||
+          (currentUser.oldNrp && m.nrp === currentUser.oldNrp) ||
+          (m.oldNrp && m.oldNrp === currentUser.nrp)
+      ),
+    [members, currentUser.nrp, currentUser.oldNrp]
   );
   const cleanDisplayName = (myMember?.namaLengkap || currentUser.nama)
     .replace(/\(.*?\)/g, '')
     .trim();
+  const myPangkat = myMember?.pangkat || currentUser.pangkat;
   const myAvatarUrl = resolveAvatarUrl(myMember?.fotoUrl, currentUser.fotoUrl);
 
   const roleBadgeColors: Record<UserRole, string> = {
@@ -181,7 +196,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {impersonatorUser && (
           <div className="bg-amber-500 text-slate-950 px-3 sm:px-4 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold flex items-center justify-between gap-2 flex-wrap leading-snug">
             <span className="truncate max-w-full">
-              🎭 Mode Impersonate: {currentUser.nama} ({currentUser.pangkat} &bull; {roleDisplayLabels[currentUser.role] || currentUser.role})
+              🎭 Mode Impersonate: {cleanDisplayName} ({myPangkat} &bull; {roleDisplayLabels[currentUser.role] || currentUser.role})
             </span>
             {onStopImpersonating && (
               <button
@@ -223,9 +238,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onFocus={() => setIsSearchOpen(true)}
                   placeholder="Cari perwira, NRP, satker..."
                   onChange={(e) => {
-                    setSearchText(e.target.value);
+                    const val = e.target.value;
+                    setSearchText(val);
                     setIsSearchOpen(true);
-                    if (onSearchChange) onSearchChange(e.target.value);
+                    if (onSearchChange) {
+                      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                      searchDebounceRef.current = setTimeout(() => {
+                        onSearchChange(val);
+                      }, 180);
+                    }
                   }}
                   className="w-full pl-8 sm:pl-9 pr-2.5 sm:pr-3 py-1.5 bg-slate-100 hover:bg-slate-200/70 border border-transparent rounded-lg text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-900/30 focus:border-red-900 transition-all"
                 />
@@ -498,11 +519,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                           <MetaVerifiedBadge role={effectiveRole} nrp={currentUser.nrp} size="sm" />
                         </div>
                         <p className="text-[11px] text-slate-500 truncate">
-                          {currentUser.pangkat} &bull;{' '}
+                          {myPangkat} &bull;{' '}
                           {formatJabatanWithSatker(
                             myMember?.jabatanTerakhir === 'Lead Developer'
                               ? 'Staf'
-                              : myMember?.jabatanTerakhir || (currentUser.nrp === '98010710' ? 'Staf' : undefined),
+                              : myMember?.jabatanTerakhir || currentUser.jabatanTerakhir || (currentUser.nrp === '98010710' ? 'Staf' : undefined),
                             myMember?.satuanKerja || currentUser.satker || 'Mabes Polri'
                           )}
                         </p>

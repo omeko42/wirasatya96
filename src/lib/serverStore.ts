@@ -300,7 +300,7 @@ export function readDb(): GlobalStore {
     iuranList: [...INITIAL_IURAN_LIST],
     financeSummary: { ...INITIAL_FINANCE_SUMMARY },
     financeConfig: { ...DEFAULT_FINANCE_CONFIG },
-    activeSession: PRESET_USERS[0],
+    activeSession: null,
     messages: [...INITIAL_MESSAGES],
     registrations: [...INITIAL_REGISTRATIONS],
     posts: [...INITIAL_FEED_POSTS],
@@ -588,11 +588,22 @@ export function readDb(): GlobalStore {
             m.tempatLahir = memberRef.tempatLahir;
           }
           if (memberRef.tanggalLahir && (!m.tanggalLahir || m.tanggalLahir.endsWith('-09-01') || m.tanggalLahir === '1974-01-01')) {
-            const calc = calculateRetirement58(memberRef.tanggalLahir, m.nrp);
-            m.tanggalLahir = calc.tanggalLahir;
-            m.usia = calc.usiaTahun;
-            m.tahunPurnaTugas = calc.tahunPurnaTugas;
-            m.sisaTahunDinas = calc.sisaTahunDinas;
+            m.tanggalLahir = memberRef.tanggalLahir;
+          }
+          if (!m.golonganDarah && memberRef.golonganDarah) m.golonganDarah = memberRef.golonganDarah;
+          if (!m.ukuranBaju && memberRef.ukuranBaju) m.ukuranBaju = memberRef.ukuranBaju;
+          if (!m.ukuranCelana && memberRef.ukuranCelana) m.ukuranCelana = memberRef.ukuranCelana;
+          if (!m.ukuranSepatu && memberRef.ukuranSepatu) m.ukuranSepatu = memberRef.ukuranSepatu;
+          if (m.statusKedinasan === 'ALMARHUM') {
+            if (!m.namaIstri && memberRef.namaIstri) m.namaIstri = memberRef.namaIstri;
+            if (!m.kontakIstri && memberRef.kontakIstri) m.kontakIstri = memberRef.kontakIstri;
+            if ((!m.daftarAnak || m.daftarAnak.length === 0) && memberRef.daftarAnak && memberRef.daftarAnak.length > 0) {
+              m.daftarAnak = memberRef.daftarAnak;
+              m.jumlahAnak = memberRef.daftarAnak.length;
+            }
+            if ((!m.alamatTempatTinggal || m.alamatTempatTinggal === m.polda) && memberRef.alamatTempatTinggal) {
+              m.alamatTempatTinggal = memberRef.alamatTempatTinggal;
+            }
           }
         } else {
           m.jabatanTerakhir = cleanStatusWrapperFromJabatan(m.jabatanTerakhir);
@@ -600,6 +611,13 @@ export function readDb(): GlobalStore {
           m.statusKedinasan = resolvedStatus;
           m.statusDinas = resolvedStatus;
         }
+
+        // Always recalculate BUP 60 Tahun retirement fields from tanggalLahir
+        const calcBup60 = calculateRetirement58(m.tanggalLahir, m.nrp);
+        m.tanggalLahir = calcBup60.tanggalLahir;
+        m.usia = calcBup60.usiaTahun;
+        m.tahunPurnaTugas = calcBup60.tahunPurnaTugas;
+        m.sisaTahunDinas = calcBup60.sisaTahunDinas;
 
         m.email = migrateOfficialEmail(m.nrp, m.email);
         m.satuanKerja = cleanSatkerRoleSuffix(m.satuanKerja, m.nrp);
@@ -2613,8 +2631,8 @@ export const serverStore = {
           statusPerkawinan: 'MENIKAH',
           jumlahAnak: 0,
           daftarAnak: [],
-          tahunPurnaTugas: 2032,
-          sisaTahunDinas: 6,
+          tahunPurnaTugas: 2034,
+          sisaTahunDinas: 8,
           alamatPurnaTugas: reg.polda,
           statusRumahPurnaTugas: 'MILIK PRIBADI',
           sudahPembekalan: 'SUDAH',

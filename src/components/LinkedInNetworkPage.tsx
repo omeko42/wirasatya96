@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { AuthUser, AnggotaWiraSatya } from '@/types';
-import { isSuperadminAccount } from '@/lib/avatarUtils';
+import { isSuperadminAccount, detectStatusKedinasan } from '@/lib/avatarUtils';
 import { 
   Users, 
   Shield, 
@@ -62,10 +62,30 @@ export const LinkedInNetworkPage: React.FC<LinkedInNetworkPageProps> = ({
       m.jabatanTerakhir.toLowerCase().includes(q) ||
       m.satuanKerja.toLowerCase().includes(q) ||
       (m.subSatker && m.subSatker.toLowerCase().includes(q)) ||
-      m.polda.toLowerCase().includes(q);
+      m.polda.toLowerCase().includes(q) ||
+      (m.namaIstri && m.namaIstri.toLowerCase().includes(q)) ||
+      (m.daftarAnak && m.daftarAnak.some((a) => a.nama.toLowerCase().includes(q)));
 
     return matchPolda && matchQuery;
   });
+
+  const activeAndPurnaMembers = filteredMembers.filter(
+    (m) =>
+      detectStatusKedinasan(
+        m.statusKedinasan || m.statusDinas,
+        m.jabatanTerakhir || m.jabatan,
+        m.jenisAnggota
+      ) !== 'ALMARHUM'
+  );
+
+  const almarhumMembers = filteredMembers.filter(
+    (m) =>
+      detectStatusKedinasan(
+        m.statusKedinasan || m.statusDinas,
+        m.jabatanTerakhir || m.jabatan,
+        m.jenisAnggota
+      ) === 'ALMARHUM'
+  );
 
   return (
     <div className="max-w-7xl mx-auto py-2 font-sans text-slate-900 pb-20">
@@ -251,114 +271,253 @@ export const LinkedInNetworkPage: React.FC<LinkedInNetworkPageProps> = ({
             </div>
           </div>
 
-          {/* Grid of Connection Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {filteredMembers.map((member) => {
-              const isSelf = currentUser.nrp === member.nrp;
-              const canEditThisMember = isLeadership || isSelf;
+          {/* Grid of Connection Cards (Aktif & Purna Tugas) */}
+          {activeAndPurnaMembers.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {activeAndPurnaMembers.map((member) => {
+                const isSelf = currentUser.nrp === member.nrp;
+                const canEditThisMember = isLeadership || isSelf;
 
-              return (
-                <div
-                  key={member.id}
-                  className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition-shadow flex flex-col text-center"
-                >
-                  {/* Top Cover */}
-                  <div className="h-14 relative overflow-hidden bg-slate-900">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/default-cover.jpg"
-                      alt="Sampul"
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute top-1.5 right-2 px-2 py-0.5 rounded-full bg-black/50 text-[9px] font-bold text-amber-300">
-                      {member.pangkat}
-                    </span>
-                  </div>
-
-                  {/* Body */}
-                  <div className="p-3 pt-0 flex-1 flex flex-col justify-between">
-                    <div>
-                      {/* Avatar */}
-                      <div 
-                        onClick={() => onSelectMember(member)}
-                        className="w-14 h-14 rounded-full border-2 border-white shadow mx-auto -mt-7 overflow-hidden bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={member.fotoUrl || '/default-avatar.png'}
-                          alt={member.namaLengkap}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-
-                      <h4 
-                        onClick={() => onSelectMember(member)}
-                        className="text-xs font-bold text-slate-900 hover:text-red-900 cursor-pointer mt-2 line-clamp-1"
-                        title={member.namaLengkap}
-                      >
-                        {member.namaLengkap.split(',')[0]}
-                      </h4>
-                      <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5 font-medium">
-                        {member.jabatanTerakhir}
-                      </p>
-                      <p className="text-[10px] font-semibold text-red-900 mt-0.5 truncate">
-                        {member.satuanKerja}
-                      </p>
-
-                      <div className="mt-2 text-[10px] text-slate-400">
-                        <span>Alumni Akpol 1996 &bull; Purna {member.tahunPurnaTugas}</span>
-                      </div>
+                return (
+                  <div
+                    key={member.id}
+                    className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition-shadow flex flex-col text-center"
+                  >
+                    {/* Top Cover */}
+                    <div className="h-14 relative overflow-hidden bg-slate-900">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="/default-cover.jpg"
+                        alt="Sampul"
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute top-1.5 right-2 px-2 py-0.5 rounded-full bg-black/50 text-[9px] font-bold text-amber-300">
+                        {member.pangkat}
+                      </span>
                     </div>
 
-                    {/* Action Buttons: Kirim WA, Chat, Profil, and Edit */}
-                    <div className="pt-3 mt-2 border-t border-slate-100 flex items-center gap-1.5 flex-wrap">
-                      <a
-                        href={`https://wa.me/${member.noHp.replace(/[^0-9]/g, '')}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="py-1 px-2 rounded-full border border-red-800 text-red-900 hover:bg-red-50 font-bold text-[11px] flex items-center justify-center gap-1 transition-colors flex-1"
-                        title="Kirim Pesan WhatsApp"
-                      >
-                        <Phone className="w-3 h-3" />
-                        <span>WA</span>
-                      </a>
-
-                      {!isSelf && onOpenChat && (
-                        <button
-                          onClick={() => onOpenChat(member)}
-                          className="py-1 px-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors flex-1"
-                          title="Buka Obrolan Leting Langsung"
+                    {/* Body */}
+                    <div className="p-3 pt-0 flex-1 flex flex-col justify-between">
+                      <div>
+                        {/* Avatar */}
+                        <div 
+                          onClick={() => onSelectMember(member)}
+                          className="w-14 h-14 rounded-full border-2 border-white shadow mx-auto -mt-7 overflow-hidden bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity"
                         >
-                          <MessageSquare className="w-3 h-3 text-amber-400" />
-                          <span>Chat</span>
-                        </button>
-                      )}
-                      
-                      <button
-                        onClick={() => onSelectMember(member)}
-                        className="py-1 px-2.5 rounded-full border border-slate-300 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold transition-colors"
-                        title="Lihat Profil Lengkap"
-                      >
-                        Profil
-                      </button>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={member.fotoUrl || '/default-avatar.png'}
+                            alt={member.namaLengkap}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
 
-                      {/* EDIT BUTTON: Only shown if user is Ketua, Sekretariat, Superadmin, OR editing self */}
-                      {canEditThisMember && onEditMember && (
-                        <button
-                          onClick={() => onEditMember(member)}
-                          className="py-1 px-2.5 rounded-full bg-red-800 hover:bg-red-900 text-white text-[11px] font-bold transition-colors flex items-center gap-1 shadow-xs"
-                          title={isSelf ? 'Perbarui Profil Saya' : `Edit Data Anggota (${currentUser.role})`}
+                        <h4 
+                          onClick={() => onSelectMember(member)}
+                          className="text-xs font-bold text-slate-900 hover:text-red-900 cursor-pointer mt-2 line-clamp-1"
+                          title={member.namaLengkap}
                         >
-                          <Edit3 className="w-3 h-3" />
-                          <span>Edit</span>
+                          {member.namaLengkap.split(',')[0]}
+                        </h4>
+                        <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5 font-medium">
+                          {member.jabatanTerakhir}
+                        </p>
+                        <p className="text-[10px] font-semibold text-red-900 mt-0.5 truncate">
+                          {member.satuanKerja}
+                        </p>
+
+                        <div className="mt-2 text-[10px] text-slate-400">
+                          <span>Alumni Akpol 1996 &bull; Purna {member.tahunPurnaTugas}</span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons: Kirim WA, Chat, Profil, and Edit */}
+                      <div className="pt-3 mt-2 border-t border-slate-100 flex items-center gap-1.5 flex-wrap">
+                        <a
+                          href={`https://wa.me/${member.noHp.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="py-1 px-2 rounded-full border border-red-800 text-red-900 hover:bg-red-50 font-bold text-[11px] flex items-center justify-center gap-1 transition-colors flex-1"
+                          title="Kirim Pesan WhatsApp"
+                        >
+                          <Phone className="w-3 h-3" />
+                          <span>WA</span>
+                        </a>
+
+                        {!isSelf && onOpenChat && (
+                          <button
+                            onClick={() => onOpenChat(member)}
+                            className="py-1 px-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors flex-1"
+                            title="Buka Obrolan Leting Langsung"
+                          >
+                            <MessageSquare className="w-3 h-3 text-amber-400" />
+                            <span>Chat</span>
+                          </button>
+                        )}
+                        
+                        <button
+                          onClick={() => onSelectMember(member)}
+                          className="py-1 px-2.5 rounded-full border border-slate-300 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold transition-colors"
+                          title="Lihat Profil Lengkap"
+                        >
+                          Profil
                         </button>
-                      )}
+
+                        {/* EDIT BUTTON: Only shown if user is Ketua, Sekretariat, Superadmin, OR editing self */}
+                        {canEditThisMember && onEditMember && (
+                          <button
+                            onClick={() => onEditMember(member)}
+                            className="py-1 px-2.5 rounded-full bg-red-800 hover:bg-red-900 text-white text-[11px] font-bold transition-colors flex items-center gap-1 shadow-xs"
+                            title={isSelf ? 'Perbarui Profil Saya' : `Edit Data Anggota (${currentUser.role})`}
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Grup Khusus In Memoriam — Keluarga Besar Almarhum Wira Satya 96 */}
+          {almarhumMembers.length > 0 && (
+            <div className="space-y-3.5 pt-2">
+              <div className="p-4 rounded-xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border border-amber-400/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-sm font-extrabold text-amber-300 flex items-center gap-2">
+                    <span>🕊️ In Memoriam — Keluarga Besar Almarhum Wira Satya 96</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-300 mt-0.5">
+                    Dikelompokkan tersendiri untuk silaturahmi, pendataan Istri / Ahli Waris, serta Putra-Putri rekan leting Almarhum.
+                  </p>
                 </div>
-              );
-            })}
-          </div>
+                <span className="px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold self-start sm:self-auto shrink-0">
+                  {almarhumMembers.length} Almarhum
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {almarhumMembers.map((member) => {
+                  const canEditThisMember = isLeadership || currentUser.nrp === member.nrp;
+                  const kontakKeluarga = member.kontakIstri || member.noHp;
+                  const daftarAnak = Array.isArray(member.daftarAnak) ? member.daftarAnak : [];
+
+                  return (
+                    <div
+                      key={member.id}
+                      className="bg-white rounded-xl border-2 border-slate-300 overflow-hidden shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between p-4 space-y-3"
+                    >
+                      <div className="space-y-2.5">
+                        <div className="flex items-start gap-3">
+                          <div
+                            onClick={() => onSelectMember(member)}
+                            className="w-12 h-12 rounded-full border-2 border-slate-400 overflow-hidden bg-slate-100 shrink-0 cursor-pointer"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={member.fotoUrl || '/default-avatar.png'}
+                              alt={member.namaLengkap}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                              <span className="px-2 py-0.5 rounded bg-slate-800 text-amber-300 text-[9px] font-bold">
+                                🕊️ IN MEMORIAM • {member.pangkat}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-500">NRP {member.nrp}</span>
+                            </div>
+                            <h4
+                              onClick={() => onSelectMember(member)}
+                              className="text-xs font-extrabold text-slate-900 hover:text-red-900 cursor-pointer mt-1 truncate"
+                              title={member.namaLengkap}
+                            >
+                              Alm. {member.namaLengkap}
+                            </h4>
+                            <p className="text-[10px] text-slate-500 truncate">
+                              {member.jabatanTerakhir} • {member.satuanKerja}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Ringkasan Keluarga (Istri & Anak) */}
+                        <div className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200/80 text-[11px] space-y-1 text-left">
+                          <p className="text-amber-950">
+                            <b>👩 Istri / Ahli Waris:</b> {member.namaIstri || 'Ny. Keluarga Almarhum'}
+                          </p>
+                          <p className="text-slate-700">
+                            <b>📞 Kontak Keluarga:</b> {kontakKeluarga || '-'}
+                          </p>
+                          <p className="text-slate-700">
+                            <b>🏠 Domisili:</b> {member.alamatTempatTinggal || '-'}
+                          </p>
+                          <div className="pt-1 border-t border-amber-200/60">
+                            <span className="font-bold text-slate-800 block mb-1">
+                              🎓 Putra-Putri ({daftarAnak.length || member.jumlahAnak || 0} Anak):
+                            </span>
+                            {daftarAnak.length > 0 ? (
+                              <div className="space-y-1">
+                                {daftarAnak.map((anak, idx) => (
+                                  <div
+                                    key={anak.id || idx}
+                                    className="bg-white px-2 py-1 rounded border border-amber-200/70 flex items-center justify-between gap-1 text-[10px]"
+                                  >
+                                    <span className="font-semibold text-slate-800 truncate">
+                                      {idx + 1}. {anak.nama}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-800 font-bold shrink-0">
+                                      {anak.status}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-500 italic">Belum ada rincian anak</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 flex-wrap">
+                        {kontakKeluarga && (
+                          <a
+                            href={`https://wa.me/${kontakKeluarga.replace(/[^0-9]/g, '').replace(/^0/, '62')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="py-1 px-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors flex-1"
+                            title="Hubungi Keluarga Almarhum via WhatsApp"
+                          >
+                            <Phone className="w-3 h-3" />
+                            <span>WA Keluarga</span>
+                          </a>
+                        )}
+
+                        <button
+                          onClick={() => onSelectMember(member)}
+                          className="py-1 px-2.5 rounded-full border border-slate-300 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold transition-colors"
+                        >
+                          Profil Keluarga
+                        </button>
+
+                        {canEditThisMember && onEditMember && (
+                          <button
+                            onClick={() => onEditMember(member)}
+                            className="py-1 px-2.5 rounded-full bg-slate-800 hover:bg-slate-900 text-amber-300 text-[11px] font-bold transition-colors flex items-center gap-1"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            <span>Edit Keluarga</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {filteredMembers.length === 0 && (
             <div className="bg-white rounded-xl p-8 border border-slate-200 text-center space-y-2">

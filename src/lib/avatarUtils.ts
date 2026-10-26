@@ -116,7 +116,7 @@ export function formatJabatanWithSatker(
   return `${cleanJab} — ${cleanSat}`;
 }
 
-export const RETIREMENT_AGE_POLRI = 58;
+export const RETIREMENT_AGE_POLRI = 60;
 
 const NAMA_BULAN_ID = [
   'Januari',
@@ -230,8 +230,8 @@ export function calculateRetirement58(
   let sisaMasaDinasLabel = '';
   let sisaMasaDinasShort = '';
   if (isPurnaTugas) {
-    sisaMasaDinasLabel = 'Memasuki Masa Purna Tugas (Usia ≥ 58 Thn)';
-    sisaMasaDinasShort = 'Purna Tugas (58 Thn)';
+    sisaMasaDinasLabel = `Memasuki Masa Purna Tugas (Usia ≥ ${RETIREMENT_AGE_POLRI} Thn)`;
+    sisaMasaDinasShort = `Purna Tugas (${RETIREMENT_AGE_POLRI} Thn)`;
   } else if (sisaTahunDinas > 0 && sisaBulanDinas > 0) {
     sisaMasaDinasLabel = `${sisaTahunDinas} Tahun ${sisaBulanDinas} Bulan Lagi`;
     sisaMasaDinasShort = `${sisaTahunDinas} Thn ${sisaBulanDinas} Bln Lagi`;
@@ -275,15 +275,67 @@ export function getOrBuildUserProfile(
   currentUser: AuthUser,
   members: AnggotaWiraSatya[]
 ): AnggotaWiraSatya {
-  const existing = members.find((m) => m.nrp === currentUser.nrp);
+  const existing = members.find(
+    (m) => m.nrp === currentUser.nrp || (currentUser.oldNrp && m.nrp === currentUser.oldNrp) || (m.oldNrp && m.oldNrp === currentUser.nrp)
+  );
   if (existing) {
-    const calc = calculateRetirement58(existing.tanggalLahir, existing.nrp);
-    const rawJab = cleanJabatanOnly(existing.jabatanTerakhir) || existing.jabatanTerakhir;
+    const userTime = currentUser.updatedAt ? new Date(currentUser.updatedAt).getTime() : 0;
+    const memberTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+    const preferUser = userTime > memberTime;
+    const effectiveBirth =
+      (preferUser && currentUser.tanggalLahir ? currentUser.tanggalLahir : existing.tanggalLahir) ||
+      currentUser.tanggalLahir;
+    const calc = calculateRetirement58(effectiveBirth, existing.nrp);
+    const rawJab =
+      cleanJabatanOnly(
+        preferUser && currentUser.jabatanTerakhir ? currentUser.jabatanTerakhir : existing.jabatanTerakhir
+      ) || existing.jabatanTerakhir;
     return {
       ...existing,
-      pangkat: currentUser.nrp === existing.nrp && currentUser.pangkat ? currentUser.pangkat : existing.pangkat,
-      satuanKerja: currentUser.nrp === existing.nrp && currentUser.satker ? currentUser.satker : existing.satuanKerja,
-      polda: currentUser.nrp === existing.nrp && currentUser.polda ? currentUser.polda : existing.polda,
+      namaLengkap:
+        preferUser && currentUser.nama
+          ? stripRankFromName(currentUser.nama) || currentUser.nama
+          : existing.namaLengkap,
+      pangkat:
+        preferUser && currentUser.pangkat
+          ? currentUser.pangkat
+          : existing.pangkat || currentUser.pangkat,
+      satuanKerja:
+        preferUser && currentUser.satker
+          ? currentUser.satker
+          : existing.satuanKerja || currentUser.satker || 'Mabes Polri',
+      polda:
+        preferUser && currentUser.polda
+          ? currentUser.polda
+          : existing.polda || currentUser.polda || 'MABES POLRI',
+      statusKedinasan:
+        (preferUser && currentUser.statusKedinasan
+          ? currentUser.statusKedinasan
+          : existing.statusKedinasan || existing.statusDinas || currentUser.statusKedinasan) || 'AKTIF',
+      statusDinas:
+        (preferUser && currentUser.statusKedinasan
+          ? currentUser.statusKedinasan
+          : existing.statusDinas || existing.statusKedinasan || currentUser.statusKedinasan) || 'AKTIF',
+      email:
+        preferUser && currentUser.email
+          ? currentUser.email
+          : existing.email || currentUser.email,
+      secondaryEmail:
+        preferUser && currentUser.secondaryEmail !== undefined
+          ? currentUser.secondaryEmail
+          : existing.secondaryEmail ?? currentUser.secondaryEmail,
+      noHp:
+        preferUser && currentUser.noHp
+          ? currentUser.noHp
+          : existing.noHp || currentUser.noHp || '',
+      bio:
+        preferUser && currentUser.bio !== undefined
+          ? currentUser.bio
+          : existing.bio ?? currentUser.bio,
+      golonganDarah: existing.golonganDarah || currentUser.golonganDarah,
+      ukuranBaju: existing.ukuranBaju || currentUser.ukuranBaju,
+      ukuranCelana: existing.ukuranCelana || currentUser.ukuranCelana,
+      ukuranSepatu: existing.ukuranSepatu || currentUser.ukuranSepatu,
       tanggalLahir: calc.tanggalLahir,
       usia: calc.usiaTahun,
       tahunPurnaTugas: calc.tahunPurnaTugas,

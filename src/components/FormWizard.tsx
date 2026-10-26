@@ -97,6 +97,33 @@ const DAFTAR_PENYAKIT = [
   'PENYAKIT LIVER',
 ];
 
+const DAFTAR_GOLONGAN_DARAH = [
+  'O',
+  'A',
+  'B',
+  'AB',
+  'O+',
+  'O-',
+  'A+',
+  'A-',
+  'B+',
+  'B-',
+  'AB+',
+  'AB-',
+  'BELUM TERDATA',
+] as const;
+
+const DAFTAR_UKURAN_BAJU = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL', '4XL'] as const;
+const DAFTAR_UKURAN_CELANA = [
+  '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '42', '44', '46',
+] as const;
+const DAFTAR_UKURAN_SEPATU = ['38', '39', '40', '41', '42', '43', '44', '45', '46', '47'] as const;
+const KISARAN_BIAYA_SEWA_OPTIONS = [
+  '< Rp 25 Juta / Tahun',
+  'Rp 25 Juta - Rp 50 Juta / Tahun',
+  '> Rp 50 Juta / Tahun',
+] as const;
+
 const DAFTAR_ASURANSI: ('BPJS' | 'ASURANSI KESEHATAN' | 'ASURANSI JIWA' | 'TIDAK ADA')[] = [
   'BPJS',
   'ASURANSI KESEHATAN',
@@ -228,7 +255,13 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     polda: 'MABES POLRI',
     pendidikanTerakhir: '',
     jenisKelamin: 'LAKI-LAKI',
+    golonganDarah: 'O',
+    ukuranBaju: 'XL',
+    ukuranCelana: '34',
+    ukuranSepatu: '42',
     statusTempatTinggal: 'MILIK PRIBADI',
+    biayaSewaTempatTinggal: '',
+    detailSewaTempatTinggal: '',
     statusPerkawinan: 'MENIKAH',
     jumlahAnak: 0,
     daftarAnak: [],
@@ -237,9 +270,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     nrpAdc: '',
     kontakAdc: '',
     daftarAdc: [],
-    tahunPurnaTugas: 2032,
-    sisaTahunDinas: 6,
+    tahunPurnaTugas: 2034,
+    sisaTahunDinas: 8,
     statusRumahPurnaTugas: 'MILIK PRIBADI',
+    biayaSewaTahunan: '',
+    detailSewaPurnaTugas: '',
     sudahPembekalan: 'SUDAH',
     rencanaAktivitas: ['USAHA SENDIRI'],
     statusUsaha: 'MASIH RENCANA',
@@ -322,6 +357,18 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         sisaTahunDinas: calc58.sisaTahunDinas,
         jabatanTerakhir: cleanedJabatan,
         jenisAnggota: resolvedKind,
+        golonganDarah:
+          existingMember.golonganDarah || (isSelf ? activeUser.golonganDarah : undefined) || 'O',
+        ukuranBaju:
+          existingMember.ukuranBaju || (isSelf ? activeUser.ukuranBaju : undefined) || 'XL',
+        ukuranCelana:
+          existingMember.ukuranCelana || (isSelf ? activeUser.ukuranCelana : undefined) || '34',
+        ukuranSepatu:
+          existingMember.ukuranSepatu || (isSelf ? activeUser.ukuranSepatu : undefined) || '42',
+        biayaSewaTempatTinggal: existingMember.biayaSewaTempatTinggal || '',
+        detailSewaTempatTinggal: existingMember.detailSewaTempatTinggal || '',
+        biayaSewaTahunan: existingMember.biayaSewaTahunan || '',
+        detailSewaPurnaTugas: existingMember.detailSewaPurnaTugas || '',
         namaAdc: existingMember.namaAdc || firstAdc?.nama || '',
         pangkatAdc: existingMember.pangkatAdc || firstAdc?.pangkat || 'Briptu',
         nrpAdc: existingMember.nrpAdc || firstAdc?.nrp || '',
@@ -369,6 +416,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         tahunPurnaTugas: calc58.tahunPurnaTugas,
         sisaTahunDinas: calc58.sisaTahunDinas,
         jenisAnggota: resolvedKind,
+        golonganDarah: activeUser.golonganDarah || 'O',
+        ukuranBaju: activeUser.ukuranBaju || 'XL',
+        ukuranCelana: activeUser.ukuranCelana || '34',
+        ukuranSepatu: activeUser.ukuranSepatu || '42',
+        biayaSewaTempatTinggal: '',
+        detailSewaTempatTinggal: '',
         satuanKerja: activeUser.satker || 'Bareskrim Polri',
         polda: activeUser.polda || 'MABES POLRI',
         fotoUrl: resolveAvatarUrl(activeUser.fotoUrl),
@@ -392,6 +445,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         tahunPurnaTugas: calc58.tahunPurnaTugas,
         sisaTahunDinas: calc58.sisaTahunDinas,
         jenisAnggota: 'ANGGOTA POLRI',
+        golonganDarah: 'O',
+        ukuranBaju: 'XL',
+        ukuranCelana: '34',
+        ukuranSepatu: '42',
+        biayaSewaTempatTinggal: '',
+        detailSewaTempatTinggal: '',
+        biayaSewaTahunan: '',
+        detailSewaPurnaTugas: '',
         jabatanTerakhir: '',
         satuanKerja: 'Bareskrim Polri',
         polda: 'MABES POLRI',
@@ -413,6 +474,28 @@ export const FormWizard: React.FC<FormWizardProps> = ({
     () => calculateRetirement58(formData.tanggalLahir, formData.nrp),
     [formData.tanggalLahir, formData.nrp]
   );
+
+  // Memoize Jabatan groups & active selection so typing in text fields is smooth
+  const jabatanSelectConfig = React.useMemo(() => {
+    const groups = getJabatanGroupsForPangkat(formData.pangkat, formData.nrp);
+    const curJab = (formData.jabatanTerakhir || '').trim();
+    const isCurInStandard = isStandardPolriJabatan(curJab, formData.pangkat, formData.nrp);
+    const isOfficer = isOfficerRankIpdaUp(formData.pangkat);
+    const selectValue = isExternalJabatan
+      ? EXTERNAL_JABATAN_SENTINEL
+      : isCurInStandard
+      ? curJab
+      : isOfficer && curJab
+      ? curJab
+      : groups[0]?.options[0] || 'Staf';
+    return {
+      groups,
+      curJab,
+      isCurInStandard,
+      isOfficer,
+      selectValue,
+    };
+  }, [formData.pangkat, formData.nrp, formData.jabatanTerakhir, isExternalJabatan]);
 
   const handleInputChange = (
     field: keyof FormWizardData,
@@ -734,8 +817,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       fotoUrl: finalFotoUrl,
       coverUrl: formData.coverUrl,
       bio: formData.bio || '',
+      golonganDarah: formData.golonganDarah || base?.golonganDarah || 'O',
+      ukuranBaju: formData.ukuranBaju || base?.ukuranBaju || 'XL',
+      ukuranCelana: formData.ukuranCelana || base?.ukuranCelana || '34',
+      ukuranSepatu: formData.ukuranSepatu || base?.ukuranSepatu || '42',
       alamatTempatTinggal: formData.alamatTempatTinggal || '',
       statusTempatTinggal: formData.statusTempatTinggal || 'MILIK PRIBADI',
+      biayaSewaTempatTinggal: formData.biayaSewaTempatTinggal || '',
+      detailSewaTempatTinggal: formData.detailSewaTempatTinggal || '',
 
       statusPerkawinan: formData.statusPerkawinan || 'MENIKAH',
       namaIstri: formData.namaIstri || '',
@@ -833,8 +922,14 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         fotoUrl: fullSnapshot.fotoUrl,
         coverUrl: fullSnapshot.coverUrl,
         bio: fullSnapshot.bio,
+        golonganDarah: fullSnapshot.golonganDarah,
+        ukuranBaju: fullSnapshot.ukuranBaju,
+        ukuranCelana: fullSnapshot.ukuranCelana,
+        ukuranSepatu: fullSnapshot.ukuranSepatu,
         alamatTempatTinggal: fullSnapshot.alamatTempatTinggal,
         statusTempatTinggal: fullSnapshot.statusTempatTinggal,
+        biayaSewaTempatTinggal: fullSnapshot.biayaSewaTempatTinggal,
+        detailSewaTempatTinggal: fullSnapshot.detailSewaTempatTinggal,
         updatedAt: nowIso,
       };
     } else if (tabNum === 2) {
@@ -843,6 +938,8 @@ export const FormWizard: React.FC<FormWizardProps> = ({
         ...baselineMember,
         alamatTempatTinggal: fullSnapshot.alamatTempatTinggal,
         statusTempatTinggal: fullSnapshot.statusTempatTinggal,
+        biayaSewaTempatTinggal: fullSnapshot.biayaSewaTempatTinggal,
+        detailSewaTempatTinggal: fullSnapshot.detailSewaTempatTinggal,
         statusPerkawinan: fullSnapshot.statusPerkawinan,
         namaIstri: fullSnapshot.namaIstri,
         tempatLahirIstri: fullSnapshot.tempatLahirIstri,
@@ -882,6 +979,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       // Tab 4: Kesehatan & Asuransi ONLY
       mergedMember = {
         ...baselineMember,
+        golonganDarah: fullSnapshot.golonganDarah,
         adaPenyakitKronis: fullSnapshot.adaPenyakitKronis,
         kondisiKesehatan: fullSnapshot.kondisiKesehatan,
         daftarPenyakit: fullSnapshot.daftarPenyakit,
@@ -1008,6 +1106,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             satker: mergedMember.satuanKerja,
             polda: mergedMember.polda,
             statusKedinasan: mergedMember.statusKedinasan,
+            golonganDarah: mergedMember.golonganDarah,
+            ukuranBaju: mergedMember.ukuranBaju,
+            ukuranCelana: mergedMember.ukuranCelana,
+            ukuranSepatu: mergedMember.ukuranSepatu,
           };
           localStorage.setItem('ws96_auth_user', JSON.stringify(updatedAuth));
           localStorage.setItem('ws96_active_user', JSON.stringify(updatedAuth));
@@ -1295,6 +1397,41 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 </div>
               </div>
 
+              {/* Kartu Informasi Khusus Personel Berstatus ALMARHUM di Tab 1 */}
+              {formData.statusKedinasan === 'ALMARHUM' && (
+                <div className="p-4 rounded-xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border border-amber-400/50 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                  <div className="space-y-1">
+                    <div className="text-xs sm:text-sm font-extrabold text-amber-300 flex items-center gap-1.5">
+                      <span>🕊️ Status Personel: In Memoriam (Almarhum)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      Pendataan keluarga &amp; ahli waris tetap aktif untuk keperluan santunan, silaturahmi, dan beasiswa pendidikan putra-putri almarhum.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
+                      <span className="px-2.5 py-0.5 rounded-md bg-white/10 text-amber-200 font-bold border border-white/15">
+                        Istri / Ahli Waris: {formData.namaIstri?.trim() ? formData.namaIstri : 'Belum Diisi'}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-md bg-white/10 text-emerald-200 font-bold border border-white/15">
+                        Putra-Putri Terdata: {formData.daftarAnak?.length || 0} Anak
+                      </span>
+                      {formData.kontakIstri && (
+                        <span className="px-2.5 py-0.5 rounded-md bg-white/10 text-slate-200 font-semibold border border-white/15">
+                          WA Keluarga: {formData.kontakIstri}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="px-3.5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer shrink-0"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>Lengkapi Data Istri &amp; Anak Almarhum (Buka Tab 2)</span>
+                  </button>
+                </div>
+              )}
+
               {/* Satker Melekat (Pilih Satker Berjenjang) & Jabatan Organisasi Polri Saat Ini */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
                 <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between gap-2.5">
@@ -1333,87 +1470,72 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <span className="text-red-500">*</span>
                     </label>
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-700">
-                      {isOfficerRankIpdaUp(formData.pangkat)
+                      {jabatanSelectConfig.isOfficer
                         ? `Standar ${formData.pangkat}`
                         : 'Staf / ADC'}
                     </span>
                   </div>
 
-                  {(() => {
-                    const groups = getJabatanGroupsForPangkat(formData.pangkat, formData.nrp);
-                    const curJab = (formData.jabatanTerakhir || '').trim();
-                    const isCurInStandard = isStandardPolriJabatan(curJab, formData.pangkat, formData.nrp);
-                    const isOfficer = isOfficerRankIpdaUp(formData.pangkat);
-                    const selectValue = isExternalJabatan
-                      ? EXTERNAL_JABATAN_SENTINEL
-                      : isCurInStandard
-                      ? curJab
-                      : isOfficer && curJab
-                      ? curJab
-                      : groups[0]?.options[0] || 'Staf';
+                  <select
+                    value={jabatanSelectConfig.selectValue}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === EXTERNAL_JABATAN_SENTINEL) {
+                        setIsExternalJabatan(true);
+                        if (isStandardPolriJabatan(jabatanSelectConfig.curJab, formData.pangkat, formData.nrp)) {
+                          handleInputChange('jabatanTerakhir', '');
+                        }
+                      } else {
+                        setIsExternalJabatan(false);
+                        handleInputChange('jabatanTerakhir', val);
+                      }
+                    }}
+                    className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                  >
+                    {!isExternalJabatan &&
+                      jabatanSelectConfig.isOfficer &&
+                      jabatanSelectConfig.curJab &&
+                      !jabatanSelectConfig.isCurInStandard && (
+                        <optgroup label="Jabatan Tersimpan Saat Ini">
+                          <option value={jabatanSelectConfig.curJab}>{jabatanSelectConfig.curJab}</option>
+                        </optgroup>
+                      )}
+                    {jabatanSelectConfig.groups.map((grp) => (
+                      <optgroup key={grp.group} label={grp.group}>
+                        {grp.options.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                    <optgroup label="Penugasan Luar Struktur (Eksternal Polri)">
+                      <option value={EXTERNAL_JABATAN_SENTINEL}>
+                        Penugasan Luar Struktur (Eksternal Polri) — Tulis Sendiri
+                      </option>
+                    </optgroup>
+                  </select>
 
-                    return (
-                      <>
-                        <select
-                          value={selectValue}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === EXTERNAL_JABATAN_SENTINEL) {
-                              setIsExternalJabatan(true);
-                              if (isStandardPolriJabatan(curJab, formData.pangkat, formData.nrp)) {
-                                handleInputChange('jabatanTerakhir', '');
-                              }
-                            } else {
-                              setIsExternalJabatan(false);
-                              handleInputChange('jabatanTerakhir', val);
-                            }
-                          }}
-                          className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                        >
-                          {!isExternalJabatan && isOfficer && curJab && !isCurInStandard && (
-                            <optgroup label="Jabatan Tersimpan Saat Ini">
-                              <option value={curJab}>{curJab}</option>
-                            </optgroup>
-                          )}
-                          {groups.map((grp) => (
-                            <optgroup key={grp.group} label={grp.group}>
-                              {grp.options.map((opt) => (
-                                <option key={opt} value={opt}>
-                                  {opt}
-                                </option>
-                              ))}
-                            </optgroup>
-                          ))}
-                          <optgroup label="Penugasan Luar Struktur (Eksternal Polri)">
-                            <option value={EXTERNAL_JABATAN_SENTINEL}>
-                              Penugasan Luar Struktur (Eksternal Polri) — Tulis Sendiri
-                            </option>
-                          </optgroup>
-                        </select>
-
-                        {isExternalJabatan ? (
-                          <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200 space-y-1">
-                            <label className="block text-[11px] font-bold text-amber-900">
-                              Ketik Nama Jabatan Eksternal (Luar Struktur Polri) <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Contoh: Deputi Pemberantasan BNN / Direktur Penyidikan KPK / Staf Ahli Kementerian..."
-                              value={formData.jabatanTerakhir || ''}
-                              onChange={(e) => handleInputChange('jabatanTerakhir', e.target.value)}
-                              className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                            />
-                          </div>
-                        ) : (
-                          <p className="text-[10px] text-slate-500 leading-tight">
-                            {isOfficer
-                              ? 'Pilihan jabatan distandarisasi sesuai pangkat (Perpol 4/2025 & SOTK Kewilayahan). Pilih Eksternal Polri jika penugasan di luar struktur.'
-                              : 'Untuk pangkat selain IPDA ke atas di dalam struktur Polri cukup pilih Staf atau ADC (atau pilih Eksternal Polri untuk ketik sendiri).'}
-                          </p>
-                        )}
-                      </>
-                    );
-                  })()}
+                  {isExternalJabatan ? (
+                    <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200 space-y-1">
+                      <label className="block text-[11px] font-bold text-amber-900">
+                        Ketik Nama Jabatan Eksternal (Luar Struktur Polri) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Deputi Pemberantasan BNN / Direktur Penyidikan KPK / Staf Ahli Kementerian..."
+                        value={formData.jabatanTerakhir || ''}
+                        onChange={(e) => handleInputChange('jabatanTerakhir', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                      {jabatanSelectConfig.isOfficer
+                        ? 'Pilihan jabatan distandarisasi sesuai pangkat (Perpol 4/2025 & SOTK Kewilayahan). Pilih Eksternal Polri jika penugasan di luar struktur.'
+                        : 'Untuk pangkat selain IPDA ke atas di dalam struktur Polri cukup pilih Staf atau ADC (atau pilih Eksternal Polri untuk ketik sendiri).'}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1708,7 +1830,119 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Status Tempat Tinggal Saat Ini
+                    Golongan Darah
+                  </label>
+                  <select
+                    value={formData.golonganDarah || 'O'}
+                    onChange={(e) => handleInputChange('golonganDarah', e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                  >
+                    {DAFTAR_GOLONGAN_DARAH.map((gd) => (
+                      <option key={gd} value={gd}>
+                        Golongan Darah {gd}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Data Ukuran Aparel / Seragam Paguyuban (Baju, Celana, Sepatu) */}
+                <div className="sm:col-span-2 p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                    <span className="text-xs font-extrabold text-polri-navy flex items-center gap-1.5">
+                      <span>👕 Data Ukuran Aparel / Seragam Paguyuban (Baju, Celana, Sepatu)</span>
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                      Baju: {formData.ukuranBaju || 'XL'} &bull; Celana: {formData.ukuranCelana || '34'} &bull; Sepatu: {formData.ukuranSepatu || '42'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-bold text-slate-700">
+                        1. Ukuran Baju / Kemeja / Kaos
+                      </label>
+                      <select
+                        value={formData.ukuranBaju || 'XL'}
+                        onChange={(e) => handleInputChange('ukuranBaju', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        {DAFTAR_UKURAN_BAJU.map((sz) => (
+                          <option key={sz} value={sz}>
+                            Ukuran {sz}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex flex-wrap gap-1 pt-0.5">
+                        {DAFTAR_UKURAN_BAJU.map((sz) => (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => handleInputChange('ukuranBaju', sz)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-extrabold border transition-colors cursor-pointer ${
+                              (formData.ukuranBaju || 'XL') === sz
+                                ? 'bg-polri-navy text-polri-gold border-polri-navy'
+                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            {sz}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-bold text-slate-700">
+                        2. Ukuran Celana (Nomor 28 s/d 46)
+                      </label>
+                      <select
+                        value={formData.ukuranCelana || '34'}
+                        onChange={(e) => handleInputChange('ukuranCelana', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        {DAFTAR_UKURAN_CELANA.map((cl) => (
+                          <option key={cl} value={cl}>
+                            Nomor {cl}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Atau ketik ukuran celana (misal: 34 / 35)"
+                        value={formData.ukuranCelana || ''}
+                        onChange={(e) => handleInputChange('ukuranCelana', e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] bg-slate-50 focus:bg-white focus:ring-1 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-bold text-slate-700">
+                        3. Ukuran Sepatu (Nomor 38 s/d 47)
+                      </label>
+                      <select
+                        value={formData.ukuranSepatu || '42'}
+                        onChange={(e) => handleInputChange('ukuranSepatu', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      >
+                        {DAFTAR_UKURAN_SEPATU.map((sp) => (
+                          <option key={sp} value={sp}>
+                            Nomor {sp}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Atau ketik ukuran sepatu (misal: 42 / 43)"
+                        value={formData.ukuranSepatu || ''}
+                        onChange={(e) => handleInputChange('ukuranSepatu', e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] bg-slate-50 focus:bg-white focus:ring-1 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Status Kepemilikan Tempat Tinggal Saat Ini
                   </label>
                   <select
                     value={formData.statusTempatTinggal || 'MILIK PRIBADI'}
@@ -1722,7 +1956,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   </select>
                 </div>
 
-                <div className="sm:col-span-2">
+                <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     Alamat Domisili Saat Ini
                   </label>
@@ -1734,6 +1968,68 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                   />
                 </div>
+
+                {/* Panel Rincian Biaya Sewa/Kontrak Tempat Tinggal Saat Ini di Tab 1 */}
+                {formData.statusTempatTinggal === 'SEWA/KONTRAK' && (
+                  <div className="sm:col-span-2 p-4 rounded-xl bg-amber-50/80 border-2 border-amber-300 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-amber-200/80">
+                      <span className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
+                        <Home className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Rincian Biaya &amp; Keterangan Sewa / Kontrak Tempat Tinggal Saat Ini</span>
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200/70 text-amber-950">
+                        Status: SEWA / KONTRAK
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="space-y-1.5">
+                        <label className="block text-[11px] font-bold text-amber-950">
+                          1. Rincian Biaya Sewa / Kontrak (Per Tahun / Bulan)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Contoh: Rp 36.000.000 / Tahun (Rp 3.000.000 / Bulan)"
+                          value={formData.biayaSewaTempatTinggal || ''}
+                          onChange={(e) => handleInputChange('biayaSewaTempatTinggal', e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        />
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          {KISARAN_BIAYA_SEWA_OPTIONS.map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => handleInputChange('biayaSewaTempatTinggal', opt)}
+                              className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${
+                                formData.biayaSewaTempatTinggal === opt
+                                  ? 'bg-amber-800 text-white border-amber-900'
+                                  : 'bg-white text-amber-900 border-amber-300 hover:bg-amber-100'
+                              }`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-[11px] font-bold text-amber-950">
+                          2. Keterangan / Masa Sewa &amp; Lokasi Hunian
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Contoh: Kontrakan Rumah 3 KT di Jakarta Selatan, masa sewa s/d Desember 2027"
+                          value={formData.detailSewaTempatTinggal || ''}
+                          onChange={(e) => handleInputChange('detailSewaTempatTinggal', e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        />
+                        <p className="text-[10px] text-amber-800 leading-snug">
+                          Isi rincian jenis hunian sewa/kontrak dan masa berlaku sewa saat ini.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -1918,20 +2214,33 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             <div className="border-b pb-2.5 flex items-center justify-between">
               <h3 className="text-sm sm:text-base font-extrabold text-polri-navy flex items-center gap-2">
                 <Users className="w-4 h-4 text-polri-gold" />
-                Domisili Saat Ini, Data Keluarga &amp; Tanggungan Anak
+                {formData.statusKedinasan === 'ALMARHUM'
+                  ? '🕊️ Pendataan Keluarga & Ahli Waris Almarhum (Istri & Putra-Putri)'
+                  : 'Domisili Saat Ini, Data Keluarga & Tanggungan Anak'}
               </h3>
             </div>
+
+            {formData.statusKedinasan === 'ALMARHUM' && (
+              <div className="p-4 rounded-xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border border-amber-400/50 shadow-sm space-y-1.5">
+                <div className="text-xs sm:text-sm font-extrabold text-amber-300 flex items-center gap-1.5">
+                  <span>🕊️ Pendataan Keluarga &amp; Ahli Waris Almarhum (Istri &amp; Putra-Putri)</span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Silakan lengkapi data Istri / Ahli Waris, Nomor HP/WhatsApp aktif keluarga, alamat domisili keluarga saat ini, serta daftar lengkap Putra-Putri Almarhum untuk keperluan santunan, silaturahmi, dan dukungan pendidikan Paguyuban Wira Satya 96.
+                </p>
+              </div>
+            )}
 
             {/* Domisili & Tempat Tinggal Saat Ini */}
             <div className="bg-slate-50/70 border border-slate-200 p-4 rounded-xl space-y-3.5">
               <span className="text-xs font-black uppercase tracking-wider text-polri-navy flex items-center gap-1.5">
                 <Home className="w-3.5 h-3.5 text-polri-gold" />
-                1. Domisili &amp; Tempat Tinggal Saat Ini
+                1. Domisili &amp; Tempat Tinggal {formData.statusKedinasan === 'ALMARHUM' ? 'Keluarga ' : ''}Saat Ini
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Status Tempat Tinggal Saat Ini
+                    Status Kepemilikan Tempat Tinggal Saat Ini
                   </label>
                   <select
                     value={formData.statusTempatTinggal || 'MILIK PRIBADI'}
@@ -1947,7 +2256,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Alamat / Kota Domisili Saat Ini
+                    {formData.statusKedinasan === 'ALMARHUM'
+                      ? 'Alamat Domisili Keluarga Saat Ini'
+                      : 'Alamat / Kota Domisili Saat Ini'}
                   </label>
                   <input
                     type="text"
@@ -1957,6 +2268,65 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
                   />
                 </div>
+
+                {/* Panel Rincian Biaya Sewa/Kontrak Tempat Tinggal Saat Ini di Tab 2 */}
+                {formData.statusTempatTinggal === 'SEWA/KONTRAK' && (
+                  <div className="sm:col-span-2 p-4 rounded-xl bg-amber-50/80 border-2 border-amber-300 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-amber-200/80">
+                      <span className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
+                        <Home className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Rincian Biaya &amp; Keterangan Sewa / Kontrak Tempat Tinggal Saat Ini</span>
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200/70 text-amber-950">
+                        Status: SEWA / KONTRAK
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="space-y-1.5">
+                        <label className="block text-[11px] font-bold text-amber-950">
+                          1. Rincian Biaya Sewa / Kontrak (Per Tahun / Bulan)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Contoh: Rp 36.000.000 / Tahun (Rp 3.000.000 / Bulan)"
+                          value={formData.biayaSewaTempatTinggal || ''}
+                          onChange={(e) => handleInputChange('biayaSewaTempatTinggal', e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        />
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          {KISARAN_BIAYA_SEWA_OPTIONS.map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => handleInputChange('biayaSewaTempatTinggal', opt)}
+                              className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${
+                                formData.biayaSewaTempatTinggal === opt
+                                  ? 'bg-amber-800 text-white border-amber-900'
+                                  : 'bg-white text-amber-900 border-amber-300 hover:bg-amber-100'
+                              }`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-[11px] font-bold text-amber-950">
+                          2. Keterangan / Masa Sewa &amp; Lokasi Hunian
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Contoh: Kontrakan Rumah 3 KT di Jakarta Selatan, masa sewa s/d Desember 2027"
+                          value={formData.detailSewaTempatTinggal || ''}
+                          onChange={(e) => handleInputChange('detailSewaTempatTinggal', e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1976,7 +2346,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nama Pasangan / Bhayangkari</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {formData.statusKedinasan === 'ALMARHUM'
+                    ? 'Nama Lengkap Istri / Ahli Waris Almarhum'
+                    : 'Nama Pasangan / Bhayangkari'}
+                </label>
                 <input
                   type="text"
                   placeholder="Contoh: Ny. Dewi Hadi Wicaksono"
@@ -1987,7 +2361,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Tanggal Lahir Pasangan</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {formData.statusKedinasan === 'ALMARHUM'
+                    ? 'Tanggal Lahir Istri / Ahli Waris'
+                    : 'Tanggal Lahir Pasangan'}
+                </label>
                 <input
                   type="date"
                   value={formData.tanggalLahirIstri || ''}
@@ -2004,7 +2382,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Kontak Pasangan / Keluarga</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {formData.statusKedinasan === 'ALMARHUM'
+                    ? 'Nomor HP / WhatsApp Aktif Istri / Keluarga'
+                    : 'Kontak Pasangan / Keluarga'}
+                </label>
                 <input
                   type="text"
                   placeholder="0812-xxxx-xxxx"
@@ -2030,7 +2412,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             <div className="pt-4 border-t border-slate-100 space-y-4">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-slate-800">
-                  Data Putra / Putri &amp; Pendidikan
+                  {formData.statusKedinasan === 'ALMARHUM'
+                    ? 'Daftar Putra-Putri Almarhum & Status Pendidikan'
+                    : 'Data Putra / Putri & Pendidikan'}
                 </label>
                 <button
                   type="button"
@@ -2062,7 +2446,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 mb-1">
                         Nama Anak <span className="text-red-500">*</span>
@@ -2072,6 +2456,18 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         placeholder="Nama Lengkap Anak"
                         value={anak.nama}
                         onChange={(e) => handleUpdateChild(idx, 'nama', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                        Tempat Lahir Anak
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Jakarta"
+                        value={anak.tempatLahir || ''}
+                        onChange={(e) => handleUpdateChild(idx, 'tempatLahir', e.target.value)}
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
                       />
                     </div>
@@ -2192,7 +2588,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Status Tempat Tinggal Setelah Pensiun
+                  Status Rumah / Tempat Tinggal Setelah Pensiun
                 </label>
                 <select
                   value={formData.statusRumahPurnaTugas || 'MILIK PRIBADI'}
@@ -2218,6 +2614,65 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-polri-navy focus:outline-none"
                 />
               </div>
+
+              {/* Panel Rincian Biaya & Keterangan Sewa / Kontrak Hunian Purna Tugas di Tab 3 */}
+              {formData.statusRumahPurnaTugas === 'SEWA/KONTRAK' && (
+                <div className="sm:col-span-2 p-4 rounded-xl bg-amber-50/80 border-2 border-amber-300 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-amber-200/80">
+                    <span className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
+                      <Home className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Rincian Biaya &amp; Keterangan Sewa / Kontrak Hunian Purna Tugas</span>
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200/70 text-amber-950">
+                      Hunian Pensiun: SEWA / KONTRAK
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-bold text-amber-950">
+                        1. Rincian Estimasi Biaya Sewa / Kontrak Tahunan
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Rp 30.000.000 / Tahun (Rp 2.500.000 / Bulan)"
+                        value={formData.biayaSewaTahunan || ''}
+                        onChange={(e) => handleInputChange('biayaSewaTahunan', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {KISARAN_BIAYA_SEWA_OPTIONS.map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => handleInputChange('biayaSewaTahunan', opt)}
+                            className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${
+                              formData.biayaSewaTahunan === opt
+                                ? 'bg-amber-800 text-white border-amber-900'
+                                : 'bg-white text-amber-900 border-amber-300 hover:bg-amber-100'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-bold text-amber-950">
+                        2. Detail Rencana Sewa / Kontrak Hunian Purna Tugas
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Rencana sewa rumah di Bandung sambil menyiapkan hunian tetap"
+                        value={formData.detailSewaPurnaTugas || ''}
+                        onChange={(e) => handleInputChange('detailSewaPurnaTugas', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-amber-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -2288,11 +2743,28 @@ export const FormWizard: React.FC<FormWizardProps> = ({
             <div className="border-b pb-2.5 flex items-center justify-between">
               <h3 className="text-sm sm:text-base font-extrabold text-polri-navy flex items-center gap-2">
                 <Activity className="w-4 h-4 text-polri-gold" />
-                Riwayat Kesehatan, Asuransi &amp; Kesejahteraan
+                Riwayat Kesehatan, Golongan Darah, Asuransi &amp; Kesejahteraan
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Golongan Darah Personel
+                </label>
+                <select
+                  value={formData.golonganDarah || 'O'}
+                  onChange={(e) => handleInputChange('golonganDarah', e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                >
+                  {DAFTAR_GOLONGAN_DARAH.map((gd) => (
+                    <option key={gd} value={gd}>
+                      Golongan Darah {gd}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Riwayat Penyakit Kronis

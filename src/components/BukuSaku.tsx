@@ -746,7 +746,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
   const handleFeedScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 180) {
-      setFeedRepeatCount((prev) => Math.min(prev + 1, 25));
+      setFeedRepeatCount((prev) => Math.min(prev + 1, 3));
     }
   };
 
@@ -838,6 +838,18 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
             fotoUrl: updated.fotoUrl,
             coverUrl: updated.coverUrl,
             bio: updated.bio,
+            satker: updated.satuanKerja,
+            polda: updated.polda,
+            jabatanTerakhir: updated.jabatanTerakhir,
+            statusKedinasan: updated.statusKedinasan || updated.statusDinas,
+            email: updated.email || currentUser.email,
+            secondaryEmail: updated.secondaryEmail,
+            noHp: updated.noHp,
+            golonganDarah: updated.golonganDarah,
+            ukuranBaju: updated.ukuranBaju,
+            ukuranCelana: updated.ukuranCelana,
+            ukuranSepatu: updated.ukuranSepatu,
+            updatedAt: new Date().toISOString(),
           };
           localStorage.setItem('ws96_auth_user', JSON.stringify(nextUser));
           localStorage.setItem('ws96_active_user', JSON.stringify(nextUser));

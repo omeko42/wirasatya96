@@ -602,6 +602,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
   const handleSaveSatkerProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingSatker(true);
+    const nowIso = new Date().toISOString();
     const cleanSatker = satkerNama.trim() || 'Mabes Polri';
     const cleanPolda = satkerPolda.trim() || 'MABES POLRI';
     const cleanJabatan = jabatanPolri.trim() || 'Perwira Polri';
@@ -610,19 +611,39 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
     const cleanPhone = noHp.trim();
 
     try {
-      await fetch('/api/users', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nrp: currentUser.nrp,
-          satker: cleanSatker,
-          polda: cleanPolda,
-          jabatanTerakhir: cleanJabatan,
-          email: cleanEmail,
-          secondaryEmail: cleanSecEmail,
-          noHp: cleanPhone,
+      await Promise.all([
+        fetch('/api/users', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nrp: currentUser.nrp,
+            satker: cleanSatker,
+            polda: cleanPolda,
+            jabatanTerakhir: cleanJabatan,
+            email: cleanEmail,
+            secondaryEmail: cleanSecEmail,
+            noHp: cleanPhone,
+            updatedAt: nowIso,
+          }),
         }),
-      });
+        fetch('/api/members', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nrp: currentUser.nrp,
+            namaLengkap: currentUser.nama,
+            pangkat: currentUser.pangkat,
+            satuanKerja: cleanSatker,
+            satker: cleanSatker,
+            polda: cleanPolda,
+            jabatanTerakhir: cleanJabatan,
+            email: cleanEmail,
+            secondaryEmail: cleanSecEmail,
+            noHp: cleanPhone,
+            updatedAt: nowIso,
+          }),
+        }),
+      ]);
     } catch {
       // ignore
     }
@@ -640,8 +661,31 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
           email: cleanEmail,
           secondaryEmail: cleanSecEmail,
           noHp: cleanPhone,
+          updatedAt: nowIso,
         };
         localStorage.setItem('ws96_user_overrides_v1', JSON.stringify(parsedUOv));
+      } catch {
+        // ignore
+      }
+
+      try {
+        const rawMOv = localStorage.getItem('ws96_member_overrides_v1');
+        const parsedMOv = rawMOv ? JSON.parse(rawMOv) : {};
+        parsedMOv[currentUser.nrp] = {
+          ...(parsedMOv[currentUser.nrp] || {}),
+          nrp: currentUser.nrp,
+          namaLengkap: parsedMOv[currentUser.nrp]?.namaLengkap || currentUser.nama,
+          pangkat: parsedMOv[currentUser.nrp]?.pangkat || currentUser.pangkat,
+          satuanKerja: cleanSatker,
+          satker: cleanSatker,
+          polda: cleanPolda,
+          jabatanTerakhir: cleanJabatan,
+          email: cleanEmail,
+          secondaryEmail: cleanSecEmail,
+          noHp: cleanPhone,
+          updatedAt: nowIso,
+        };
+        localStorage.setItem('ws96_member_overrides_v1', JSON.stringify(parsedMOv));
       } catch {
         // ignore
       }
@@ -654,6 +698,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
         email: cleanEmail,
         secondaryEmail: cleanSecEmail,
         noHp: cleanPhone,
+        updatedAt: nowIso,
       };
       localStorage.setItem('ws96_auth_user', JSON.stringify(nextUser));
       localStorage.setItem('ws96_active_user', JSON.stringify(nextUser));

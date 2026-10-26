@@ -161,6 +161,24 @@ export default function LoginPage() {
   // Status & feedback
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [sessionNotice, setSessionNotice] = useState('');
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const reason = params.get('reason');
+      if (reason === 'expired' || reason === 'idle') {
+        setSessionNotice(
+          reason === 'idle'
+            ? 'Sesi sebelumnya telah ditutup otomatis demi keamanan karena tidak ada aktivitas lebih dari 1 jam. Silakan masuk kembali.'
+            : 'Sesi sebelumnya telah berakhir otomatis demi keamanan karena melewati batas waktu aktif atau tidak ada aktivitas. Silakan masuk kembali.'
+        );
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const handleToggleCaptcha = () => {
     if (isCaptchaVerifying) return;
@@ -190,6 +208,15 @@ export default function LoginPage() {
     localStorage.setItem('ws96_auth_user', JSON.stringify(user));
     localStorage.setItem('ws96_active_user', JSON.stringify(user));
     localStorage.setItem('wirasatya96_current_user', JSON.stringify(user));
+    localStorage.setItem(
+      'ws96_session_meta',
+      JSON.stringify({
+        nrp: user.nrp,
+        loginAt: Date.now(),
+        lastActivityAt: Date.now(),
+        ua: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+      })
+    );
     localStorage.removeItem('ws96_impersonator_user');
     if (mfaMethod) {
       localStorage.setItem('ws96_mfa_verified', 'true');
@@ -1390,6 +1417,13 @@ export default function LoginPage() {
               Lupa Password?
             </button>
           </div>
+
+          {sessionNotice && !errorMessage && (
+            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-xl font-medium flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 flex-shrink-0 text-amber-700" />
+              <span>{sessionNotice}</span>
+            </div>
+          )}
 
           {errorMessage && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium flex items-center gap-2">

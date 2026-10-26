@@ -1105,19 +1105,39 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
               {/* Status Purna & Kesehatan Highlights Card (alumni only; Superadmin shows only authority status) */}
               {!isSuperadminDev && (
                 <div className="mt-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0">
-                      <Clock className="w-4 h-4" />
+                  {detectStatusKedinasan(
+                    localMember.statusKedinasan || localMember.statusDinas,
+                    localMember.jabatanTerakhir || localMember.jabatan,
+                    localMember.jenisAnggota
+                  ) === 'ALMARHUM' || localMember.statusKedinasan === 'ALMARHUM' ? (
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-slate-200 text-slate-800 flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm">🕊️</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                          Status Kehormatan:
+                        </span>
+                        <span className="font-extrabold text-slate-900">
+                          🕊️ In Memoriam (Almarhum)
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[10px] text-slate-500 uppercase font-semibold block">
-                        Purna Tugas:
-                      </span>
-                      <span className="font-bold text-slate-900">
-                        {localMember.tahunPurnaTugas} ({localMember.sisaTahunDinas} Thn Lagi)
-                      </span>
+                  ) : (
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                          Purna Tugas (BUP {RETIREMENT_AGE_POLRI} Thn):
+                        </span>
+                        <span className="font-bold text-slate-900">
+                          {localMember.tahunPurnaTugas} ({localMember.sisaTahunDinas} Thn Lagi)
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
@@ -1125,10 +1145,10 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-500 uppercase font-semibold block">
-                        Kondisi Kesehatan:
+                        Kesehatan &amp; Gol. Darah:
                       </span>
                       <span className="font-bold text-emerald-700">
-                        {localMember.kondisiKesehatan}
+                        {localMember.kondisiKesehatan} • Gol. {localMember.golonganDarah || 'O'}
                       </span>
                     </div>
                   </div>
@@ -1155,6 +1175,146 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
               )}
             </div>
           </div>
+
+          {/* KARTU KHUSUS IN MEMORIAM: DATA KELUARGA & AHLI WARIS ALMARHUM */}
+          {(detectStatusKedinasan(
+            localMember.statusKedinasan || localMember.statusDinas,
+            localMember.jabatanTerakhir || localMember.jabatan,
+            localMember.jenisAnggota
+          ) === 'ALMARHUM' ||
+            localMember.statusKedinasan === 'ALMARHUM') && (
+            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-2xl border-2 border-amber-400/60 shadow-lg p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/15 pb-3.5">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-300 block">
+                    In Memoriam • Solidaritas &amp; Santunan Keluarga Besar Wira Satya 96
+                  </span>
+                  <h2 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+                    <span>🕊️ Data Keluarga &amp; Ahli Waris Almarhum (Istri &amp; Putra-Putri)</span>
+                  </h2>
+                </div>
+                {canEditProfile && (
+                  <button
+                    type="button"
+                    onClick={() => onEditProfile && onEditProfile(localMember, 2)}
+                    className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs inline-flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Update Data Keluarga Almarhum</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-white/10 border border-white/15">
+                  <span className="text-[10px] text-amber-200 uppercase font-bold block">
+                    Nama Istri / Ahli Waris
+                  </span>
+                  <span className="font-extrabold text-white text-sm block mt-0.5">
+                    {localMember.namaIstri?.trim() ? localMember.namaIstri : 'Belum Terdata'}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/10 border border-white/15">
+                  <span className="text-[10px] text-amber-200 uppercase font-bold block">
+                    No. HP / WA Keluarga
+                  </span>
+                  <div className="flex items-center justify-between gap-2 mt-0.5">
+                    <span className="font-extrabold text-emerald-300 text-sm">
+                      {localMember.kontakIstri?.trim() || localMember.noHp?.trim() || 'Belum Terdata'}
+                    </span>
+                    {(localMember.kontakIstri || localMember.noHp) && (
+                      <a
+                        href={getWaUrl(localMember.kontakIstri || localMember.noHp)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold"
+                      >
+                        Hubungi WA
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/10 border border-white/15">
+                  <span className="text-[10px] text-amber-200 uppercase font-bold block">
+                    Alamat Domisili Keluarga
+                  </span>
+                  <span className="font-bold text-white block mt-0.5">
+                    {localMember.alamatTempatTinggal || 'Belum Terdata'} (
+                    {localMember.statusTempatTinggal || 'MILIK PRIBADI'})
+                  </span>
+                  {localMember.statusTempatTinggal === 'SEWA/KONTRAK' &&
+                    (localMember.biayaSewaTempatTinggal || localMember.detailSewaTempatTinggal) && (
+                      <span className="text-[10px] text-amber-300 block mt-0.5">
+                        Sewa: {localMember.biayaSewaTempatTinggal || '-'}{' '}
+                        {localMember.detailSewaTempatTinggal ? `• ${localMember.detailSewaTempatTinggal}` : ''}
+                      </span>
+                    )}
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-amber-300 uppercase tracking-wider">
+                    Daftar Putra-Putri Almarhum ({localMember.daftarAnak?.length || 0} Anak)
+                  </span>
+                </div>
+
+                {localMember.daftarAnak && localMember.daftarAnak.length > 0 ? (
+                  <div className="overflow-x-auto rounded-xl border border-white/15 bg-white/5">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-white/10 text-amber-200 text-[11px] uppercase">
+                        <tr>
+                          <th className="py-2.5 px-3 font-bold">No</th>
+                          <th className="py-2.5 px-3 font-bold">Nama Lengkap Anak</th>
+                          <th className="py-2.5 px-3 font-bold">Tempat / Tgl Lahir</th>
+                          <th className="py-2.5 px-3 font-bold">Status Pendidikan / Bekerja</th>
+                          <th className="py-2.5 px-3 font-bold">Estimasi Biaya Pendidikan</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/10">
+                        {localMember.daftarAnak.map((anak, idx) => (
+                          <tr key={anak.id || idx} className="hover:bg-white/5">
+                            <td className="py-2.5 px-3 font-bold text-amber-300">{idx + 1}</td>
+                            <td className="py-2.5 px-3 font-bold text-white">
+                              {anak.nama || `Anak ke-${idx + 1}`}
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-200">
+                              {[anak.tempatLahir, anak.tanggalLahir].filter(Boolean).join(', ') || '-'}
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-200 border border-blue-400/30 font-bold text-[10px]">
+                                {anak.status}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 font-semibold text-amber-200">
+                              {anak.biayaPendidikanTahunan || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-white/5 border border-dashed border-white/20 text-xs text-slate-300 flex flex-wrap items-center justify-between gap-2">
+                    <span>
+                      Data putra-putri almarhum belum dilengkapi. Silakan klik tombol Update Data Keluarga Almarhum untuk menambahkan.
+                    </span>
+                    {canEditProfile && (
+                      <button
+                        type="button"
+                        onClick={() => onEditProfile && onEditProfile(localMember, 2)}
+                        className="text-amber-300 hover:underline font-bold cursor-pointer"
+                      >
+                        + Tambah Data Anak Almarhum
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* 2. SECTION: TENTANG (Fixes Crossed-Out Area #3) */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-3">
@@ -1237,6 +1397,12 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
               </span>
               <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold">
                 📍 {localMember.polda}
+              </span>
+              <span className="px-2.5 py-1 rounded-md bg-red-50 text-red-800 border border-red-200 font-bold">
+                🩸 Gol. Darah: {localMember.golonganDarah || 'O'}
+              </span>
+              <span className="px-2.5 py-1 rounded-md bg-amber-50 text-amber-900 border border-amber-200 font-bold">
+                👕 Ukuran Aparel Personel: Baju ({localMember.ukuranBaju || '-'}) • Celana ({localMember.ukuranCelana || '-'}) • Sepatu ({localMember.ukuranSepatu || '-'})
               </span>
             </div>
           </div>
@@ -1366,6 +1532,24 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     Tempat Tinggal: <b>{localMember.statusTempatTinggal}</b> (
                     {localMember.alamatTempatTinggal})
                   </p>
+                  {localMember.statusTempatTinggal === 'SEWA/KONTRAK' && (
+                    <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-950 space-y-0.5">
+                      <p className="font-extrabold text-amber-900">
+                        Rincian Sewa / Kontrak Tempat Tinggal Saat Ini:
+                      </p>
+                      <p>
+                        Biaya Sewa / Kontrak:{' '}
+                        <span className="font-bold">
+                          {localMember.biayaSewaTempatTinggal || 'Belum dirinci'}
+                        </span>
+                      </p>
+                      {localMember.detailSewaTempatTinggal && (
+                        <p className="text-amber-800">
+                          Keterangan: {localMember.detailSewaTempatTinggal}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1405,7 +1589,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
 
             {(() => {
               const extHealth = localMember as unknown as Record<string, unknown>;
-              const golonganDarah = (extHealth.golonganDarah as string) || 'O / Terdata di Dokkes';
+              const golonganDarah = localMember.golonganDarah || (extHealth.golonganDarah as string) || 'O';
               const bpjsStatus =
                 (extHealth.bpjsStatus as string) ||
                 (localMember.asuransiAktif?.includes('BPJS')
@@ -1449,7 +1633,13 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                     </div>
                     <div>
                       <span className="text-slate-500 block">Golongan Darah:</span>
-                      <span className="font-bold text-slate-900">{golonganDarah}</span>
+                      <span className="font-extrabold text-red-700">{golonganDarah}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Ukuran Aparel Personel:</span>
+                      <span className="font-bold text-slate-900">
+                        Baju ({localMember.ukuranBaju || '-'}) • Celana ({localMember.ukuranCelana || '-'}) • Sepatu ({localMember.ukuranSepatu || '-'})
+                      </span>
                     </div>
                     <div>
                       <span className="text-slate-500 block">Rutin MCU:</span>
@@ -1474,7 +1664,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       <span className="text-slate-500 block">Riwayat Penyakit / Kondisi Medis:</span>
                       <span className="font-bold text-slate-900">{penyakitKronisText}</span>
                     </div>
-                    <div>
+                    <div className="sm:col-span-3">
                       <span className="text-slate-500 block">Kontak Darurat:</span>
                       <span className="font-semibold text-slate-900">
                         {kontakDaruratNama} ({kontakDaruratHubungan}) • {kontakDaruratHp}
@@ -1615,6 +1805,24 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                         {targetDomisiliText} ({localMember.statusRumahPurnaTugas || 'MILIK PRIBADI'})
                       </span>
                     </div>
+                    {localMember.statusRumahPurnaTugas === 'SEWA/KONTRAK' && (
+                      <div className="sm:col-span-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 space-y-1">
+                        <span className="font-extrabold text-amber-900 block">
+                          Rincian Biaya &amp; Keterangan Sewa / Kontrak Hunian Purna Tugas:
+                        </span>
+                        <p>
+                          Estimasi Biaya Sewa Tahunan:{' '}
+                          <span className="font-bold">
+                            {localMember.biayaSewaTahunan || 'Belum dirinci'}
+                          </span>
+                        </p>
+                        {localMember.detailSewaPurnaTugas && (
+                          <p className="text-amber-800">
+                            Detail Rencana Sewa: {localMember.detailSewaPurnaTugas}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <div>
                       <span className="text-slate-500 block">Bidang &amp; Jenis Usaha:</span>
                       <span className="font-bold text-slate-900">
@@ -1731,6 +1939,24 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
                       <span className="text-[11px] text-slate-500 block mt-0.5">
                         Kota: <b>{kotaDomisili}</b> • Provinsi / Wilayah: <b>{provinsiDomisili}</b>
                       </span>
+                      {localMember.statusTempatTinggal === 'SEWA/KONTRAK' && (
+                        <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 space-y-0.5">
+                          <span className="font-extrabold text-amber-900 block">
+                            Rincian Biaya Sewa / Kontrak Tempat Tinggal Saat Ini:
+                          </span>
+                          <p>
+                            Biaya Sewa / Kontrak:{' '}
+                            <span className="font-bold">
+                              {localMember.biayaSewaTempatTinggal || 'Belum dirinci'}
+                            </span>
+                          </p>
+                          {localMember.detailSewaTempatTinggal && (
+                            <p className="text-amber-800">
+                              Keterangan: {localMember.detailSewaTempatTinggal}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 

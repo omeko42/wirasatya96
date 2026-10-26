@@ -63,6 +63,10 @@ export interface AuthUser {
   statusKedinasan?: StatusKedinasan;
   tanggalLahir?: string;
   tempatLahir?: string;
+  golonganDarah?: string;
+  ukuranBaju?: string;
+  ukuranCelana?: string;
+  ukuranSepatu?: string;
   status?: UserAccountStatus;
   password?: string;
   isAdcAccount?: boolean;
@@ -143,8 +147,14 @@ export interface AnggotaWiraSatya {
   coverUrl?: string;
   bio?: string;
   catatanMedis?: string;
+  golonganDarah?: string;
+  ukuranBaju?: string;
+  ukuranCelana?: string;
+  ukuranSepatu?: string;
   alamatTempatTinggal: string;
   statusTempatTinggal: 'MILIK PRIBADI' | 'RUMAH KELUARGA' | 'DINAS' | 'SEWA/KONTRAK';
+  biayaSewaTempatTinggal?: string;
+  detailSewaTempatTinggal?: string;
 
   // Modul 2: Data Keluarga & Tanggungan
   statusPerkawinan: 'MENIKAH' | 'BELUM MENIKAH' | 'DUDA/JANDA';
