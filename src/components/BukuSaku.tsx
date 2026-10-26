@@ -1042,7 +1042,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
         {/* ============================================================ */}
         {/* 1. LEFT RAIL (lg:col-span-3): PROFIL SAYA & TOUR OF DUTY     */}
         {/* ============================================================ */}
-        <div className="order-1 md:col-span-1 lg:order-1 lg:col-span-3 lg:sticky lg:top-[76px] space-y-3 sm:space-y-4">
+        <div className="order-1 md:col-span-1 lg:order-1 lg:col-span-3 lg:sticky lg:top-[96px] space-y-3 sm:space-y-4">
           {/* Card 1: Profil Saya (Kiri Atas) */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             {/* Mobile Compact Header (muncul Header doang di HP, klik muncul detail & navigasi ke bawah) */}
@@ -1269,7 +1269,7 @@ export const BukuSaku: React.FC<BukuSakuProps> = ({
         {/* ============================================================ */}
         {/* 2. RIGHT RAIL (lg:col-span-3, order-2 di HP): ATENSI & DANA  */}
         {/* ============================================================ */}
-        <div className="order-2 md:col-span-1 lg:order-3 lg:col-span-3 lg:sticky lg:top-[76px] space-y-3 sm:space-y-4 lg:pb-16">
+        <div className="order-2 md:col-span-1 lg:order-3 lg:col-span-3 lg:sticky lg:top-[96px] space-y-3 sm:space-y-4 lg:pb-16">
           {/* Card 3: Atensi Kesehatan (Kanan Atas) */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5 sm:p-4">
             <div

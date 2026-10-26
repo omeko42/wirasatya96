@@ -2431,7 +2431,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
       {/* ===================================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6 items-start">
         {/* LEFT COLUMN (lg:col-span-4 xl:col-span-3): COMPACT SIDEBAR */}
-        <div className="lg:col-span-4 xl:col-span-3 space-y-3.5 lg:sticky lg:top-[76px]">
+        <div className="lg:col-span-4 xl:col-span-3 space-y-3.5 lg:sticky lg:top-[96px]">
           {/* 1. KARTU RINGKASAN PERSONEL */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-3.5 space-y-3">
             <div className="flex items-center gap-3">

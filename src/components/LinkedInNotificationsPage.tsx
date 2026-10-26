@@ -280,7 +280,7 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
         {/* ============================================================ */}
         {/* LEFT RAIL (lg:col-span-4 xl:col-span-3): USER PROFILE CARD   */}
         {/* ============================================================ */}
-        <div className="lg:col-span-4 xl:col-span-3 space-y-4 lg:sticky lg:top-[76px]">
+        <div className="lg:col-span-4 xl:col-span-3 space-y-4 lg:sticky lg:top-[96px]">
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden text-center">
             <div className="h-16 relative overflow-hidden bg-slate-900">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -339,12 +339,19 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Bell className="w-5 h-5 text-red-800" />
+                <Bell className="w-5 h-5 text-red-700" />
                 Notifikasi
               </h2>
-              <span className="text-xs text-red-800 bg-red-50 px-2.5 py-1 rounded-full font-bold border border-red-200">
-                {unreadCount} Baru
-              </span>
+              {unreadCount > 0 ? (
+                <span className="text-xs text-white bg-red-600 px-3 py-1 rounded-full font-extrabold shadow-[0_0_10px_rgba(220,38,38,0.45)] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-300 animate-ping" />
+                  <span>{unreadCount} Baru</span>
+                </span>
+              ) : (
+                <span className="text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full font-semibold border border-slate-200">
+                  0 Baru
+                </span>
+              )}
             </div>
 
             {/* Filter Pills */}
@@ -373,23 +380,27 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
           </div>
 
           {/* Notifications Stream */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-200/80">
             {filteredNotifs.length > 0 ? (
               filteredNotifs.map((notif) => (
                 <div
                   key={notif.id}
                   onClick={() => markAsRead(notif.id)}
-                  className={`p-4 sm:p-5 flex items-start justify-between gap-3 transition-colors cursor-pointer ${
-                    !notif.isRead ? 'bg-red-50/40' : 'hover:bg-slate-50'
+                  className={`p-4 sm:p-5 flex items-start justify-between gap-3 transition-all cursor-pointer border-l-4 ${
+                    !notif.isRead
+                      ? 'bg-gradient-to-r from-rose-100/95 via-red-50/90 to-amber-50/75 hover:from-rose-100 hover:via-red-100/85 border-l-red-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]'
+                      : 'bg-white hover:bg-slate-50 border-l-transparent'
                   }`}
                 >
-                  <div className="flex items-start gap-3.5 min-w-0">
+                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
                     <div className="relative flex-shrink-0 mt-0.5">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={notif.avatarUrl || '/default-avatar.png'}
                         alt="Notifikasi"
-                        className="w-11 h-11 rounded-full object-cover border border-slate-200"
+                        className={`w-11 h-11 rounded-full object-cover border ${
+                          !notif.isRead ? 'border-red-400 ring-2 ring-red-500/25' : 'border-slate-200 opacity-85'
+                        }`}
                       />
                       <span
                         className={`w-5 h-5 rounded-full flex items-center justify-center absolute -bottom-1 -right-1 text-white shadow-xs ${
@@ -412,20 +423,39 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
                       </span>
                     </div>
 
-                    <div className="min-w-0 space-y-1">
+                    <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-slate-900">{notif.title}</span>
+                        <span
+                          className={`text-xs ${
+                            !notif.isRead
+                              ? 'font-extrabold text-red-950'
+                              : 'font-semibold text-slate-700'
+                          }`}
+                        >
+                          {notif.title}
+                        </span>
                         {!notif.isRead && (
-                          <span className="w-2 h-2 rounded-full bg-red-800 flex-shrink-0" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-extrabold uppercase tracking-wider shadow-[0_0_8px_rgba(220,38,38,0.55)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
+                            <span>Baru</span>
+                          </span>
                         )}
                       </div>
 
-                      <p className="text-xs text-slate-700 leading-relaxed">
+                      <p
+                        className={`text-xs leading-relaxed ${
+                          !notif.isRead
+                            ? 'font-medium text-slate-900'
+                            : 'text-slate-500'
+                        }`}
+                      >
                         {notif.description}
                       </p>
 
-                      <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
-                        <span>{notif.timeAgo}</span>
+                      <div className="flex items-center gap-3 text-[10px] pt-1">
+                        <span className={!notif.isRead ? 'font-semibold text-red-700/80' : 'text-slate-400'}>
+                          {notif.timeAgo}
+                        </span>
                         {notif.actionLabel && (
                           <button
                             type="button"
@@ -447,7 +477,9 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
                                 onNavigateToTab(notif.targetTab);
                               }
                             }}
-                            className="text-red-900 font-bold hover:underline"
+                            className={`font-bold hover:underline ${
+                              !notif.isRead ? 'text-red-700' : 'text-red-900/80'
+                            }`}
                           >
                             {notif.actionLabel} &rarr;
                           </button>
@@ -455,6 +487,13 @@ export const LinkedInNotificationsPage: React.FC<LinkedInNotificationsPageProps>
                       </div>
                     </div>
                   </div>
+
+                  {!notif.isRead && (
+                    <span
+                      className="w-3 h-3 rounded-full bg-red-600 ring-4 ring-red-500/25 shadow-[0_0_8px_#dc2626] shrink-0 mt-1.5"
+                      title="Belum dibaca — Klik untuk tandai sudah dibaca"
+                    />
+                  )}
                 </div>
               ))
             ) : (
