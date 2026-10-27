@@ -2,19 +2,19 @@
 
 > 🌐 **Language / Pilihan Bahasa:** [**🇬🇧 English (Active)**](README.md) &nbsp;|&nbsp; [**🇮🇩 Bahasa Indonesia (Edisi Resmi)**](README.id.md)
 
-[![Platform](https://img.shields.io/badge/platform-Wira%20Satya%2096%20(WS96)%20v2.0-991B1B.svg?style=flat-square)](https://wirasatya96.vercel.app)
-[![Community](https://img.shields.io/badge/Paguyuban-Batalyon%20Wira%20Satya%20(261%20Personel)-1E40AF.svg?style=flat-square)](#-the-evolution-story-from-fragmented-chats--static-spreadsheets-to-sovereign-digital-governance)
+[![Platform](https://img.shields.io/badge/platform-Wira%20Satya%2096%20(WS96)%20v2.5-991B1B.svg?style=flat-square)](https://wirasatya96.vercel.app)
+[![Community](https://img.shields.io/badge/Paguyuban-Batalyon%20Wira%20Satya%20(264%20Personel)-1E40AF.svg?style=flat-square)](#-the-evolution-story-from-fragmented-chats--static-spreadsheets-to-sovereign-digital-governance)
 [![Language](https://img.shields.io/badge/language-TypeScript%205.8%20%7C%20React%2019-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Frontend](https://img.shields.io/badge/frontend-Vite%206%20%7C%20Tailwind%20CSS%204%20%7C%20Mobile--First-06B6D4.svg?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Frontend](https://img.shields.io/badge/frontend-Next.js%2014%20%7C%20Tailwind%20CSS%204%20%7C%20Mobile--First-06B6D4.svg?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Database](https://img.shields.io/badge/database-Supabase%20PostgreSQL%20%7C%20Realtime%20WebSockets-3ECF8E.svg?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
-[![Governance](https://img.shields.io/badge/directory-38%20Polda%20%7C%2028%20Polri%20Functions%20(Tour%20of%20Duty)-D97706.svg?style=flat-square)](#1-261-personnel-directory-38-polda-jurisdiction-mapping--28-polri-functions)
+[![Governance](https://img.shields.io/badge/directory-38%20Polda%20%7C%2028%20Polri%20Functions%20%7C%20Kompi%20A--D-D97706.svg?style=flat-square)](#1-264-personnel-directory-38-polda-jurisdiction-mapping-28-polri-functions--kompipleton)
 [![Security](https://img.shields.io/badge/security-FIDO2%20Passkey%20%7C%20Zero--Secret%20%7C%20UU%20PDP-10B981.svg?style=flat-square)](#4-fido2--webauthn-biometric-passkey--multi-factor-security-suite)
 [![License](https://img.shields.io/badge/license-Institutional%20(WS96)%20%7C%20NDA%20%7C%20SLA-B91C1C.svg?style=flat-square)](LICENSE.md)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Eko%20Agung%20(%40omeko42)-0A66C2.svg?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/omeko42/)
 
-**Wira Satya 96 (WS96)** is a cloud-synchronized digital pocketbook (*Buku Saku Digital*), nationwide assignment & *Tour of Duty* directory, executive welfare analytics (*Anev*), and transparent social fund governance portal engineered for **Paguyuban Alumni Akademi Kepolisian (Akpol) Tahun 1996 — Batalyon Wira Satya**.
+**Wira Satya 96 (WS96)** is a cloud-synchronized digital pocketbook (*Buku Saku Digital*), nationwide assignment & *Tour of Duty* directory, 6-sub-tab executive welfare analytics (*Anev*), family job board (*Bursa Lowongan Kerja Putra-Putri Leting*), and transparent social fund governance portal engineered for **Paguyuban Alumni Akademi Kepolisian (Akpol) Tahun 1996 — Batalyon Wira Satya**.
 
-Designed for high-mobility senior police officers (*Perwira Tinggi [Pati] & Perwira Menengah [Pamen] Polri*), executive board administrators (*Ketua, Wakil Ketua, Sekretaris, Bendahara*), and authorized aides-de-camp (*Ajudan / ADC*), **Wira Satya 96 (WS96)** unifies **261 verified alumni profiles** across **Mabes Polri**, **38 Regional Police Commands (*Polda*)**, **External Ministries/Agencies (*Luar Struktur*)**, and **28 Police Functional Categories (*Tour of Duty*)** into a single real-time portal accessible seamlessly from both smartphones and desktop browsers.
+Designed for high-mobility senior police officers (*Perwira Tinggi [Pati] & Perwira Menengah [Pamen] Polri*), executive board administrators (*Ketua, Wakil Ketua, Sekretaris, Bendahara*), and authorized aides-de-camp (*Ajudan / ADC*), **Wira Satya 96 (WS96)** unifies **264 personnel profiles** (**250 Active**, **1 Retired/Purna Tugas**, **1 PTDH**, and **12 In Memoriam/Almarhum**, including 3 end-to-end simulation sample accounts `AKUN CONTOH_1..3`) across **Mabes Polri**, **38 Regional Police Commands (*Polda*)**, **External Ministries/Agencies (*Luar Struktur*)**, **28 Police Functional Categories (*Tour of Duty*)**, and **Kompi A–D / Pleton 1–4** into a single real-time portal accessible seamlessly from both smartphones and desktop browsers.
 
 ---
 
@@ -112,21 +112,22 @@ flowchart TB
 
 ## ⚡ Key Production Capabilities
 
-### 1. 261-Personnel Directory, 38-Polda Jurisdiction Mapping & 28 Polri Functions
-- **Comprehensive Assignment Taxonomy**: Maps all **261 Batalyon Wira Satya alumni** across **Mabes Polri**, **38 Regional Police Commands (*Polda*)**, and **External Institutions (*Luar Struktur*: BNN, BIN, KPK, Ministries/Agencies)**.
-- **28 Police Functional Categories (*Tour of Duty*)**: Interactive filtering and personnel counters across all 28 functions (*1. Wasum, 2. Rena, 3. Ops, 4. Lemdiklat, 5. Reserse, 6. Intelkam, 7. Harkam, 8. Brimob, 9. Slog, 10. Sahli, 11. Lantas, 12. Densus, 13. Humas, 14. Propam, 15. Hukum, 16. Hubinter, 17. TIK, 18. SDM, 19. Taspidkor, 20. Keu, 21. Dokkes, 22. Litbang, 23. Sejarah, 24. Setum, 25. Yanma, 26. Spripim, 27. Kewilayahan, 28. Luar Struktur*).
+### 1. 264-Personnel Directory, 38-Polda Jurisdiction Mapping, 28 Polri Functions & Kompi/Pleton
+- **Comprehensive Assignment Taxonomy**: Maps **264 Batalyon Wira Satya profiles** (**250 Active**, **1 Retired**, **1 PTDH**, **12 In Memoriam**) across **Mabes Polri**, **38 Regional Police Commands (*Polda*)**, **External Institutions (*Luar Struktur*: BNN, BIN, KPK, Ministries/Agencies)**, and battalion formation (**Kompi A–D & Pleton 1–4**).
+- **28 Police Functional Categories (*Tour of Duty*) & 5-Category Self-Service FormWizard (`Data Diri`)**: Interactive filtering across all 28 functions alongside a 5-category self-service profile wizard (*1. Kedinasan & Identitas*, *2. Domisili & Keluarga Inti*, *3. Purna Tugas & Usaha*, *4. Kesehatan, Fisik & Asuransi*, *5. Aparel & Perlengkapan*) featuring per-section partial save, repeatable multi-position history (`+ Tambah Jabatan`), and repeatable health insurance brand lists (`+ Tambah Asuransi`).
 
 ### 2. Dual-Fund Financial Transparency (*Dana Sosial & Dana Investasi*) & CSV Audit Export
-- **4-Card Executive Financial Summary**: Displays live metrics for **Dana Sosial (Milestone)**, **Dana Investasi**, **Saldo Buku Kas** (*split into Kas Dana Sosial & Kas Dana Investasi*), and **Arus Buku Kas** (*Kas Masuk vs. Kas Keluar*).
-- **Role-Gated Treasury Management**: While all regular alumni enjoy full read transparency over social fund progress and cash book entries, mutation controls (`+ Milestone`, `+ Investasi`, `+ Buku Kas`, `Kategori`, and `CSV Export`) are strictly restricted to **Bendahara**, **Ketua/Wakil**, and **Admin**.
+- **4-Card Executive Financial Summary**: Displays live metrics for **Dana Sosial (4 Core Programs)**, **Dana Investasi**, **Saldo Buku Kas**, and **Arus Buku Kas** (*Kas Masuk vs. Kas Keluar*).
+- **Role-Gated Treasury Management**: All alumni enjoy full read transparency over social fund progress and cash book entries, while mutation controls (`+ Program`, `+ Investasi`, `+ Buku Kas`, `Kategori`, and `CSV Export`) are restricted to **Bendahara**, **Ketua/Wakil**, and **Admin**.
 
-### 3. Executive Anev & Welfare Telemetry (*Khusus Pengurus*)
-- **5-Dimensional Executive Dashboard (`Anev & Statistik`)**: Available exclusively to board leadership (*Ketua, Wakil Ketua, Sekretaris/Admin, Bendahara*), providing real-time monitoring of:
-  1. **Atensi Kesehatan**: Officers requiring medical attention, hospitalization support, or recovery visits.
-  2. **Hunian & Purna Tugas**: Retirement housing readiness and target domicile distribution.
-  3. **Katalog Usaha**: Post-retirement business ventures and entrepreneurship readiness across the cohort.
-  4. **Sebaran Wilayah**: Live strength distribution across Mabes Polri and 38 Polda.
-  5. **Pendidikan & Pensiun**: Aggregate tracking of dependent children in school/university (including high-cost medical/private university tiers) and scholarship support for orphaned children (*Anak Yatim*).
+### 3. 6-Sub-Tab Executive Anev, Family Job Board & In Memoriam Welfare Telemetry
+- **6-Dimensional Executive Dashboard (`Anev & Statistik`)**: Real-time monitoring across 6 strategic sub-tabs:
+  1. **Kesehatan**: Officers requiring medical attention, hospitalization support, or specialist referrals, complete with blood type and apparel sizes.
+  2. **Hunian & Purna Tugas**: BUP 60-year retirement housing readiness (*Milik Sendiri* vs *Sewa/Kontrak* with annual rent cost & target retirement city).
+  3. **Katalog Usaha & Lowongan**: Directory of personal businesses (*Usaha Pribadi*) and joint cohort enterprises (*Usaha Bersama Leting*) featuring a dedicated **Family Job Board (*Bursa Lowongan Kerja Putra-Putri Leting & Almarhum*)**.
+  4. **Sebaran Wilayah & Kompi/Pleton**: Live strength distribution across **Kompi A–D**, **Pleton 1–4**, **Mabes Polri**, and **38 Polda** (including regional outreach indicators).
+  5. **Pendidikan & Pensiun**: Tracking of dependent children in school/university, high-tuition education loads (`> Rp 25M/year`), and retirement fund readiness.
+  6. **Keluarga Almarhum (12 In Memoriam)**: Dedicated directory of 12 fallen colleagues with surviving spouse/guardian details, one-click **`WA Keluarga`** buttons, and children's career/education readiness (*Siap Kerja* / *Pelajar*).
 
 ### 4. FIDO2 / WebAuthn Biometric Passkey & Multi-Factor Security Suite
 - **NRP-Based Initial Onboarding (`WS96@<NRP>`)**: Every registered officer and registered Aide-de-Camp (`ADC`) can log in immediately using their 8-digit NRP and initial password format `WS96@<NRP>`, then transition to a personal password.

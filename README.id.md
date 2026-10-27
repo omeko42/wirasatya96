@@ -2,19 +2,19 @@
 
 > 🌐 **Pilihan Bahasa / Language:** [**🇮🇩 Bahasa Indonesia (Aktif)**](README.id.md) &nbsp;|&nbsp; [**🇬🇧 English Version**](README.md)
 
-[![Platform](https://img.shields.io/badge/platform-Wira%20Satya%2096%20(WS96)%20v2.0-991B1B.svg?style=flat-square)](https://wirasatya96.vercel.app)
-[![Community](https://img.shields.io/badge/Paguyuban-Batalyon%20Wira%20Satya%20(261%20Personel)-1E40AF.svg?style=flat-square)](#-kisah-evolusi-dari-grup-chat--spreadsheet-statis-menuju-tata-kelola-digital-terpadu)
+[![Platform](https://img.shields.io/badge/platform-Wira%20Satya%2096%20(WS96)%20v2.5-991B1B.svg?style=flat-square)](https://wirasatya96.vercel.app)
+[![Community](https://img.shields.io/badge/Paguyuban-Batalyon%20Wira%20Satya%20(264%20Personel)-1E40AF.svg?style=flat-square)](#-kisah-evolusi-dari-grup-chat--spreadsheet-statis-menuju-tata-kelola-digital-terpadu)
 [![Language](https://img.shields.io/badge/bahasa-TypeScript%205.8%20%7C%20React%2019-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Frontend](https://img.shields.io/badge/frontend-Vite%206%20%7C%20Tailwind%20CSS%204%20%7C%20Mobile--First-06B6D4.svg?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Frontend](https://img.shields.io/badge/frontend-Next.js%2014%20%7C%20Tailwind%20CSS%204%20%7C%20Mobile--First-06B6D4.svg?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Database](https://img.shields.io/badge/database-Supabase%20PostgreSQL%20%7C%20Realtime%20WebSockets-3ECF8E.svg?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
-[![Governance](https://img.shields.io/badge/direktori-38%20Polda%20%7C%2028%20Fungsi%20Polri%20(Tour%20of%20Duty)-D97706.svg?style=flat-square)](#1-direktori-261-personel-pemetaan-38-polda--28-fungsi-kepolisian)
+[![Governance](https://img.shields.io/badge/direktori-38%20Polda%20%7C%2028%20Fungsi%20Polri%20%7C%20Kompi%20A--D-D97706.svg?style=flat-square)](#1-direktori-264-personel-pemetaan-38-polda-28-fungsi-kepolisian--kompipleton)
 [![Security](https://img.shields.io/badge/keamanan-FIDO2%20Passkey%20%7C%20Zero--Secret%20%7C%20UU%20PDP-10B981.svg?style=flat-square)](#4-autentikasi-biometrik-fido2--webauthn-passkey--keamanan-multi-faktor)
 [![License](https://img.shields.io/badge/lisensi-Kedinasan%20%26%20Paguyuban%20%7C%20NDA%20%7C%20SLA-B91C1C.svg?style=flat-square)](LICENSE.md)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Eko%20Agung%20(%40omeko42)-0A66C2.svg?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/omeko42/)
 
-**Wira Satya 96 (WS96)** adalah portal **Buku Saku Digital**, direktori pemetaan penugasan & *Tour of Duty* nasional, dasbor analisis & evaluasi (*Anev*) kesejahteraan anggota, serta sistem transparansi **Dana Sosial & Buku Kas** berbasis *cloud real-time* yang dirancang dan dibangun khusus untuk **Paguyuban Alumni Akademi Kepolisian (Akpol) Tahun 1996 — Batalyon Wira Satya**.
+**Wira Satya 96 (WS96)** adalah portal **Buku Saku Digital**, direktori pemetaan penugasan & *Tour of Duty* nasional, dasbor analisis & evaluasi (*Anev*) 6 sub-tab, **Bursa Lowongan Kerja Putra-Putri Leting**, serta sistem transparansi **Dana Sosial & Buku Kas** berbasis *cloud real-time* yang dirancang dan dibangun khusus untuk **Paguyuban Alumni Akademi Kepolisian (Akpol) Tahun 1996 — Batalyon Wira Satya**.
 
-Dirancang untuk mendukung mobilitas tinggi para **Perwira Tinggi (Pati) & Perwira Menengah (Pamen) Polri**, jajaran **Pengurus Paguyuban** (*Ketua, Wakil Ketua, Sekretaris, Bendahara*), serta para **Ajudan / Pendamping (ADC)**, **Wira Satya 96 (WS96)** menyatukan **261 profil rekan seangkatan** di seluruh **Mabes Polri**, **38 Polda Jajaran**, **Luar Struktur** (*Kementerian/Lembaga*), serta **28 Fungsi Kepolisian (*Tour of Duty*)** ke dalam satu portal terpadu yang nyaman diakses melalui layar HP maupun komputer.
+Dirancang untuk mendukung mobilitas tinggi para **Perwira Tinggi (Pati) & Perwira Menengah (Pamen) Polri**, jajaran **Pengurus Paguyuban** (*Ketua, Wakil Ketua, Sekretaris, Bendahara*), serta para **Ajudan / Pendamping (ADC)**, **Wira Satya 96 (WS96)** menyatukan **264 profil personel** (**250 Aktif**, **1 Purna Tugas**, **1 PTDH**, dan **12 Almarhum / In Memoriam**, termasuk 3 akun simulasi `AKUN CONTOH_1..3`) di seluruh **Mabes Polri**, **38 Polda Jajaran**, **Luar Struktur** (*Kementerian/Lembaga*), **28 Fungsi Kepolisian (*Tour of Duty*)**, serta struktur **Kompi A–D & Pleton 1–4** ke dalam satu portal terpadu yang nyaman diakses melalui layar HP maupun komputer.
 
 ---
 
@@ -112,21 +112,22 @@ flowchart TB
 
 ## ⚡ Kapabilitas Rekayasa Utama
 
-### 1. Direktori 261 Personel, Pemetaan 38 Polda & 28 Fungsi Kepolisian
-- **Pemetaan Penugasan Nasional Menyeluruh**: Memetakan seluruh **261 alumni Batalyon Wira Satya** di **Mabes Polri**, **38 Polda Jajaran se-Indonesia**, hingga penugasan **Luar Struktur (*BNN, BIN, KPK, Kementerian/Lembaga*)**.
-- **28 Kategori Fungsi Kepolisian (*Tour of Duty*)**: Saringan interaktif beserta penghitung jumlah personel otomatis di seluruh 28 fungsi (*1. Wasum, 2. Rena, 3. Ops, 4. Lemdiklat, 5. Reserse, 6. Intelkam, 7. Harkam, 8. Brimob, 9. Slog, 10. Sahli, 11. Lantas, 12. Densus, 13. Humas, 14. Propam, 15. Hukum, 16. Hubinter, 17. TIK, 18. SDM, 19. Taspidkor, 20. Keu, 21. Dokkes, 22. Litbang, 23. Sejarah, 24. Setum, 25. Yanma, 26. Spripim, 27. Kewilayahan, 28. Luar Struktur*).
+### 1. Direktori 264 Personel, Pemetaan 38 Polda, 28 Fungsi Kepolisian & Kompi/Pleton
+- **Pemetaan Penugasan Nasional Menyeluruh**: Memetakan seluruh **264 profil Batalyon Wira Satya** (**250 Aktif**, **1 Purna Tugas**, **1 PTDH**, **12 Almarhum**) di **Mabes Polri**, **38 Polda Jajaran se-Indonesia**, penugasan **Luar Struktur (*BNN, BIN, KPK, Kementerian/Lembaga*)**, serta formasi **Kompi A–D & Pleton 1–4**.
+- **28 Kategori Fungsi Kepolisian (*Tour of Duty*) & Formulir Mandiri `Data Diri` 5 Kategori**: Saringan interaktif di seluruh 28 fungsi dilengkapi formulir mandiri **Data Diri 5 Kategori** (*1. Kedinasan & Identitas*, *2. Domisili & Keluarga Inti*, *3. Purna Tugas & Usaha*, *4. Kesehatan, Fisik & Asuransi*, *5. Aparel & Perlengkapan*) dengan fitur simpan parsial per sub-bagian, input multi-jabatan (`+ Tambah Jabatan`), dan daftar merek asuransi (`+ Tambah Asuransi`).
 
 ### 2. Transparansi Keuangan Dua Kamar (*Dana Sosial & Dana Investasi*) & Ekspor Excel
-- **Ringkasan 4 Kartu Keuangan Utama**: Menampilkan capaian **Dana Sosial (Milestone)**, portofolio **Dana Investasi**, **Saldo Buku Kas** (*terpisah antara Kas Dana Sosial & Kas Dana Investasi*), serta **Arus Buku Kas** (*Kas Masuk & Kas Keluar*).
-- **Otorisasi Pengelolaan Khusus Bendahara & Pengurus**: Seluruh anggota dapat memantau transparansi kas secara terbuka, sementara tombol pencatatan transaksi (`+ Milestone`, `+ Investasi`, `+ Buku Kas`, `Kategori`, dan `Unduh CSV`) hanya muncul pada akun **Bendahara**, **Ketua/Wakil**, dan **Admin**.
+- **Ringkasan 4 Kartu Keuangan Utama**: Menampilkan capaian **Dana Sosial (4 Program Utama)**, portofolio **Dana Investasi**, **Saldo Buku Kas**, serta **Arus Buku Kas** (*Kas Masuk & Kas Keluar*).
+- **Otorisasi Pengelolaan Khusus Bendahara & Pengurus**: Seluruh anggota dapat memantau transparansi kas secara terbuka, sementara tombol pencatatan transaksi (`+ Program`, `+ Investasi`, `+ Buku Kas`, `Kategori`, dan `CSV`) hanya muncul pada akun **Bendahara**, **Ketua/Wakil**, dan **Admin**.
 
-### 3. Dasbor Anev & Statistik Eksekutif (*Khusus Pengurus Paguyuban*)
-- **Rekapitulasi 5 Dimensi Strategis (`Anev & Statistik`)**: Tersedia khusus bagi jajaran Pengurus (*Ketua, Wakil Ketua, Sekretaris/Admin, Bendahara*) untuk memantau:
-  1. **Atensi Kesehatan**: Daftar rekan yang membutuhkan perhatian medis, pendampingan rawat inap, atau kunjungan besuk.
-  2. **Hunian & Purna Tugas**: Kesiapan tempat tinggal pribadi dan sebaran kota domisili purna tugas.
-  3. **Katalog Usaha**: Daftar rintisan usaha dan kesiapan wirausaha rekan seangkatan menjelang masa purna bakti.
-  4. **Sebaran Wilayah**: Kekuatan personel aktif di Mabes Polri dan 38 Polda jajaran.
-  5. **Pendidikan & Pensiun**: Rekapitulasi putra-putri yang masih menempuh pendidikan sekolah/kuliah serta pemantauan santunan pendidikan anak yatim.
+### 3. Dasbor Anev & Statistik Eksekutif 6 Sub-Tab, Bursa Loker & Keluarga Almarhum
+- **Rekapitulasi 6 Dimensi Strategis (`Anev & Statistik`)**: Tersedia untuk memantau secara *real-time*:
+  1. **Kesehatan**: Daftar rekan yang membutuhkan perhatian medis, pemulihan rawat inap, atau rujukan spesialis lengkap dengan golongan darah dan ukuran aparel.
+  2. **Hunian & Purna Tugas**: Kesiapan tempat tinggal BUP 60 Tahun (*Milik Sendiri* vs *Sewa/Kontrak* beserta rincian biaya sewa tahunan & kota tujuan pensiun).
+  3. **Katalog Usaha & Lowongan**: Direktori **Usaha Pribadi** anggota dan **Usaha Bersama Leting** yang terintegrasi dengan **Bursa Lowongan Kerja Putra-Putri Leting & Almarhum**.
+  4. **Sebaran Wilayah & Kompi/Pleton**: Kekuatan personel per **Kompi A–D**, **Pleton 1–4**, **Mabes Polri**, dan **38 Polda** (beserta penanda wilayah perlu penjangkauan).
+  5. **Pendidikan & Pensiun**: Rekapitulasi putra-putri yang masih menempuh pendidikan sekolah/kuliah, beban biaya pendidikan tinggi (`> Rp 25 Juta/thn`), serta kesiapan dana pensiun.
+  6. **Keluarga Almarhum (12 In Memoriam)**: Direktori khusus 12 rekan yang telah mendahului lengkap dengan nama Istri/Ahli Waris, tombol pintas **`WA Keluarga`**, serta status kesiapan kerja/pendidikan putra-putri (*Siap Kerja* / *Pelajar*).
 
 ### 4. Autentikasi Biometrik FIDO2 / WebAuthn Passkey & Keamanan Multi-Faktor
 - **Kemudahan Masuk Pertama Kali dengan Sandi Awal (`WS96@<NRP>`)**: Seluruh akun anggota dan Ajudan yang terdaftar telah disiapkan dengan sandi bawaan `WS96@<NRP>` menggunakan 8 digit NRP masing-masing, yang selanjutnya dapat diganti dengan kata sandi pribadi.

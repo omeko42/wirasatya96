@@ -8,6 +8,20 @@
 
 Seluruh tonggak pencapaian arsitektur, rilis fitur, dan penyempurnaan rekayasa pada portal **Wira Satya 96 (WS96)** — **Paguyuban Alumni Akademi Kepolisian (Akpol) Tahun 1996 Batalyon Wira Satya** — didokumentasikan di dalam berkas ini.
 
+### [v2.5.0] - Oktober 2026 (Rilis Enterprise UI/UX Overhaul, Anev 6 Sub-Tab, Bursa Loker & FormWizard 5 Kategori)
+#### Ditambahkan (*Added*)
+- **Formulir Mandiri `Data Diri` 5 Kategori dengan Simpan Parsial (`FormWizard.tsx`)**:
+  - Restrukturisasi formulir pembaruan biodata menjadi 5 kategori (*1. Kedinasan & Identitas*, *2. Domisili & Keluarga Inti*, *3. Purna Tugas & Usaha*, *4. Kesehatan, Fisik & Asuransi*, *5. Aparel & Perlengkapan*) dengan indikator persentase kelengkapan (`33 kolom utama`) dan tombol **`Simpan`** parsial di setiap sub-bagian *accordion*.
+  - Fitur input berulang (*repeatable cards*) **`+ Tambah Jabatan`** untuk mencatat riwayat multi-jabatan/satker serta **`+ Tambah Asuransi`** untuk mencatat daftar merek asuransi kesehatan.
+  - Pilihan terstruktur **Kompi A–D** dan **Pleton 1–4** dengan status *default* `Belum Dipilih` bagi personel yang belum memperbarui formasi batalyon.
+- **Dasbor `Anev & Statistik` 6 Sub-Tab, Bursa Lowongan Kerja & Keluarga Almarhum (`ExecutiveDashboard.tsx`)**:
+  - Penambahan **Sub-Tab 6: Keluarga Almarhum (12 In Memoriam)** lengkap dengan informasi Istri/Ahli Waris, tombol pintas **`WA Keluarga`**, serta status kesiapan kerja/pendidikan putra-putri (*Siap Kerja* / *Pelajar*).
+  - Pemisahan kategori **Usaha Pribadi Anggota** dan **Usaha Bersama Leting** pada Sub-Tab 3, terintegrasi dengan **Bursa Lowongan Kerja Putra-Putri Leting & Almarhum** beserta tombol lamar langsung.
+  - Saringan interaktif kekuatan batalyon berdasarkan **Kompi A–D** dan **Pleton 1–4** pada Sub-Tab 4 (*Sebaran Wilayah & Kompi/Pleton*).
+- **Lencana Verifikasi Meta (`MetaVerifiedBadge.tsx`) & 3 Persona Simulasi `AKUN CONTOH`**:
+  - Lencana verifikasi bergaya Meta dengan pembeda warna wewenang (*Hitam*: Superadmin/Teknis, *Merah*: Ketua, *Emas*: Sekretaris/Bendahara) disertai *tooltip* interaktif.
+  - Penambahan 3 akun simulasi komprehensif (`AKUN CONTOH_1`, `AKUN CONTOH_2`, `AKUN CONTOH_3`) sehingga total direktori mencakup **264 profil personel** (`250 Aktif`, `1 Purna Tugas`, `1 PTDH`, `12 Almarhum`).
+
 ### [v2.0.0] - Oktober 2026 (Rilis Produksi Cloud Terpadu — Tahap 4)
 #### Ditambahkan (*Added*)
 - **Sinkronisasi Cloud Real-Time & Penyimpanan Media Terpusat (`cloudSync.ts`)**:
@@ -38,6 +52,12 @@ Seluruh tonggak pencapaian arsitektur, rilis fitur, dan penyempurnaan rekayasa p
 ---
 
 ## 🇬🇧 Part II: Platform Changelog & Release History (English)
+
+### [v2.5.0] - 2026-10 (Enterprise UI/UX Overhaul, 6-Sub-Tab Anev, Family Job Board & 5-Category FormWizard)
+#### Added
+- **5-Category Self-Service `Data Diri` FormWizard with Per-Section Partial Save (`FormWizard.tsx`)**: Organized profile maintenance into 5 structured categories with a 33-field completeness indicator, independent per-section `Simpan` buttons, repeatable multi-position history cards (`+ Tambah Jabatan`), repeatable health insurance lists (`+ Tambah Asuransi`), and `Kompi A–D / Pleton 1–4` selection.
+- **6-Sub-Tab Executive `Anev & Statistik` Dashboard & Family Job Board (`ExecutiveDashboard.tsx`)**: Added Sub-Tab 6 (*Keluarga Almarhum / 12 In Memoriam*) with surviving spouse/guardian details and one-click `WA Keluarga` contact, separated personal vs. joint cohort businesses (*Usaha Pribadi* & *Usaha Bersama Leting*) integrated with a Family Job Board (*Bursa Lowongan Kerja Putra-Putri Leting*), and added interactive `Kompi A–D / Pleton 1–4` strength filtering.
+- **Meta-Style Verification Badges (`MetaVerifiedBadge.tsx`) & 3 End-to-End Sample Personas (`AKUN CONTOH_1..3`)**: Added role-colored verification badges (*Black*: Superadmin, *Red*: Ketua, *Gold*: Sekretaris/Bendahara) and 3 comprehensive simulation accounts (`AKUN CONTOH_1`, `AKUN CONTOH_2`, `AKUN CONTOH_3`) across the 264-personnel directory.
 
 ### [v2.0.0] - 2026-10 (Current Cloud Production Release — Stage 4)
 #### Added
