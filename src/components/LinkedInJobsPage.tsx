@@ -1005,7 +1005,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                     contextTitle="Urutkan Jabatan"
                   />
 
-                  <select
+                  <select name="ws96_linkedinjobspage_selectedPolda_1" aria-label="selectedPolda"
                     value={selectedPolda}
                     onChange={(e) => setSelectedPolda(e.target.value)}
                     className="px-2.5 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-800/30"
@@ -1016,7 +1016,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                     ))}
                   </select>
 
-                  <select
+                  <select name="ws96_linkedinjobspage_selectedFungsi_2" aria-label="selectedFungsi"
                     value={selectedFungsi}
                     onChange={(e) => setSelectedFungsi(e.target.value)}
                     className="px-2.5 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-800/30"
@@ -1029,7 +1029,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                     ))}
                   </select>
 
-                  <select
+                  <select name="ws96_linkedinjobspage_selectedKompi_3" aria-label="selectedKompi"
                     value={selectedKompi}
                     onChange={(e) => setSelectedKompi(e.target.value)}
                     className="px-2.5 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-800/30"
@@ -1044,7 +1044,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
 
                 <div className="relative flex-1 min-w-[180px] sm:min-w-[200px]">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
+                  <input name="ws96_linkedinjobspage_searchQuery_4"
                     type="text"
                     placeholder="Cari nama, NRP, jabatan, satker..."
                     value={searchQuery}
@@ -1379,7 +1379,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
 
                   return (
                     <>
-                      <select
+                      <select name="ws96_linkedinjobspage_selectVal_5" aria-label="selectVal"
                         value={selectVal}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1414,7 +1414,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                       </select>
 
                       {isNewExternalJabatan && (
-                        <input
+                        <input name="ws96_linkedinjobspage_newJabatan_jabatan_6"
                           type="text"
                           required
                           placeholder="Ketik nama jabatan eksternal (misal BNN, KPK, BNPT, Kementerian)..."
@@ -1431,7 +1431,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">1. Wilayah Induk (Mabes / 38 Polda) *</label>
-                  <select
+                  <select name="ws96_linkedinjobspage_newJabatan_polda_7" aria-label="newJabatan polda"
                     value={newJabatan.polda}
                     onChange={(e) => {
                       const w = e.target.value;
@@ -1454,7 +1454,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">2. Master Satker Utama (Satker / Polres) *</label>
-                  <select
+                  <select name="ws96_linkedinjobspage_newJabatan_satkerUtama_8" aria-label="newJabatan satkerUtama"
                     value={newJabatan.satkerUtama}
                     onChange={(e) => {
                       const s = e.target.value;
@@ -1474,7 +1474,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block font-bold text-slate-700 mb-1">3. Sub-Satker / Direktorat / Bagian / ADC</label>
-                  <select
+                  <select name="ws96_linkedinjobspage_newJabatan_subSatker_9" aria-label="newJabatan subSatker"
                     value={newJabatan.subSatker}
                     onChange={(e) => setNewJabatan({ ...newJabatan, subSatker: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-800 focus:outline-none"
@@ -1489,7 +1489,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Fungsi Kepolisian</label>
-                  <select
+                  <select name="ws96_linkedinjobspage_newJabatan_fungsiPolri_10" aria-label="newJabatan fungsiPolri"
                     value={newJabatan.fungsiPolri}
                     onChange={(e) => setNewJabatan({ ...newJabatan, fungsiPolri: e.target.value as FungsiPolri })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-800 focus:outline-none"
@@ -1503,7 +1503,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Tahun Mulai Menjabat</label>
-                  <input
+                  <input name="ws96_linkedinjobspage_newJabatan_tahunMulai_11" aria-label="newJabatan tahunMulai"
                     type="number"
                     value={newJabatan.tahunMulai}
                     onChange={(e) => setNewJabatan({ ...newJabatan, tahunMulai: Number(e.target.value) })}
@@ -1514,7 +1514,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Dasar Surat Telegram Kapolri (TR)</label>
-                <input
+                <input name="ws96_linkedinjobspage_newJabatan_dasarTR_12"
                   type="text"
                   placeholder="Misal: ST/1422/VI/KEP./2024"
                   value={newJabatan.dasarTR}
@@ -1525,7 +1525,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Uraian Tugas Pokok</label>
-                <textarea
+                <textarea name="ws96_linkedinjobspage_newJabatan_uraianTugas_13"
                   rows={2}
                   placeholder="Ringkasan tanggung jawab operasional dan pembinaan..."
                   value={newJabatan.uraianTugas}
@@ -1536,7 +1536,7 @@ export const LinkedInJobsPage: React.FC<LinkedInJobsPageProps> = ({
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Prestasi Operasional / Kasus Menonjol</label>
-                <textarea
+                <textarea name="ws96_linkedinjobspage_newJabatan_prestasiOperasional_14"
                   rows={2}
                   placeholder="Pengungkapan kasus menonjol, inovasi pelayanan, atau penghargaan pimpinan..."
                   value={newJabatan.prestasiOperasional}

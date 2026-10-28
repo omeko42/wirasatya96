@@ -46,6 +46,7 @@ import {
   Calendar,
   RotateCcw,
 } from 'lucide-react';
+import { PremiumDatePicker, AnimatedDeleteButton } from './PremiumMicroInteractions';
 
 export interface FinanceCategoryOption {
   code: string;
@@ -1694,7 +1695,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
           <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs">
             <div className="flex items-center gap-2">
               <label className="font-bold text-slate-600">Bulan:</label>
-              <select
+              <select name="ws96_bendaharaportal_selectedMonth_1" aria-label="selectedMonth"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
                 className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white font-bold text-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
@@ -1709,7 +1710,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
             <div className="flex items-center gap-2">
               <label className="font-bold text-slate-600">Tahun:</label>
-              <select
+              <select name="ws96_bendaharaportal_selectedYear_2" aria-label="selectedYear"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                 className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white font-bold text-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
@@ -1729,21 +1730,21 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
           <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs">
             <div className="flex items-center gap-2">
               <label className="font-bold text-slate-600">Dari Tanggal:</label>
-              <input
-                type="date"
+              <PremiumDatePicker
                 value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white font-bold text-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+                onChange={(val) => setDateFrom(val)}
+                placeholder="Dari Tanggal"
+                className="w-40"
               />
             </div>
 
             <div className="flex items-center gap-2">
               <label className="font-bold text-slate-600">Sampai Tanggal:</label>
-              <input
-                type="date"
+              <PremiumDatePicker
                 value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white font-bold text-slate-900 focus:ring-2 focus:ring-slate-900/20 focus:outline-none"
+                onChange={(val) => setDateTo(val)}
+                placeholder="Sampai Tanggal"
+                className="w-40"
               />
             </div>
 
@@ -2251,7 +2252,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="relative w-full sm:w-80">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
+                <input name="ws96_bendaharaportal_searchTerm_3"
                   type="text"
                   placeholder="Cari transaksi, kategori, keterangan, no ref..."
                   value={searchTerm}
@@ -2515,13 +2516,13 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                         </td>
                         {canInputKas && (
                           <td className="px-4 py-3 text-center">
-                            <button
-                              onClick={() => handleRemoveAsset(ast.id)}
-                              className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                            <AnimatedDeleteButton
+                              label="Hapus"
+                              confirmLabel="Yakin?"
+                              size="xs"
+                              onDelete={() => handleRemoveAsset(ast.id)}
                               title="Hapus Item Dana Investasi"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            />
                           </td>
                         )}
                       </tr>
@@ -2773,7 +2774,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                   </button>
                 </div>
 
-                <select
+                <select name="ws96_bendaharaportal_trxKategori_3" aria-label="trxKategori"
                   value={trxKategori}
                   onChange={(e) => {
                     const nextCode = e.target.value;
@@ -2810,14 +2811,14 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                         <label className="block text-[11px] font-bold text-emerald-900 mb-1">
                           Cari / Pilih Personel Penyetor
                         </label>
-                        <input
+                        <input name="ws96_bendaharaportal_memberSearchQuery_5"
                           type="text"
                           placeholder="Ketik nama atau NRP..."
                           value={memberSearchQuery}
                           onChange={(e) => setMemberSearchQuery(e.target.value)}
                           className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-white text-xs mb-1.5"
                         />
-                        <select
+                        <select name="ws96_bendaharaportal_trxNrp_4" aria-label="trxNrp"
                           value={trxNrp}
                           onChange={(e) => {
                             const selectedNrp = e.target.value;
@@ -2867,7 +2868,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                             </button>
                           ))}
                         </div>
-                        <input
+                        <input name="ws96_bendaharaportal_jumlahBulanIuran_5" aria-label="jumlahBulanIuran"
                           type="number"
                           min={1}
                           max={24}
@@ -2901,7 +2902,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                       {formatRupiah(trxNominal)}
                     </span>
                   </div>
-                  <input
+                  <input name="ws96_bendaharaportal_trxNominal_6" aria-label="trxNominal"
                     type="number"
                     required
                     min={1}
@@ -2933,18 +2934,16 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Tanggal Transaksi</label>
-                    <input
-                      type="date"
-                      required
+                    <PremiumDatePicker
                       value={trxTanggal}
-                      onChange={(e) => setTrxTanggal(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold"
+                      onChange={(val) => setTrxTanggal(val)}
+                      placeholder="Pilih Tanggal Transaksi"
                     />
                   </div>
 
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Nomor Referensi Bukti</label>
-                    <input
+                    <input name="ws96_bendaharaportal_trxReferensi_9"
                       type="text"
                       placeholder="WS96-KAS-..."
                       value={trxReferensi}
@@ -2957,7 +2956,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Pihak / Personel Terkait</label>
-                    <input
+                    <input name="ws96_bendaharaportal_trxPihak_7"
                       type="text"
                       placeholder="Contoh: Nama Personel / Bank / Vendor"
                       value={trxPihak}
@@ -2968,7 +2967,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">NRP Terkait (Opsional)</label>
-                    <input
+                    <input name="ws96_bendaharaportal_trxNrp_8"
                       type="text"
                       placeholder="Contoh: 74090001"
                       value={trxNrp}
@@ -2980,7 +2979,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Keterangan / Referensi</label>
-                  <textarea
+                  <textarea name="ws96_bendaharaportal_trxKeterangan_12"
                     rows={2}
                     required
                     placeholder="Rincian lengkap sumber penerimaan atau keperluan pengeluaran kas..."
@@ -3035,7 +3034,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Jenis Instrumen / Aset</label>
-                  <select
+                  <select name="ws96_bendaharaportal_astKategori_9" aria-label="astKategori"
                     value={astKategori}
                     onChange={(e) => {
                       const nextCat = e.target.value as AssetCategory;
@@ -3053,7 +3052,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Satuan Unit (Opsional)</label>
-                  <select
+                  <select name="ws96_bendaharaportal_astSatuan_10" aria-label="astSatuan"
                     value={astSatuan}
                     onChange={(e) => setAstSatuan(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold"
@@ -3069,7 +3068,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Investasi di Apa / Nama Aset</label>
-                <input
+                <input name="ws96_bendaharaportal_astNama_11"
                   type="text"
                   required
                   placeholder={ASSET_CATEGORY_LABELS[astKategori].placeholderNama}
@@ -3082,7 +3081,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Jumlah ({astSatuan})</label>
-                  <input
+                  <input name="ws96_bendaharaportal_astJumlah_12" aria-label="astJumlah"
                     type="number"
                     required
                     step="any"
@@ -3095,7 +3094,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Dana Investasi Awal (Rp)</label>
-                  <input
+                  <input name="ws96_bendaharaportal_astNilaiBeli_13" aria-label="astNilaiBeli"
                     type="number"
                     required
                     min={0}
@@ -3108,7 +3107,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Nilai Saat Ini (Rp)</label>
-                  <input
+                  <input name="ws96_bendaharaportal_astEstimasiIdr_14" aria-label="astEstimasiIdr"
                     type="number"
                     required
                     min={0}
@@ -3123,7 +3122,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Pengelola / Bank / Kustodian</label>
-                  <input
+                  <input name="ws96_bendaharaportal_astKustodian_15"
                     type="text"
                     required
                     placeholder={ASSET_CATEGORY_LABELS[astKategori].placeholderKustodian}
@@ -3135,7 +3134,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">No. Bilyet / Ref (Opsional)</label>
-                  <input
+                  <input name="ws96_bendaharaportal_astNomorSeri_16"
                     type="text"
                     placeholder="Opsional (No. Seri / Ref)"
                     value={astNomorSeri}
@@ -3147,7 +3146,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Keterangan / Anggota yang Ikut (Opsional)</label>
-                <input
+                <input name="ws96_bendaharaportal_astKeterangan_17"
                   type="text"
                   placeholder="Contoh: Jatuh tempo Oktober 2027 / Kupon 6.25% p.a. / Peserta sukarela"
                   value={astKeterangan}
@@ -3201,7 +3200,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Kategori Program</label>
-                  <select
+                  <select name="ws96_bendaharaportal_cmpCategory_18" aria-label="cmpCategory"
                     value={cmpCategory}
                     onChange={(e) => setCmpCategory(e.target.value as CampaignCategory)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold text-slate-900"
@@ -3216,7 +3215,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Status Program</label>
-                  <select
+                  <select name="ws96_bendaharaportal_cmpStatus_19" aria-label="cmpStatus"
                     value={cmpStatus}
                     onChange={(e) => setCmpStatus(e.target.value as 'AKTIF' | 'TERCAPAI' | 'SELESAI')}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold text-slate-900"
@@ -3230,7 +3229,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Judul Program Penggalangan Dana</label>
-                <input
+                <input name="ws96_bendaharaportal_cmpTitle_20"
                   type="text"
                   required
                   placeholder="Contoh: Santunan Anak Yatim / Bantuan Medis / Baksos WS96"
@@ -3245,7 +3244,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                   <label className="block font-bold text-slate-700 mb-1">
                     Target Dana (Rp) — {formatRupiah(cmpTarget)}
                   </label>
-                  <input
+                  <input name="ws96_bendaharaportal_cmpTarget_21" aria-label="cmpTarget"
                     type="number"
                     required
                     min={0}
@@ -3258,11 +3257,10 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Target Tanggal / Batas Waktu</label>
-                  <input
-                    type="date"
+                  <PremiumDatePicker
                     value={cmpDeadline}
-                    onChange={(e) => setCmpDeadline(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold"
+                    onChange={(val) => setCmpDeadline(val)}
+                    placeholder="Pilih Batas Tanggal"
                   />
                 </div>
               </div>
@@ -3270,7 +3268,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <div className="grid grid-cols-3 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <div>
                   <label className="block font-bold text-slate-600 mb-1">Dana Terkumpul (Rp)</label>
-                  <input
+                  <input name="ws96_bendaharaportal_cmpCollected_22" aria-label="cmpCollected"
                     type="number"
                     min={0}
                     step="any"
@@ -3281,7 +3279,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                 </div>
                 <div>
                   <label className="block font-bold text-slate-600 mb-1">Telah Disalurkan (Rp)</label>
-                  <input
+                  <input name="ws96_bendaharaportal_cmpDisbursed_23" aria-label="cmpDisbursed"
                     type="number"
                     min={0}
                     step="any"
@@ -3292,7 +3290,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                 </div>
                 <div>
                   <label className="block font-bold text-slate-600 mb-1">Jumlah Donatur</label>
-                  <input
+                  <input name="ws96_bendaharaportal_cmpDonors_24" aria-label="cmpDonors"
                     type="number"
                     min={0}
                     value={cmpDonors}
@@ -3304,7 +3302,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Deskripsi &amp; Tujuan Penggalangan Dana</label>
-                <textarea
+                <textarea name="ws96_bendaharaportal_cmpDesc_29"
                   rows={2}
                   placeholder="Jelaskan peruntukan program dana sosial ini..."
                   value={cmpDesc}
@@ -3315,14 +3313,12 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
               <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                 {editingCampaignId ? (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteCampaign(editingCampaignId)}
-                    className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 font-bold inline-flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Hapus Program
-                  </button>
+                  <AnimatedDeleteButton
+                    label="Hapus Program"
+                    confirmLabel="Yakin Hapus?"
+                    size="sm"
+                    onDelete={() => handleDeleteCampaign(editingCampaignId)}
+                  />
                 ) : (
                   <span />
                 )}
@@ -3377,7 +3373,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                   <label className="font-bold text-slate-700">Nominal (Rupiah)</label>
                   <span className="font-extrabold text-emerald-700">{formatRupiah(mlsNominal)}</span>
                 </div>
-                <input
+                <input name="ws96_bendaharaportal_mlsNominal_25" aria-label="mlsNominal"
                   type="number"
                   required
                   min={1}
@@ -3406,14 +3402,14 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                     ? 'Pilih Anggota Donatur (Atau Ketik Nama)'
                     : 'Nama Penerima Manfaat / Tujuan Penyaluran'}
                 </label>
-                <input
+                <input name="ws96_bendaharaportal_mlsMemberQuery_31"
                   type="text"
                   placeholder="Cari nama personel / NRP..."
                   value={mlsMemberQuery}
                   onChange={(e) => setMlsMemberQuery(e.target.value)}
                   className="w-full px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs mb-1.5"
                 />
-                <select
+                <select name="ws96_bendaharaportal_mlsNrp_26" aria-label="mlsNrp"
                   value={mlsNrp}
                   onChange={(e) => {
                     const nrp = e.target.value;
@@ -3440,7 +3436,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                       </option>
                     ))}
                 </select>
-                <input
+                <input name="ws96_bendaharaportal_mlsPihak_27"
                   type="text"
                   placeholder="Nama Donatur / Penerima Manfaat"
                   value={mlsPihak}
@@ -3451,7 +3447,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Keterangan (Otomatis Tercatat di Buku Kas)</label>
-                <textarea
+                <textarea name="ws96_bendaharaportal_mlsKeterangan_28" aria-label="mlsKeterangan"
                   rows={2}
                   required
                   value={mlsKeterangan}
@@ -3510,14 +3506,14 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
             <form onSubmit={handleSaveInvestment} className="p-5 space-y-4 text-xs">
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Cari &amp; Pilih Anggota yang Ikut Investasi</label>
-                <input
+                <input name="ws96_bendaharaportal_invMemberQuery_35"
                   type="text"
                   placeholder="Ketik nama atau NRP untuk memfilter daftar..."
                   value={invMemberQuery}
                   onChange={(e) => setInvMemberQuery(e.target.value)}
                   className="w-full px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs mb-1.5"
                 />
-                <select
+                <select name="ws96_bendaharaportal_invNrp_29" aria-label="invNrp"
                   value={invNrp}
                   onChange={(e) => {
                     const selectedNrp = e.target.value;
@@ -3551,7 +3547,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
                   <label className="block font-bold text-slate-700 mb-1">Nama Lengkap Partisipan</label>
-                  <input
+                  <input name="ws96_bendaharaportal_invNama_30" aria-label="invNama"
                     type="text"
                     required
                     value={invNama}
@@ -3561,7 +3557,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Pangkat</label>
-                  <input
+                  <input name="ws96_bendaharaportal_invPangkat_31" aria-label="invPangkat"
                     type="text"
                     value={invPangkat}
                     onChange={(e) => setInvPangkat(e.target.value)}
@@ -3573,7 +3569,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Nama Program / Instrumen Investasi</label>
-                  <input
+                  <input name="ws96_bendaharaportal_invProgram_32"
                     type="text"
                     required
                     placeholder="Contoh: Pool Investasi SBN / Usaha Bersama WS96"
@@ -3584,11 +3580,10 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Tanggal Bergabung</label>
-                  <input
-                    type="date"
+                  <PremiumDatePicker
                     value={invTanggal}
-                    onChange={(e) => setInvTanggal(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                    onChange={(val) => setInvTanggal(val)}
+                    placeholder="Pilih Tanggal Bergabung"
                   />
                 </div>
               </div>
@@ -3598,7 +3593,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                   <label className="block font-bold text-slate-700 mb-1">
                     Modal Penyertaan (Rp) — {formatRupiah(invNominal)}
                   </label>
-                  <input
+                  <input name="ws96_bendaharaportal_invNominal_33" aria-label="invNominal"
                     type="number"
                     required
                     min={0}
@@ -3616,7 +3611,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                   <label className="block font-bold text-slate-700 mb-1">
                     Estimasi Nilai Saat Ini (Rp) — {formatRupiah(invEstimasi)}
                   </label>
-                  <input
+                  <input name="ws96_bendaharaportal_invEstimasi_34" aria-label="invEstimasi"
                     type="number"
                     required
                     min={0}
@@ -3630,7 +3625,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Catatan / Keterangan Bagi Hasil (Opsional)</label>
-                <input
+                <input name="ws96_bendaharaportal_invCatatan_35"
                   type="text"
                   placeholder="Contoh: Penyertaan Tahap I / Bagi hasil per semester"
                   value={invCatatan}
@@ -3641,7 +3636,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
 
               {!editingInvestId && (
                 <label className="flex items-center gap-2 p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 cursor-pointer">
-                  <input
+                  <input name="ws96_bendaharaportal_input_36" aria-label="input bendaharaportal 36"
                     type="checkbox"
                     checked={invRecordToKas}
                     onChange={(e) => setInvRecordToKas(e.target.checked)}
@@ -3731,7 +3726,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                   </div>
 
                   <div className="flex gap-1.5 pt-1">
-                    <input
+                    <input name="ws96_bendaharaportal_newMasukLabel_44"
                       type="text"
                       placeholder="Tambah sub-kategori masuk..."
                       value={newMasukLabel}
@@ -3783,7 +3778,7 @@ export const BendaharaPortal: React.FC<BendaharaPortalProps> = ({
                   </div>
 
                   <div className="flex gap-1.5 pt-1">
-                    <input
+                    <input name="ws96_bendaharaportal_newKeluarLabel_45"
                       type="text"
                       placeholder="Tambah sub-kategori keluar..."
                       value={newKeluarLabel}

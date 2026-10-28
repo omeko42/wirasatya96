@@ -458,7 +458,7 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
               className="flex items-center gap-1.5"
             >
               <div className="flex-1 relative">
-                <input
+                <input name="ws96_linkedinchatdock_inputText_1"
                   type="text"
                   placeholder="Tulis pesan..."
                   value={inputText}
@@ -643,7 +643,7 @@ export const LinkedInChatDock: React.FC<LinkedInChatDockProps> = ({
             <div className="flex items-center gap-1.5">
               <div className="relative flex-1">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                <input
+                <input name="ws96_linkedinchatdock_searchQuery_2"
                   ref={searchInputRef}
                   type="text"
                   placeholder="Cari nama, NRP, atau satker..."

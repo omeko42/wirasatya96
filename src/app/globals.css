@@ -247,3 +247,73 @@ main a {
 .ws96-accordion-body {
   animation: ws96AccordionSlideDown 0.26s ease-out;
 }
+
+/* ============================================================================
+ * 7. LINEAR "FEEL EXPENSIVE" & UX ENGINE 2.3 (PC vs HP 375px STANDARD)
+ * - 80ms hover feedback, 150ms max transitions, 0 overshoot
+ * - Tabular numerals & single-line KPI protection (`white-space: nowrap`)
+ * - Touch-only 44px minimum hit targets (`@media (pointer: coarse)`)
+ * - Mobile 16px input font-size to prevent iOS Safari auto-zoom
+ * - Fixed bottom-bar `env(safe-area-inset-bottom)` padding
+ * ============================================================================ */
+.ws96-kpi-value,
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.ws96-kpi-nowrap {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Linear-grade snappy interactive response (80ms hover, 150ms transition, no overshoot) */
+main button,
+main a,
+nav button,
+nav a {
+  transition:
+    background-color 80ms ease-out,
+    color 80ms ease-out,
+    border-color 80ms ease-out,
+    box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 120ms ease-out;
+}
+
+/* Differentiate Touch (HP) vs Fine Pointer (PC Mouse) */
+@media (pointer: coarse) {
+  button:not(.ws96-inline-chip),
+  [role="button"]:not(.ws96-inline-chip),
+  input[type="submit"],
+  input[type="button"],
+  select {
+    min-height: 44px;
+  }
+}
+
+/* Prevent iOS Safari / Mobile browser auto-zoom when tapping inputs (< 16px zooms) */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe area padding for fixed bottom bars on modern phones */
+.ws96-safe-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Horizontal error shake for invalid OTP / Password feedback */
+@keyframes ws96ErrorShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.ws96-error-shake {
+  animation: ws96ErrorShake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}

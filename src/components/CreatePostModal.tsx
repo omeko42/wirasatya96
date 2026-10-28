@@ -222,7 +222,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-y-auto p-3.5 sm:p-5 space-y-3.5 sm:space-y-4">
           {/* Rich Textarea */}
-          <textarea
+          <textarea name="ws96_createpostmodal_content_1"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Tulis informasi, kegiatan, atau keterangan foto/video..."
@@ -362,7 +362,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                       ? 'Ganti File Foto dari Perangkat...'
                       : 'Pilih File Foto dari Perangkat...'}
                   </span>
-                  <input
+                  <input name="ws96_createpostmodal_input_1" aria-label="input createpostmodal 1"
                     type="file"
                     accept="image/*"
                     onChange={handleFileUpload}
@@ -405,7 +405,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
               {/* Custom Image URL Option */}
               <div className="pt-1">
-                <input
+                <input name="ws96_createpostmodal_customImageUrl_3"
                   type="url"
                   placeholder="Atau tempel URL gambar eksternal (https://...)"
                   value={customImageUrl}
@@ -447,7 +447,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                       ? 'Ganti File Video dari Perangkat (.mp4 / .webm)...'
                       : 'Pilih File Video dari Perangkat (.mp4 / .webm)...'}
                   </span>
-                  <input
+                  <input name="ws96_createpostmodal_input_2" aria-label="input createpostmodal 2"
                     type="file"
                     accept="video/mp4,video/webm,video/quicktime,video/*"
                     onChange={handleVideoFileUpload}
@@ -506,7 +506,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
               {/* Custom Video URL Option */}
               <div className="pt-1">
-                <input
+                <input name="ws96_createpostmodal_customVideoUrl_3"
                   type="url"
                   placeholder="Atau tempel URL video (.mp4 / .webm / YouTube URL)"
                   value={customVideoUrl}

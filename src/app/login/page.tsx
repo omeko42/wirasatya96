@@ -1078,7 +1078,7 @@ export default function LoginPage() {
                   Kata Sandi Baru <span className="text-red-700">*</span>
                 </label>
                 <div className="relative">
-                  <input
+                  <input autoComplete="new-password" name="ws96_page_newPassword_1"
                     type={showNewPassword ? 'text' : 'password'}
                     required
                     minLength={6}
@@ -1095,13 +1095,60 @@ export default function LoginPage() {
                     {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+
+                {/* Premium Password Strength Bar & 5-Point Live Checklist (SOP Video 15) */}
+                {newPassword.length > 0 && (() => {
+                  const checks = [
+                    { label: '6+ Karakter', ok: newPassword.length >= 6 },
+                    { label: 'A-Z', ok: /[A-Z]/.test(newPassword) },
+                    { label: 'a-z', ok: /[a-z]/.test(newPassword) },
+                    { label: '0-9', ok: /[0-9]/.test(newPassword) },
+                    { label: '@#$', ok: /[^A-Za-z0-9]/.test(newPassword) },
+                  ];
+                  const score = checks.filter((c) => c.ok).length;
+                  const strengthLabel = score <= 2 ? 'Lemah' : score <= 4 ? 'Sedang' : 'Kuat';
+                  const strengthColor =
+                    score <= 2 ? 'bg-red-500' : score <= 4 ? 'bg-amber-500' : 'bg-emerald-500';
+                  const strengthText =
+                    score <= 2 ? 'text-red-600' : score <= 4 ? 'text-amber-600' : 'text-emerald-600';
+
+                  return (
+                    <div className="mt-2 space-y-1.5">
+                      <div className="flex items-center justify-between text-[10px] font-bold">
+                        <span className="text-slate-500">Kekuatan Sandi</span>
+                        <span className={strengthText}>{strengthLabel} ({score}/5)</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-150 ${strengthColor}`}
+                          style={{ width: `${(score / 5) * 100}%` }}
+                        />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        {checks.map((item) => (
+                          <span
+                            key={item.label}
+                            className={`ws96-inline-chip inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all duration-150 ${
+                              item.ok
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                                : 'bg-slate-50 border-slate-200 text-slate-400'
+                            }`}
+                          >
+                            <span>{item.ok ? '✓' : '○'}</span>
+                            <span>{item.label}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Konfirmasi Kata Sandi Baru <span className="text-red-700">*</span>
                 </label>
-                <input
+                <input autoComplete="new-password" name="ws96_page_confirmPassword_2"
                   type={showNewPassword ? 'text' : 'password'}
                   required
                   value={confirmPassword}
@@ -1333,23 +1380,61 @@ export default function LoginPage() {
                   </p>
                 </div>
               ) : (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    {selected2FAMethod === 'PIN'
-                      ? 'Masukkan 6-Digit PIN Keamanan'
-                      : selected2FAMethod === 'TOTP'
-                      ? 'Masukkan 6-Digit Kode Google/MS Authenticator'
-                      : `Masukkan 6-Digit OTP Email (${pending2FAUser.email || `${pending2FAUser.nrp}@polri.go.id`})`}
-                  </label>
-                  <input
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-700">
+                      {selected2FAMethod === 'PIN'
+                        ? 'Masukkan 6-Digit PIN Keamanan'
+                        : selected2FAMethod === 'TOTP'
+                        ? 'Masukkan 6-Digit Kode Google/MS Authenticator'
+                        : `Masukkan 6-Digit OTP Email (${pending2FAUser.email || `${pending2FAUser.nrp}@polri.go.id`})`}
+                    </label>
+                    {selected2FAMethod === 'EMAIL_OTP' && (
+                      <button
+                        type="button"
+                        onClick={() => setOtpInput('199696')}
+                        className="ws96-inline-chip px-2 py-0.5 rounded-full bg-red-50 hover:bg-red-100 border border-red-200 text-red-800 text-[10px] font-extrabold transition-all"
+                      >
+                        ⚡ Auto-Fill OTP (199696)
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 6-Box Segmented Premium OTP Visual + Synchronized Input (SOP Video 08-11) */}
+                  <div className="grid grid-cols-6 gap-2">
+                    {[0, 1, 2, 3, 4, 5].map((idx) => {
+                      const digit = otpInput[idx] || '';
+                      const isActive = otpInput.length === idx || (idx === 5 && otpInput.length === 6);
+                      const isComplete = otpInput.length === 6;
+                      return (
+                        <div
+                          key={idx}
+                          className={`h-11 rounded-xl border flex items-center justify-center font-mono text-base font-extrabold transition-all duration-150 select-none ${
+                            isComplete
+                              ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-2xs'
+                              : isActive
+                              ? 'bg-white border-red-800 ring-2 ring-red-800/20 text-slate-900'
+                              : digit
+                              ? 'bg-slate-50 border-slate-300 text-slate-900'
+                              : 'bg-slate-50/60 border-slate-200 text-slate-400'
+                          }`}
+                        >
+                          {digit ? (selected2FAMethod === 'PIN' ? '•' : digit) : '–'}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <input name="ws96_page_otpInput_3"
                     type={selected2FAMethod === 'PIN' ? 'password' : 'text'}
                     inputMode="numeric"
+                    autoComplete="one-time-code"
                     maxLength={6}
                     required
                     value={otpInput}
-                    onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
-                    placeholder="Masukkan 6 digit angka"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-center font-mono text-sm font-extrabold tracking-widest focus:outline-none focus:ring-2 focus:ring-red-800"
+                    onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Ketik atau tempel 6 digit kode di sini..."
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-center font-mono text-xs font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-red-800"
                   />
                 </div>
               )}
@@ -1450,7 +1535,7 @@ export default function LoginPage() {
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     NRP Anggota / NRP Ajudan (ADC) / Email Dinas
                   </label>
-                  <input
+                  <input name="ws96_page_username_3"
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
@@ -1490,7 +1575,7 @@ export default function LoginPage() {
                     </div>
                   </div>
                   <div className="relative">
-                    <input
+                    <input autoComplete="current-password" name="ws96_page_password_4"
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -1599,7 +1684,7 @@ export default function LoginPage() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       NRP / NIP <span className="text-red-700">*</span>
                     </label>
-                    <input
+                    <input name="ws96_page_resetNrp_5"
                       type="text"
                       required
                       placeholder="Contoh: 75060702"
@@ -1614,7 +1699,7 @@ export default function LoginPage() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Nomor WhatsApp Aktif <span className="text-red-700">*</span>
                     </label>
-                    <input
+                    <input name="ws96_page_resetWa_6"
                       type="tel"
                       required
                       placeholder="Contoh: 081234567890"
@@ -1629,7 +1714,7 @@ export default function LoginPage() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Keterangan / Alasan Reset Password <span className="text-slate-400 font-normal">(Opsional)</span>
                     </label>
-                    <input
+                    <input autoComplete="current-password" name="ws96_page_resetReason_7"
                       type="text"
                       placeholder="Contoh: Lupa password setelah ganti HP"
                       value={resetReason}

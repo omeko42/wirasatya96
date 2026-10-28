@@ -8,10 +8,17 @@ export async function POST(req: NextRequest) {
     const { nrp, userId, username, identifier, password, mfaMethod, clientOverride } = body;
 
     const targetId = identifier || username || userId || nrp;
-    if (!targetId) {
+    if (!targetId || typeof targetId !== 'string' || !targetId.trim()) {
       return NextResponse.json(
-        { success: false, message: 'NRP atau Email dinas diperlukan' }, 
+        { success: false, message: 'NRP atau Email dinas diperlukan (harus berupa teks valid)' }, 
         { status: 400 }
+      );
+    }
+
+    if (password !== undefined && password !== null && typeof password !== 'string') {
+      return NextResponse.json(
+        { success: false, message: 'Format sandi tidak valid (tolak payload non-string)' },
+        { status: 401 }
       );
     }
 

@@ -500,7 +500,7 @@ export const LinkedInSettingsPage: React.FC<LinkedInSettingsPageProps> = ({
             <div className="space-y-3 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Kata Sandi Baru</label>
-                <input
+                <input autoComplete="new-password" name="ws96_linkedinsettingspage_newPassword_1"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -510,7 +510,7 @@ export const LinkedInSettingsPage: React.FC<LinkedInSettingsPageProps> = ({
               </div>
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Konfirmasi Kata Sandi Baru</label>
-                <input
+                <input autoComplete="new-password" name="ws96_linkedinsettingspage_confirmPassword_2"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}

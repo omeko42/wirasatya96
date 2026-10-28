@@ -586,7 +586,7 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
           <div className="p-3 border-b border-slate-100 flex-shrink-0">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
+              <input name="ws96_linkedinmessagingpage_searchQuery_1"
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
@@ -1035,7 +1035,7 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
                   )}
 
                   <div className="flex items-center gap-2">
-                    <input
+                    <input name="ws96_linkedinmessagingpage_inputText_2"
                       type="text"
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
@@ -1048,7 +1048,7 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
                       title="Lampirkan Foto atau Dokumen (PDF/Word)"
                     >
                       <Paperclip className="w-4 h-4" />
-                      <input
+                      <input name="ws96_linkedinmessagingpage_input_1" aria-label="input linkedinmessagingpage 1"
                         type="file"
                         accept="image/*,.pdf,.doc,.docx"
                         onChange={handleAttachmentFileChange}
@@ -1096,7 +1096,7 @@ export const LinkedInMessagingPage: React.FC<LinkedInMessagingPageProps> = ({
             <div className="p-3 border-b border-slate-100 bg-slate-50">
               <div className="relative">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
+                <input name="ws96_linkedinmessagingpage_newChatSearch_4"
                   type="text"
                   value={newChatSearch}
                   onChange={(e) => setNewChatSearch(e.target.value)}

@@ -1115,7 +1115,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
                       Personel Pemilik / Penggerak Usaha
                     </label>
-                    <select
+                    <select name="ws96_executivedashboard_quickTargetNrp_1" aria-label="quickTargetNrp"
                       value={quickTargetNrp}
                       onChange={(e) => {
                         const nrp = e.target.value;
@@ -1144,7 +1144,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
                       Skema Kepemilikan Usaha
                     </label>
-                    <select
+                    <select name="ws96_executivedashboard_quickKategoriUsaha_2" aria-label="quickKategoriUsaha"
                       value={quickKategoriUsaha}
                       onChange={(e) => setQuickKategoriUsaha(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold bg-white"
@@ -1162,7 +1162,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
                       Jabatan / Peran di Usaha
                     </label>
-                    <select
+                    <select name="ws96_executivedashboard_quickPeranUsaha_3" aria-label="quickPeranUsaha"
                       value={quickPeranUsaha}
                       onChange={(e) => setQuickPeranUsaha(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold bg-white"
@@ -1179,7 +1179,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
                       Nama Perusahaan / Unit Usaha *
                     </label>
-                    <input
+                    <input name="ws96_executivedashboard_quickNamaUsaha_4"
                       type="text"
                       placeholder="Contoh: PT Satya Garda Logistik / CV Mandiri Jaya..."
                       value={quickNamaUsaha}
@@ -1192,7 +1192,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
                       Bidang Usaha / Produk &amp; Jasa *
                     </label>
-                    <input
+                    <input name="ws96_executivedashboard_quickBidangUsaha_5"
                       type="text"
                       placeholder="Contoh: Logistik & Kargo, Jasa Keamanan, Properti, Kuliner..."
                       value={quickBidangUsaha}
@@ -1206,7 +1206,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">
                         Kota Operasional
                       </label>
-                      <input
+                      <input name="ws96_executivedashboard_quickLokasiUsaha_6"
                         type="text"
                         placeholder="Jakarta, Surabaya..."
                         value={quickLokasiUsaha}
@@ -1218,7 +1218,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">
                         Status Usaha
                       </label>
-                      <select
+                      <select name="ws96_executivedashboard_quickStatusUsaha_4" aria-label="quickStatusUsaha"
                         value={quickStatusUsaha}
                         onChange={(e) =>
                           setQuickStatusUsaha(
@@ -1245,7 +1245,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                         Klik tombol posisi di bawah untuk membuka lowongan seperti Sekretaris, Direktur, Manajer, atau Staf.
                       </span>
                     </div>
-                    <select
+                    <select name="ws96_executivedashboard_quickBukaLoker_5" aria-label="quickBukaLoker"
                       value={quickBukaLoker}
                       onChange={(e) => setQuickBukaLoker(e.target.value as 'YA' | 'TIDAK')}
                       className="px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-xs font-extrabold text-emerald-900"
@@ -1298,7 +1298,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                             className="p-2.5 rounded-lg bg-white border border-emerald-200 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center"
                           >
                             <div className="sm:col-span-4">
-                              <input
+                              <input name="ws96_executivedashboard_item_posisi_9"
                                 type="text"
                                 placeholder="Nama Posisi (misal: Sekretaris, Direktur)..."
                                 value={item.posisi}
@@ -1312,7 +1312,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                               />
                             </div>
                             <div className="sm:col-span-2">
-                              <input
+                              <input name="ws96_executivedashboard_item_kuota_10"
                                 type="text"
                                 placeholder="Kuota (1 Orang)"
                                 value={item.kuota || ''}
@@ -1326,7 +1326,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                               />
                             </div>
                             <div className="sm:col-span-5">
-                              <input
+                              <input name="ws96_executivedashboard_item_kualifikasi_11"
                                 type="text"
                                 placeholder="Kualifikasi / Syarat singkat..."
                                 value={item.kualifikasi || ''}

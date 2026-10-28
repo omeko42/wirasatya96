@@ -25,6 +25,7 @@ import {
   Flag,
   Hash,
 } from 'lucide-react';
+import { AnimatedDeleteButton } from './PremiumMicroInteractions';
 
 interface LinkedInPostCardProps {
   post: FeedPost;
@@ -407,7 +408,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
 
               {isEditingThis ? (
                 <form onSubmit={handleSaveEditComment} className="mt-2 space-y-2">
-                  <input
+                  <input name="ws96_linkedinpostcard_editingCommentText_1" aria-label="editingCommentText"
                     type="text"
                     value={editingCommentText}
                     onChange={(e) => setEditingCommentText(e.target.value)}
@@ -542,7 +543,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
                 className="mt-2 pl-3 sm:pl-5 flex items-center gap-2"
               >
                 <CornerDownRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                <input
+                <input name="ws96_linkedinpostcard_replyText_2"
                   type="text"
                   placeholder={`Balas ${replyingToName}...`}
                   value={replyText}
@@ -828,13 +829,13 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
                           <span>Hapus postingan ini?</span>
                         </div>
                         <div className="grid grid-cols-2 gap-1.5">
-                          <button
-                            type="button"
-                            onClick={handleConfirmDeletePost}
-                            className="py-1.5 px-2.5 rounded-lg bg-red-700 hover:bg-red-800 text-white text-[11px] font-extrabold transition-colors cursor-pointer"
-                          >
-                            Ya, Hapus
-                          </button>
+                          <AnimatedDeleteButton
+                            label="Ya, Hapus"
+                            confirmLabel="Konfirmasi!"
+                            size="sm"
+                            onDelete={handleConfirmDeletePost}
+                            className="w-full py-1.5"
+                          />
                           <button
                             type="button"
                             onClick={() => setConfirmDeletePost(false)}
@@ -882,7 +883,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
             </div>
           </div>
 
-          <textarea
+          <textarea name="ws96_linkedinpostcard_editPostContent_3"
             value={editPostContent}
             onChange={(e) => setEditPostContent(e.target.value)}
             rows={3}
@@ -955,7 +956,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
             <label className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors">
               <ImageIcon className="w-3.5 h-3.5 text-red-800" />
               <span>{editPostImage ? 'Ganti Foto' : 'Tambah Foto'}</span>
-              <input
+              <input name="ws96_linkedinpostcard_input_2" aria-label="input linkedinpostcard 2"
                 type="file"
                 accept="image/*"
                 onChange={handleEditPostImageUpload}
@@ -1160,7 +1161,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
             />
             <div className="flex-1 space-y-2">
               <div className="relative">
-                <input
+                <input name="ws96_linkedinpostcard_newCommentText_5"
                   type="text"
                   placeholder="Tulis komentar..."
                   value={newCommentText}
@@ -1183,7 +1184,7 @@ export const LinkedInPostCard: React.FC<LinkedInPostCardProps> = ({
                     title="Lampirkan Foto pada Komentar"
                   >
                     <ImageIcon className="w-3.5 h-3.5" />
-                    <input
+                    <input name="ws96_linkedinpostcard_input_3" aria-label="input linkedinpostcard 3"
                       type="file"
                       accept="image/*"
                       onChange={handleCommentImageUpload}

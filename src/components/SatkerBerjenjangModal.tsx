@@ -526,7 +526,7 @@ export const SatkerBerjenjangModal: React.FC<SatkerBerjenjangModalProps> = ({
             {openDropdown === 1 && (
               <div className="mt-1.5 border border-slate-200 rounded-lg bg-white shadow-lg overflow-hidden">
                 <div className="px-3 py-2 border-b border-slate-100 flex items-center gap-2">
-                  <input
+                  <input name="ws96_satkerberjenjangmodal_searchT1_1"
                     type="text"
                     autoFocus
                     value={searchT1}
@@ -626,7 +626,7 @@ export const SatkerBerjenjangModal: React.FC<SatkerBerjenjangModalProps> = ({
               {openDropdown === 2 && (
                 <div className="mt-1.5 border border-slate-200 rounded-lg bg-white shadow-lg overflow-hidden">
                   <div className="px-3 py-2 border-b border-slate-100 flex items-center gap-2">
-                    <input
+                    <input name="ws96_satkerberjenjangmodal_searchT2_2"
                       type="text"
                       autoFocus
                       value={searchT2}
@@ -721,7 +721,7 @@ export const SatkerBerjenjangModal: React.FC<SatkerBerjenjangModalProps> = ({
               {openDropdown === 3 && (
                 <div className="mt-1.5 border border-slate-200 rounded-lg bg-white shadow-lg overflow-hidden">
                   <div className="px-3 py-2 border-b border-slate-100 flex items-center gap-2">
-                    <input
+                    <input name="ws96_satkerberjenjangmodal_searchT3_3"
                       type="text"
                       autoFocus
                       value={searchT3}

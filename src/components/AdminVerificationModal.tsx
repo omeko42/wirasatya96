@@ -72,6 +72,7 @@ import {
   AlertTriangle,
   ArrowUpDown
 } from 'lucide-react';
+import { PremiumDatePicker } from './PremiumMicroInteractions';
 
 interface AdminVerificationModalProps {
   isOpen: boolean;
@@ -2608,7 +2609,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
           <div className="grid grid-cols-2 gap-2.5">
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Pangkat</label>
-              <select
+              <select name="ws96_adminverificationmodal_newPangkat_3" aria-label="newPangkat"
                 value={newPangkat}
                 onChange={(e) => setNewPangkat(e.target.value)}
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:outline-none"
@@ -2623,7 +2624,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
               <label className="block font-semibold text-slate-700 mb-1">
                 Role Akses <span className="text-red-600">*</span>
               </label>
-              <select
+              <select name="ws96_adminverificationmodal_newRole_4" aria-label="newRole"
                 value={newRole}
                 onChange={(e) => setNewRole(e.target.value as UserRole)}
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:outline-none"
@@ -3043,7 +3044,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             {/* Searchbox di sebelah kanan tombol Sorting */}
             <div className="relative flex-1 min-w-[180px] sm:min-w-[200px]">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
+              <input name="ws96_adminverificationmodal_userSearch_10"
                 type="text"
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
@@ -3053,7 +3054,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             </div>
 
             <div className="flex items-center gap-2 overflow-x-auto text-xs flex-wrap sm:flex-nowrap shrink-0">
-              <select
+              <select name="ws96_adminverificationmodal_roleFilter_10" aria-label="roleFilter"
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value as 'ALL' | UserRole)}
                 className="px-2.5 sm:px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-800 shrink-0"
@@ -3237,7 +3238,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                       <div className="pt-2 xl:pt-0 border-t xl:border-t-0 border-slate-100 flex items-center gap-1.5 flex-shrink-0 flex-wrap">
                       {hasAdminUserAccess ? (
                         <>
-                          <select
+                          <select name="ws96_adminverificationmodal_u_role_11"
                             value={u.role}
                             disabled={updatingUserNrp === u.nrp}
                             onChange={(e) => handleRoleChange(u.nrp, e.target.value as UserRole)}
@@ -3393,7 +3394,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
           <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
+              <input name="ws96_adminverificationmodal_regSearch_13"
                 type="text"
                 value={regSearch}
                 onChange={(e) => setRegSearch(e.target.value)}
@@ -3534,7 +3535,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                             <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
                               <span className="sm:hidden">Role:</span><span className="hidden sm:inline">Tetapkan Role Saat Disetujui:</span>
                             </label>
-                            <select
+                            <select name="ws96_adminverificationmodal_selectedApproveRoles_14" aria-label="selectedApproveRoles"
                               value={selectedApproveRoles[reg.id] || 'ANGGOTA'}
                               onChange={(e) =>
                                 setSelectedApproveRoles((prev) => ({
@@ -3620,7 +3621,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
+                <input name="ws96_adminverificationmodal_auditSearch_15"
                   type="text"
                   value={auditSearch}
                   onChange={(e) => setAuditSearch(e.target.value)}
@@ -3629,7 +3630,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 />
               </div>
               <div className="flex items-center gap-2">
-                <select
+                <select name="ws96_adminverificationmodal_auditFilterAction_12" aria-label="auditFilterAction"
                   value={auditFilterAction}
                   onChange={(e) => setAuditFilterAction(e.target.value as 'ALL' | UserAuditAction)}
                   className="flex-1 sm:flex-initial px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-800"
@@ -3907,7 +3908,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">
                   Alasan Penghapusan <span className="text-slate-400 font-normal">(Tercatat di Log Audit)</span>
                 </label>
-                <input
+                <input name="ws96_adminverificationmodal_deleteReason_17"
                   type="text"
                   value={deleteReason}
                   onChange={(e) => setDeleteReason(e.target.value)}
@@ -4033,7 +4034,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                     <label className="block font-semibold text-slate-700 mb-1">
                       Nama Lengkap &amp; Gelar <span className="text-red-600">*</span>
                     </label>
-                    <input
+                    <input name="ws96_adminverificationmodal_editNama_13" aria-label="editNama"
                       type="text"
                       required
                       autoComplete="off"
@@ -4046,7 +4047,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                   <div className="grid grid-cols-2 gap-2.5">
                     <div>
                       <label className="block font-semibold text-slate-700 mb-1">Pangkat</label>
-                      <select
+                      <select name="ws96_adminverificationmodal_editPangkat_14" aria-label="editPangkat"
                         value={editPangkat}
                         onChange={(e) => {
                           const nextRank = e.target.value;
@@ -4069,7 +4070,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
 
                     <div>
                       <label className="block font-semibold text-slate-700 mb-1">Role Akses (Angkatan)</label>
-                      <select
+                      <select name="ws96_adminverificationmodal_editRole_15" aria-label="editRole"
                         value={editRole}
                         disabled={!hasAdminUserAccess}
                         onChange={(e) => setEditRole(e.target.value as UserRole)}
@@ -4087,7 +4088,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                   {/* STATUS KEDINASAN PERSONEL */}
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">Status Kedinasan</label>
-                    <select
+                    <select name="ws96_adminverificationmodal_editStatusKedinasan_16" aria-label="editStatusKedinasan"
                       value={editStatusKedinasan}
                       onChange={(e) => setEditStatusKedinasan(e.target.value as StatusKedinasan)}
                       className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:outline-none"
@@ -4124,7 +4125,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
 
                       return (
                         <>
-                          <select
+                          <select name="ws96_adminverificationmodal_selectVal_17" aria-label="selectVal"
                             value={selectVal}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -4162,7 +4163,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                           </select>
 
                           {editIsExternalJabatan && (
-                            <input
+                            <input name="ws96_adminverificationmodal_editJabatan_23"
                               type="text"
                               required
                               value={editJabatan}
@@ -4190,11 +4191,10 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                               Usia: {calc.usiaTahun} Thn • Pensiun: {calc.tahunPurnaTugas}
                             </span>
                           </div>
-                          <input
-                            type="date"
+                          <PremiumDatePicker
                             value={editTanggalLahir || calc.tanggalLahir}
-                            onChange={(e) => setEditTanggalLahir(e.target.value)}
-                            className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 focus:outline-none"
+                            onChange={(val) => setEditTanggalLahir(val)}
+                            placeholder="Pilih Tanggal Lahir"
                           />
                         </>
                       );
@@ -4250,7 +4250,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                         Dapat Diubah (Superadmin / Sekretaris)
                       </span>
                     </div>
-                    <input
+                    <input name="ws96_adminverificationmodal_editNrp_18"
                       type="text"
                       required
                       autoComplete="off"
@@ -4263,7 +4263,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
 
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">Email Dinas (@polri.go.id)</label>
-                    <input
+                    <input name="ws96_adminverificationmodal_editEmail_19"
                       type="email"
                       autoComplete="off"
                       value={editEmail}
@@ -4282,7 +4282,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                     <label className="block font-semibold text-slate-700 mb-1">
                       Email Sekunder / Pribadi <span className="text-slate-400 font-normal">(Opsional &amp; Editable)</span>
                     </label>
-                    <input
+                    <input name="ws96_adminverificationmodal_editSecondaryEmail_20"
                       type="email"
                       autoComplete="off"
                       value={editSecondaryEmail}
@@ -4294,7 +4294,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
 
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">No. HP / WhatsApp Aktif</label>
-                    <input
+                    <input name="ws96_adminverificationmodal_editNoHp_21"
                       type="tel"
                       autoComplete="off"
                       value={editNoHp}
@@ -4309,7 +4309,7 @@ export const AdminVerificationModal: React.FC<AdminVerificationModalProps> = ({
                       Reset / Ganti Password <span className="text-slate-400 font-normal">(Kosongkan jika tidak diubah)</span>
                     </label>
                     <div className="relative">
-                      <input
+                      <input name="ws96_adminverificationmodal_editPassword_22"
                         type={showEditPassword ? 'text' : 'password'}
                         autoComplete="new-password"
                         value={editPassword}

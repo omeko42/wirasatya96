@@ -31,6 +31,7 @@ import {
 } from '@/lib/avatarUtils';
 import { WSLogo } from './WSLogo';
 import { MetaVerifiedBadge } from './MetaVerifiedBadge';
+import { AnimatedLogoutButton, WebAudioFX } from './PremiumMicroInteractions';
 
 export type AppTab = 
   | 'direktori' 
@@ -92,7 +93,25 @@ export const Navbar: React.FC<NavbarProps> = ({
   const userMenuRef = useRef<HTMLDivElement>(null);
   const appsMenuRef = useRef<HTMLDivElement>(null);
   const searchBoxRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Global Apple/Linear-style Ctrl+K / Cmd+K Spotlight Shortcut (Video 12 & 18)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        WebAudioFX.playTactileTick(720);
+        setIsSearchOpen(true);
+        searchInputRef.current?.focus();
+      } else if (e.key === 'Escape' && isSearchOpen) {
+        setIsSearchOpen(false);
+        searchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSearchOpen]);
 
   useEffect(() => {
     return () => {
@@ -239,14 +258,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
               />
 
-              {/* Search Bar with Live Quick-Action Results (Mobile & Desktop) */}
+              {/* Apple-Style Spotlight Search Bar with Ctrl+K Shortcut & Quick Jump (Video 12 & 18) */}
               <div className="relative flex-1 min-w-0 max-w-xs lg:max-w-sm xl:max-w-md" ref={searchBoxRef}>
-                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
+                  id="ws96-global-search-input"
+                  name="ws96_navbar_searchText_1"
+                  aria-label="Cari perwira, NRP, satker, menu"
+                  autoComplete="off"
+                  ref={searchInputRef}
                   type="text"
                   value={searchText}
-                  onFocus={() => setIsSearchOpen(true)}
-                  placeholder="Cari perwira, NRP, satker..."
+                  onFocus={() => {
+                    WebAudioFX.playTactileTick(680);
+                    setIsSearchOpen(true);
+                  }}
+                  placeholder="Cari perwira, NRP, satker, menu..."
                   onChange={(e) => {
                     const val = e.target.value;
                     setSearchText(val);
@@ -258,96 +285,153 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }, 180);
                     }
                   }}
-                  className="w-full pl-8 sm:pl-9 pr-2.5 sm:pr-3 py-1.5 bg-slate-100 hover:bg-slate-200/70 border border-transparent rounded-lg text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-900/30 focus:border-red-900 transition-all"
+                  className="w-full pl-8 sm:pl-9 pr-12 sm:pr-14 py-1.5 bg-slate-100 hover:bg-slate-200/70 border border-transparent rounded-xl text-xs text-slate-900 placeholder-slate-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-900/25 focus:border-red-900 transition-all"
                 />
+                {searchText ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchText('');
+                      if (onSearchChange) onSearchChange('');
+                      searchInputRef.current?.focus();
+                    }}
+                    className="ws96-inline-chip absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-md bg-slate-200/80 hover:bg-slate-300 text-slate-700 text-[10px] font-bold"
+                    title="Bersihkan pencarian"
+                  >
+                    ✕
+                  </button>
+                ) : (
+                  <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white/90 border border-slate-200/90 text-[9px] font-mono font-bold text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none shadow-2xs">
+                    Ctrl K
+                  </kbd>
+                )}
 
-                {/* Live Search Dropdown with WA & Obrolan Cepat */}
-                {isSearchOpen && searchText.trim().length > 0 && (
-                  <div className="fixed sm:absolute left-3 right-3 sm:left-0 sm:right-auto top-14 sm:top-10 z-50 sm:w-[370px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-fadeIn">
-                    <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px]">
-                      <span className="font-bold text-slate-700">
-                        Hasil Pencarian Perwira ({quickSearchResults.length})
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsSearchOpen(false);
-                          setActiveTab('purnaTugas');
-                        }}
-                        className="text-red-800 font-bold hover:underline"
-                      >
-                        Lihat di Menu ToD &rarr;
-                      </button>
-                    </div>
-
-                    {quickSearchResults.length === 0 ? (
-                      <div className="p-4 text-center text-xs text-slate-500">
-                        Tidak ditemukan perwira dengan kata kunci &quot;{searchText}&quot;
+                {/* Apple-Style Spotlight Dropdown: Quick Menu Jump + Live Member Results */}
+                {isSearchOpen && (
+                  <div className="fixed sm:absolute left-3 right-3 sm:left-0 sm:right-auto top-14 sm:top-10 z-50 sm:w-[410px] bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden animate-fadeIn">
+                    {/* Quick Spotlight Menu Pills */}
+                    <div className="p-2.5 bg-slate-50/90 border-b border-slate-100">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1 mb-1.5">
+                        <span>⚡ Spotlight Pintasan Menu</span>
+                        <span className="font-mono text-[9px] text-slate-400">ESC tutup</span>
                       </div>
-                    ) : (
-                      <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-                        {quickSearchResults.map((m) => (
-                          <div
-                            key={m.nrp}
-                            className="p-2.5 hover:bg-slate-50 flex items-center justify-between gap-2 transition-colors"
+                      <div className="flex flex-wrap gap-1">
+                        {[
+                          { id: 'direktori' as AppTab, label: '🏠 Beranda' },
+                          { id: 'form' as AppTab, label: '👤 Data Diri (RH)' },
+                          { id: 'dashboard' as AppTab, label: '📊 Anev' },
+                          { id: 'purnaTugas' as AppTab, label: '💼 ToD & Jabatan' },
+                          { id: 'bendahara' as AppTab, label: '💰 Dana Sosial' },
+                          { id: 'users' as AppTab, label: '👥 Direktori User' },
+                        ].map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              WebAudioFX.playTactileTick(760);
+                              setIsSearchOpen(false);
+                              setActiveTab(item.id);
+                            }}
+                            className={`ws96-inline-chip px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                              activeTab === item.id
+                                ? 'bg-red-800 text-white border-red-800 shadow-2xs'
+                                : 'bg-white hover:bg-red-50 text-slate-700 border-slate-200'
+                            }`}
                           >
-                            <div
-                              onClick={() => {
-                                setIsSearchOpen(false);
-                                if (onSelectMember) onSelectMember(m);
-                              }}
-                              className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
-                            >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={getAvatarUrl(m.fotoUrl)}
-                                alt={m.namaLengkap}
-                                className="w-9 h-9 rounded-full object-cover border border-slate-200 flex-shrink-0"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="font-bold text-xs text-slate-900 truncate hover:text-red-800">
-                                  {m.namaLengkap}
-                                </div>
-                                <div className="text-[10px] text-slate-500 truncate">
-                                  {m.pangkat} &bull; NRP {m.nrp}
-                                </div>
-                                <div className="text-[10px] font-semibold text-red-900 truncate">
-                                  {m.jabatanTerakhir || m.jabatan || m.satuanKerja || m.satker} ({m.polda})
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              {onOpenChat && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsSearchOpen(false);
-                                    onOpenChat(m);
-                                  }}
-                                  className="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-900 font-bold text-[10px] flex items-center gap-1 border border-red-200"
-                                  title="Obrolan Cepat"
-                                >
-                                  <MessageSquare className="w-3 h-3" />
-                                  <span>Chat</span>
-                                </button>
-                              )}
-                              {m.noHp && (
-                                <a
-                                  href={`https://wa.me/${m.noHp.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=Halo%20Komandan%20${encodeURIComponent(m.namaLengkap)}%2C%20salam%20Wira%20Satya%2096`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1"
-                                  title="Hubungi via WhatsApp"
-                                >
-                                  <Phone className="w-3 h-3" />
-                                  <span>WA</span>
-                                </a>
-                              )}
-                            </div>
-                          </div>
+                            {item.label}
+                          </button>
                         ))}
                       </div>
+                    </div>
+
+                    {searchText.trim().length > 0 && (
+                      <>
+                        <div className="px-3.5 py-2 bg-white border-b border-slate-100 flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-slate-700 tabular-nums">
+                            Hasil Pencarian Perwira ({quickSearchResults.length})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsSearchOpen(false);
+                              setActiveTab('purnaTugas');
+                            }}
+                            className="ws96-inline-chip text-red-800 font-bold hover:underline"
+                          >
+                            Lihat di Menu ToD &rarr;
+                          </button>
+                        </div>
+
+                        {quickSearchResults.length === 0 ? (
+                          <div className="p-4 text-center text-xs text-slate-500">
+                            Tidak ditemukan perwira dengan kata kunci &quot;{searchText}&quot;
+                          </div>
+                        ) : (
+                          <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                            {quickSearchResults.map((m) => (
+                              <div
+                                key={m.nrp}
+                                className="p-2.5 hover:bg-slate-50 flex items-center justify-between gap-2 transition-colors"
+                              >
+                                <div
+                                  onClick={() => {
+                                    setIsSearchOpen(false);
+                                    if (onSelectMember) onSelectMember(m);
+                                  }}
+                                  className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={getAvatarUrl(m.fotoUrl)}
+                                    alt={m.namaLengkap}
+                                    className="w-9 h-9 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="font-bold text-xs text-slate-900 truncate hover:text-red-800">
+                                      {m.namaLengkap}
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 truncate tabular-nums">
+                                      {m.pangkat} &bull; NRP {m.nrp}
+                                    </div>
+                                    <div className="text-[10px] font-semibold text-red-900 truncate">
+                                      {m.jabatanTerakhir || m.jabatan || m.satuanKerja || m.satker} ({m.polda})
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  {onOpenChat && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setIsSearchOpen(false);
+                                        onOpenChat(m);
+                                      }}
+                                      className="ws96-inline-chip px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-900 font-bold text-[10px] flex items-center gap-1 border border-red-200"
+                                      title="Obrolan Cepat"
+                                    >
+                                      <MessageSquare className="w-3 h-3" />
+                                      <span>Chat</span>
+                                    </button>
+                                  )}
+                                  {m.noHp && (
+                                    <a
+                                      href={`https://wa.me/${m.noHp.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=Halo%20Komandan%20${encodeURIComponent(m.namaLengkap)}%2C%20salam%20Wira%20Satya%2096`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="ws96-inline-chip px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1"
+                                      title="Hubungi via WhatsApp"
+                                    >
+                                      <Phone className="w-3 h-3" />
+                                      <span>WA</span>
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
@@ -602,19 +686,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </button>
 
                       {onLogout && (
-                        <button
-                          onClick={() => {
+                        <AnimatedLogoutButton
+                          label="Keluar"
+                          variant="menu-item"
+                          onLogout={() => {
                             setIsUserMenuOpen(false);
                             if (typeof window !== 'undefined') {
                               localStorage.removeItem('ws96_adc_session');
                             }
                             onLogout();
                           }}
-                          className="w-full px-4 py-2 text-left hover:bg-red-50 text-red-700 flex items-center gap-2.5 font-semibold transition-colors"
-                        >
-                          <LogOut className="w-4 h-4 shrink-0" />
-                          <span>Keluar</span>
-                        </button>
+                        />
                       )}
                     </div>
 
@@ -805,7 +887,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Bottom Mobile Tab Bar */}
       {/* Urutan HP: 1. Beranda, 2. RH, 3. Anev, 4. Pesan, 5. Dansos, 6. User, 7. ToD (Notif di bar atas sebelah Saya) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-1 pt-1.5 pb-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-1 pt-1.5 ws96-safe-bottom shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
         <div className="grid grid-cols-7 gap-0.5 text-[9px] sm:text-[9.5px]">
           {/* 1. Beranda */}
           <button

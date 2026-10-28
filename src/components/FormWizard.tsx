@@ -68,6 +68,7 @@ import {
   GraduationCap,
   Briefcase,
 } from 'lucide-react';
+import { PremiumDatePicker } from './PremiumMicroInteractions';
 import { processSecureImageUpload } from '@/lib/mediaSecurity';
 
 export interface FormWizardProps {
@@ -629,7 +630,7 @@ const FlexiblePeriodInput: React.FC<{
     <div className="space-y-1">
       <div className="flex items-center gap-1">
         {mode === 'YEAR' && (
-          <select
+          <select name="ws96_formwizard_parsedParts_year_1" aria-label="parsedParts year"
             value={parsedParts.year || ''}
             onChange={(e) => onChange(e.target.value)}
             className={`w-full rounded-lg border border-slate-300 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-polri-navy ${padCls}`}
@@ -645,7 +646,7 @@ const FlexiblePeriodInput: React.FC<{
 
         {mode === 'MONTH_YEAR' && (
           <div className="grid grid-cols-2 gap-1.5 w-full">
-            <select
+            <select name="ws96_formwizard_parsedParts_year_2" aria-label="parsedParts year"
               value={parsedParts.year ? parsedParts.monthName : ''}
               onChange={(e) => {
                 const mName = e.target.value || 'Januari';
@@ -663,7 +664,7 @@ const FlexiblePeriodInput: React.FC<{
                 </option>
               ))}
             </select>
-            <select
+            <select name="ws96_formwizard_parsedParts_year_3" aria-label="parsedParts year"
               value={parsedParts.year || ''}
               onChange={(e) => {
                 const yr = e.target.value;
@@ -686,11 +687,10 @@ const FlexiblePeriodInput: React.FC<{
         )}
 
         {mode === 'FULL_DATE' && (
-          <input
-            type="date"
+          <PremiumDatePicker
             value={/^\d{4}-\d{2}-\d{2}$/.test(value || '') ? value : parsedParts.isoDate}
-            onChange={(e) => onChange(e.target.value)}
-            className={`w-full rounded-lg border border-slate-300 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-polri-navy ${padCls}`}
+            onChange={(val) => onChange(val)}
+            placeholder="Pilih Tanggal Lengkap"
           />
         )}
       </div>
@@ -2965,7 +2965,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                           <label className="px-2.5 py-1.5 rounded-lg bg-polri-navy hover:bg-polri-navyLight text-polri-gold text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors">
                             <Camera className="w-3.5 h-3.5" />
                             <span>Unggah Foto</span>
-                            <input
+                            <input name="ws96_formwizard_input_4" aria-label="input formwizard 4"
                               type="file"
                               accept="image/*"
                               onChange={async (e) => {
@@ -3019,7 +3019,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                           <label className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors">
                             <ImageIcon className="w-3.5 h-3.5" />
                             <span>Unggah Sampul</span>
-                            <input
+                            <input name="ws96_formwizard_input_5" aria-label="input formwizard 5"
                               type="file"
                               accept="image/*"
                               onChange={async (e) => {
@@ -3058,7 +3058,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Bio / Ringkasan Kedinasan
                     </label>
-                    <textarea
+                    <textarea name="ws96_formwizard_formData_bio_6"
                       rows={2}
                       placeholder="Ringkasan singkat riwayat penugasan atau jabatan..."
                       value={formData.bio || ''}
@@ -3078,7 +3078,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Kategori Personel <span className="text-red-500">*</span>
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_jenisAnggota_6" aria-label="formData jenisAnggota"
                         value={formData.jenisAnggota || 'ANGGOTA POLRI'}
                         onChange={(e) => handleInputChange('jenisAnggota', e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3094,7 +3094,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Status Kedinasan <span className="text-red-500">*</span>
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_statusKedinasan_7" aria-label="formData statusKedinasan"
                         value={formData.statusKedinasan || 'AKTIF'}
                         onChange={(e) => handleInputChange('statusKedinasan', e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3110,7 +3110,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Pangkat Terakhir <span className="text-red-500">*</span>
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_pangkat_8" aria-label="formData pangkat"
                         value={formData.pangkat || 'Kombes Pol'}
                         onChange={(e) => {
                           const nextPangkat = e.target.value;
@@ -3260,7 +3260,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <label className="block text-[11px] font-bold text-slate-700 mb-1">
                               Nama Jabatan <span className="text-red-500">*</span>
                             </label>
-                            <input
+                            <input name="ws96_formwizard_jabItem_jabatan_10"
                               type="text"
                               list="ws96-jabatan-presets"
                               placeholder="Pilih atau ketik jabatan..."
@@ -3277,7 +3277,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                               Satker &amp; Wilayah <span className="text-red-500">*</span>
                             </label>
                             <div className="flex items-center gap-1.5">
-                              <input
+                              <input name="ws96_formwizard_jabItem_satker_11"
                                 type="text"
                                 placeholder="Nama Satker / Polda..."
                                 value={jabItem.satker || ''}
@@ -3305,7 +3305,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <label className="block text-[11px] font-bold text-slate-700 mb-1">
                               Status Jabatan
                             </label>
-                            <select
+                            <select name="ws96_formwizard_jabItem_statusJabatan_9" aria-label="jabItem statusJabatan"
                               value={jabItem.statusJabatan || 'SAAT_INI'}
                               onChange={(e) =>
                                 handleUpdateJabatan(idx, 'statusJabatan', e.target.value)
@@ -3355,7 +3355,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Nama Lengkap &amp; Gelar <span className="text-red-500">*</span>
                       </label>
-                      <input
+                      <input name="ws96_formwizard_formData_namaLengkap_13"
                         type="text"
                         placeholder="Nama lengkap beserta gelar..."
                         value={formData.namaLengkap || ''}
@@ -3368,7 +3368,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         NRP / NIP <span className="text-red-500">*</span>
                       </label>
-                      <input
+                      <input name="ws96_formwizard_formData_nrp_14"
                         type="text"
                         readOnly={activeUser.role === 'ANGGOTA' && !!baselineMember}
                         placeholder="8 digit NRP / NIP..."
@@ -3395,7 +3395,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         NIK / Nomor KTP (Opsional)
                       </label>
-                      <input
+                      <input name="ws96_formwizard_formData_nomorKtp_15"
                         type="text"
                         placeholder="16 digit NIK KTP..."
                         value={formData.nomorKtp || ''}
@@ -3409,7 +3409,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         <label className="block text-xs font-bold text-slate-700 mb-1">
                           Agama
                         </label>
-                        <select
+                        <select name="ws96_formwizard_formData_agama_10" aria-label="formData agama"
                           value={formData.agama || 'ISLAM'}
                           onChange={(e) => handleInputChange('agama', e.target.value)}
                           className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3426,7 +3426,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         <label className="block text-xs font-bold text-slate-700 mb-1">
                           Suku / Daerah Asal
                         </label>
-                        <input
+                        <input name="ws96_formwizard_formData_sukuBangsa_17"
                           type="text"
                           placeholder="Contoh: Jawa, Sunda, Batak..."
                           value={formData.sukuBangsa || ''}
@@ -3440,7 +3440,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Tempat Lahir
                       </label>
-                      <input
+                      <input name="ws96_formwizard_formData_tempatLahir_18"
                         type="text"
                         placeholder="Kota / kabupaten lahir..."
                         value={formData.tempatLahir || ''}
@@ -3458,15 +3458,11 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                           Usia: {retirementCalc.usiaTahun} Thn
                         </span>
                       </div>
-                      <div className="relative">
-                        <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        <input
-                          type="date"
-                          value={formData.tanggalLahir || retirementCalc.tanggalLahir}
-                          onChange={(e) => handleBirthDateChange(e.target.value)}
-                          className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
-                        />
-                      </div>
+                      <PremiumDatePicker
+                        value={formData.tanggalLahir || retirementCalc.tanggalLahir}
+                        onChange={(val) => handleBirthDateChange(val)}
+                        placeholder="Pilih Tanggal Lahir"
+                      />
                     </div>
 
                     {/* Pilihan Dropdown Kompi & Pleton Batalyon Wira Satya 96 */}
@@ -3476,7 +3472,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                           <label className="block text-xs font-bold text-slate-700 mb-1">
                             Kompi Batalyon Wira Satya 96
                           </label>
-                          <select
+                          <select name="ws96_formwizard_formData_kompi_11" aria-label="formData kompi"
                             value={formData.kompi ?? ''}
                             onChange={(e) => handleInputChange('kompi', e.target.value)}
                             className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3494,7 +3490,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                           <label className="block text-xs font-bold text-slate-700 mb-1">
                             Pleton Batalyon Wira Satya 96
                           </label>
-                          <select
+                          <select name="ws96_formwizard_formData_pleton_12" aria-label="formData pleton"
                             value={formData.pleton ?? ''}
                             onChange={(e) => handleInputChange('pleton', e.target.value)}
                             className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3522,7 +3518,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Pendidikan Umum &amp; Akademik Terakhir
                       </label>
-                      <input
+                      <input name="ws96_formwizard_formData_pendidikanTerakhir_21"
                         type="text"
                         placeholder="Contoh: Akpol 1996 / S2 Hukum / S3 Ilmu Kepolisian..."
                         value={formData.pendidikanTerakhir || ''}
@@ -3535,7 +3531,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Dikbangti / Dikbangum Polri Terakhir
                       </label>
-                      <input
+                      <input name="ws96_formwizard_formData_dikbangPolri_22"
                         type="text"
                         placeholder="Contoh: SESPIMTI POLRI / LEMHANNAS RI / SESPIMMEN..."
                         value={formData.dikbangPolri || ''}
@@ -3575,7 +3571,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Tanda Kehormatan &amp; Brevet Kualifikasi
                     </label>
-                    <input
+                    <input name="ws96_formwizard_formData_tandaKehormatan_23"
                       type="text"
                       placeholder="Contoh: Bintang Bhayangkara Nararya, SL Pengabdian 8/16/24 Thn, Brevet Penyidik..."
                       value={formData.tandaKehormatan || ''}
@@ -3595,7 +3591,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         No. WhatsApp Aktif
                       </label>
-                      <input
+                      <input name="ws96_formwizard_formData_noHp_13"
                         type="text"
                         placeholder="0812xxxxxxxx"
                         value={formData.noHp || ''}
@@ -3610,7 +3606,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       </label>
                       <div className="relative">
                         <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
+                        <input name="ws96_formwizard_formData_email_25"
                           type="email"
                           placeholder="Alamat email utama..."
                           value={formData.email || ''}
@@ -3626,7 +3622,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       </label>
                       <div className="relative">
                         <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
+                        <input name="ws96_formwizard_formData_secondaryEmail_26"
                           type="email"
                           placeholder="Opsional..."
                           value={formData.secondaryEmail || ''}
@@ -3689,7 +3685,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <label className="block text-[11px] font-bold text-slate-600 mb-1">
                               Nama ADC <span className="text-red-500">*</span>
                             </label>
-                            <input
+                            <input name="ws96_formwizard_adc_nama_27"
                               type="text"
                               placeholder="Nama lengkap ADC..."
                               value={adc.nama}
@@ -3702,7 +3698,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <label className="block text-[11px] font-bold text-slate-600 mb-1">
                               NRP / NIP ADC
                             </label>
-                            <input
+                            <input name="ws96_formwizard_adc_nrp_28"
                               type="text"
                               placeholder="NRP / NIP ADC..."
                               value={adc.nrp || ''}
@@ -3715,7 +3711,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <label className="block text-[11px] font-bold text-slate-600 mb-1">
                               Pangkat ADC
                             </label>
-                            <select
+                            <select name="ws96_formwizard_adc_pangkat_14" aria-label="adc pangkat"
                               value={adc.pangkat || 'Briptu'}
                               onChange={(e) => handleUpdateAdc(idx, 'pangkat', e.target.value)}
                               className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-polri-navy"
@@ -3748,7 +3744,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <label className="block text-[11px] font-bold text-slate-600 mb-1">
                               Peran Pendamping
                             </label>
-                            <select
+                            <select name="ws96_formwizard_adc_jabatan_15" aria-label="adc jabatan"
                               value={adc.jabatan || 'ADC / Ajudan'}
                               onChange={(e) => handleUpdateAdc(idx, 'jabatan', e.target.value)}
                               className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-polri-navy"
@@ -3764,7 +3760,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <label className="block text-[11px] font-bold text-slate-600 mb-1">
                               No. WA ADC <span className="text-red-500">*</span>
                             </label>
-                            <input
+                            <input name="ws96_formwizard_adc_noHp_16"
                               type="text"
                               placeholder="0812xxxxxxxx"
                               value={adc.noHp}
@@ -3829,7 +3825,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         icon={<Home className="w-3.5 h-3.5" />}
                         tooltip="Pilih SEWA/KONTRAK jika saat ini menyewa tempat tinggal agar rincian biaya & periode kontrak muncul."
                       />
-                      <select
+                      <select name="ws96_formwizard_formData_statusTempatTinggal_17" aria-label="formData statusTempatTinggal"
                         value={formData.statusTempatTinggal || 'MILIK PRIBADI'}
                         onChange={(e) => handleInputChange('statusTempatTinggal', e.target.value)}
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3849,7 +3845,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             : 'Alamat Domisili'
                         }
                       />
-                      <input
+                      <input name="ws96_formwizard_formData_alamatTempatTinggal_33"
                         type="text"
                         placeholder="Jalan, komplek, RT/RW..."
                         value={formData.alamatTempatTinggal || ''}
@@ -3860,7 +3856,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <LabelWithTooltip label="Kota / Kabupaten" />
-                      <input
+                      <input name="ws96_formwizard_formData_kotaDomisili_34"
                         type="text"
                         placeholder="Contoh: Jakarta Selatan..."
                         value={formData.kotaDomisili || ''}
@@ -3871,7 +3867,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <LabelWithTooltip label="Provinsi" />
-                      <input
+                      <input name="ws96_formwizard_formData_provinsiDomisili_35"
                         type="text"
                         placeholder="Contoh: DKI Jakarta..."
                         value={formData.provinsiDomisili || ''}
@@ -3895,7 +3891,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div className="space-y-1.5">
                             <LabelWithTooltip label="Biaya Sewa / Thn" />
-                            <input
+                            <input name="ws96_formwizard_formData_biayaSewaTempatTinggal_18"
                               type="text"
                               placeholder="Rp 36 Jt / Thn"
                               value={formData.biayaSewaTempatTinggal || ''}
@@ -3938,7 +3934,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                           <div>
                             <LabelWithTooltip label="Keterangan Kontrak" />
-                            <input
+                            <input name="ws96_formwizard_formData_detailSewaTempatTinggal_37"
                               type="text"
                               placeholder="Contoh: Kontrak 2 thn..."
                               value={formData.detailSewaTempatTinggal || ''}
@@ -3959,7 +3955,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   <div>
                     <LabelWithTooltip label="Status Perkawinan" />
-                    <select
+                    <select name="ws96_formwizard_formData_statusPerkawinan_19" aria-label="formData statusPerkawinan"
                       value={formData.statusPerkawinan || 'MENIKAH'}
                       onChange={(e) => handleInputChange('statusPerkawinan', e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -3978,7 +3974,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                           : 'Nama Istri / Pasangan'
                       }
                     />
-                    <input
+                    <input name="ws96_formwizard_formData_namaIstri_39"
                       type="text"
                       placeholder="Nama lengkap istri..."
                       value={formData.namaIstri || ''}
@@ -3989,7 +3985,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   <div>
                     <LabelWithTooltip label="No. WA Istri / Keluarga" />
-                    <input
+                    <input name="ws96_formwizard_formData_kontakIstri_20"
                       type="text"
                       placeholder="0812xxxxxxxx"
                       value={formData.kontakIstri || ''}
@@ -4000,7 +3996,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   <div>
                     <LabelWithTooltip label="Pekerjaan / Aktivitas Istri" />
-                    <input
+                    <input name="ws96_formwizard_formData_pekerjaanIstri_41"
                       type="text"
                       placeholder="Bhayangkari / ASN / Wiraswasta..."
                       value={formData.pekerjaanIstri || ''}
@@ -4011,7 +4007,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                   <div>
                     <LabelWithTooltip label="Tempat Lahir Istri" />
-                    <input
+                    <input name="ws96_formwizard_formData_tempatLahirIstri_42"
                       type="text"
                       placeholder="Kota lahir..."
                       value={formData.tempatLahirIstri || ''}
@@ -4105,7 +4101,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
                         <div className="lg:col-span-2">
                           <LabelWithTooltip label="Nama Lengkap Anak" required />
-                          <input
+                          <input name="ws96_formwizard_anak_nama_43"
                             type="text"
                             placeholder="Nama lengkap anak..."
                             value={anak.nama}
@@ -4117,7 +4113,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         <div>
                           <LabelWithTooltip label="L/P & Kota Lahir" />
                           <div className="flex gap-1">
-                            <select
+                            <select name="ws96_formwizard_anak_jenisKelamin_21" aria-label="anak jenisKelamin"
                               value={anak.jenisKelamin || 'L'}
                               onChange={(e) => handleUpdateChild(idx, 'jenisKelamin', e.target.value)}
                               className="w-14 px-1.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy shrink-0"
@@ -4125,7 +4121,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                               <option value="L">L</option>
                               <option value="P">P</option>
                             </select>
-                            <input
+                            <input name="ws96_formwizard_anak_tempatLahir_45"
                               type="text"
                               placeholder="Kota..."
                               value={anak.tempatLahir || ''}
@@ -4153,7 +4149,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                         <div>
                           <LabelWithTooltip label="Status & Institusi" />
-                          <select
+                          <select name="ws96_formwizard_anak_status_22" aria-label="anak status"
                             value={anak.status}
                             onChange={(e) => handleUpdateChild(idx, 'status', e.target.value)}
                             className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy mb-1"
@@ -4162,7 +4158,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <option value="BEKERJA">BEKERJA</option>
                             <option value="BELUM BEKERJA">CARI KERJA</option>
                           </select>
-                          <input
+                          <input name="ws96_formwizard_anak_institusi_47"
                             type="text"
                             placeholder="Sekolah/Kampus/Kantor..."
                             value={anak.institusi || ''}
@@ -4176,7 +4172,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             label="Biaya Pendidikan"
                             tooltip="Estimasi biaya pendidikan tahunan (jika masih sekolah/kuliah)."
                           />
-                          <select
+                          <select name="ws96_formwizard_anak_biayaPendidikanTahunan_23" aria-label="anak biayaPendidikanTahunan"
                             value={anak.biayaPendidikanTahunan || '< 5.000.000'}
                             onChange={(e) => handleUpdateChild(idx, 'biayaPendidikanTahunan', e.target.value)}
                             className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-polri-navy"
@@ -4226,11 +4222,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         <label className="block text-[11px] font-bold text-slate-600 mb-1">
                           Tanggal Lahir
                         </label>
-                        <input
-                          type="date"
+                        <PremiumDatePicker
                           value={formData.tanggalLahir || retirementCalc.tanggalLahir}
-                          onChange={(e) => handleBirthDateChange(e.target.value)}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
+                          onChange={(val) => handleBirthDateChange(val)}
+                          placeholder="Pilih Tanggal Lahir"
                         />
                       </div>
 
@@ -4238,7 +4233,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         <label className="block text-[11px] font-bold text-slate-600 mb-1">
                           Tahun Pensiun ({RETIREMENT_AGE_POLRI} Thn)
                         </label>
-                        <input
+                        <input name="ws96_formwizard_retirementCalc_tahunPurnaTugas_24" aria-label="retirementCalc tahunPurnaTugas"
                           type="number"
                           readOnly
                           value={retirementCalc.tahunPurnaTugas}
@@ -4250,7 +4245,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         <label className="block text-[11px] font-bold text-slate-600 mb-1">
                           Sisa Masa Dinas
                         </label>
-                        <input
+                        <input name="ws96_formwizard_input_25" aria-label="input formwizard 25"
                           type="text"
                           readOnly
                           value={`${retirementCalc.sisaMasaDinasShort} (Usia ${retirementCalc.usiaTahun} Thn)`}
@@ -4265,7 +4260,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Status Pembekalan Purna Tugas
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_sudahPembekalan_26" aria-label="formData sudahPembekalan"
                         value={formData.sudahPembekalan || 'SUDAH'}
                         onChange={(e) => handleInputChange('sudahPembekalan', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4279,7 +4274,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Status Hunian Pensiun
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_statusRumahPurnaTugas_27" aria-label="formData statusRumahPurnaTugas"
                         value={formData.statusRumahPurnaTugas || 'MILIK PRIBADI'}
                         onChange={(e) => handleInputChange('statusRumahPurnaTugas', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4295,7 +4290,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Kota / Alamat Rencana Pensiun
                       </label>
-                      <input
+                      <input name="ws96_formwizard_formData_alamatPurnaTugas_53"
                         type="text"
                         placeholder="Kota atau alamat rencana pensiun..."
                         value={formData.alamatPurnaTugas || ''}
@@ -4321,7 +4316,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <label className="block text-[11px] font-bold text-amber-950">
                               Estimasi Biaya Sewa
                             </label>
-                            <input
+                            <input name="ws96_formwizard_formData_biayaSewaTahunan_28"
                               type="text"
                               placeholder="Contoh: Rp 30 Juta / Tahun"
                               value={formData.biayaSewaTahunan || ''}
@@ -4350,7 +4345,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <label className="block text-[11px] font-bold text-amber-950">
                               Keterangan Rencana Sewa
                             </label>
-                            <input
+                            <input name="ws96_formwizard_formData_detailSewaPurnaTugas_29"
                               type="text"
                               placeholder="Contoh: Rencana kontrak 2 tahun"
                               value={formData.detailSewaPurnaTugas || ''}
@@ -4381,7 +4376,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             key={act}
                             className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer p-1"
                           >
-                            <input
+                            <input name="ws96_formwizard_input_30" aria-label="input formwizard 30"
                               type="checkbox"
                               checked={checked}
                               onChange={() => handleToggleRencanaAktivitas(act)}
@@ -4405,7 +4400,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Skema Kepemilikan Usaha
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_kategoriUsaha_31" aria-label="formData kategoriUsaha"
                         value={formData.kategoriUsaha || 'USAHA PRIBADI / MANDIRI'}
                         onChange={(e) => handleInputChange('kategoriUsaha', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4422,7 +4417,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Jabatan / Peran dalam Usaha
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_peranUsahaYayasan_32" aria-label="formData peranUsahaYayasan"
                         value={formData.peranUsahaYayasan || 'PEMILIK / FOUNDER USAHA'}
                         onChange={(e) => handleInputChange('peranUsahaYayasan', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4441,7 +4436,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         icon={<Briefcase className="w-3.5 h-3.5" />}
                         tooltip="Nama PT/CV/Unit usaha pribadi maupun usaha bersama leting."
                       />
-                      <input
+                      <input name="ws96_formwizard_formData_namaUsahaYayasan_59"
                         type="text"
                         placeholder="Contoh: PT Garda Satya Nusantara..."
                         value={formData.namaUsahaYayasan || ''}
@@ -4452,7 +4447,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <LabelWithTooltip label="Bidang Usaha / Produk & Jasa" />
-                      <input
+                      <input name="ws96_formwizard_formData_jenisUsaha_60"
                         type="text"
                         placeholder="Contoh: Logistik, Pengamanan, Kuliner, Properti..."
                         value={formData.jenisUsaha || ''}
@@ -4463,7 +4458,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <LabelWithTooltip label="Lokasi / Kota Operasional" />
-                      <input
+                      <input name="ws96_formwizard_formData_lokasiUsaha_61"
                         type="text"
                         placeholder="Contoh: Jakarta Selatan, Surabaya..."
                         value={formData.lokasiUsaha || ''}
@@ -4474,7 +4469,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <LabelWithTooltip label="Status Operasional" />
-                      <select
+                      <select name="ws96_formwizard_formData_statusUsaha_33" aria-label="formData statusUsaha"
                         value={formData.statusUsaha || 'MASIH RENCANA'}
                         onChange={(e) => handleInputChange('statusUsaha', e.target.value)}
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4506,7 +4501,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         label="Kompetensi / Keahlian Pasca Dinas"
                         tooltip="Keahlian profesional untuk sinergi bisnis atau penugasan komisaris/konsultan."
                       />
-                      <input
+                      <input name="ws96_formwizard_formData_bidangKeahlianPensiun_63"
                         type="text"
                         placeholder="Konsultan Hukum, Manajemen Pengamanan, Dosen..."
                         value={formData.bidangKeahlianPensiun || ''}
@@ -4529,7 +4524,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         tooltip="Buka posisi di usaha pribadi atau usaha bersama Anda (Sekretaris, Direktur, Manajer, Staf, Magang) bagi putra-putri leting / almarhum yang membutuhkan pekerjaan."
                         className="mb-0"
                       />
-                      <select
+                      <select name="ws96_formwizard_formData_bukaLowonganKerja_34" aria-label="formData bukaLowonganKerja"
                         value={formData.bukaLowonganKerja || 'TIDAK'}
                         onChange={(e) => {
                           const val = e.target.value as 'YA' | 'TIDAK';
@@ -4597,7 +4592,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
                                     Nama Posisi / Jabatan Lowongan *
                                   </label>
-                                  <input
+                                  <input name="ws96_formwizard_loker_posisi_65"
                                     type="text"
                                     placeholder="Contoh: Sekretaris, Direktur Operasional, Manajer..."
                                     value={loker.posisi || ''}
@@ -4612,7 +4607,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
                                     Tipe Penempatan
                                   </label>
-                                  <select
+                                  <select name="ws96_formwizard_loker_tipePekerjaan_35" aria-label="loker tipePekerjaan"
                                     value={loker.tipePekerjaan || 'FULL_TIME'}
                                     onChange={(e) =>
                                       handleUpdateLowongan(idx, 'tipePekerjaan', e.target.value)
@@ -4630,7 +4625,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
                                     Kuota Kebutuhan
                                   </label>
-                                  <input
+                                  <input name="ws96_formwizard_loker_kuota_36"
                                     type="text"
                                     placeholder="Contoh: 1 Orang, 2 Orang"
                                     value={loker.kuota || ''}
@@ -4645,7 +4640,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
                                     Prioritas Pelamar Keluarga WS96
                                   </label>
-                                  <select
+                                  <select name="ws96_formwizard_loker_prioritasPelamar_37" aria-label="loker prioritasPelamar"
                                     value={
                                       loker.prioritasPelamar || 'PUTRA_PUTRI_ALMARHUM_LETING'
                                     }
@@ -4674,7 +4669,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
                                     Kualifikasi / Syarat Singkat
                                   </label>
-                                  <input
+                                  <input name="ws96_formwizard_loker_kualifikasi_69"
                                     type="text"
                                     placeholder="Contoh: S1/D3, komunikatif, penempatan Jakarta..."
                                     value={loker.kualifikasi || ''}
@@ -4720,7 +4715,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             key={src}
                             className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer p-1"
                           >
-                            <input
+                            <input name="ws96_formwizard_input_38" aria-label="input formwizard 38"
                               type="checkbox"
                               checked={checked}
                               onChange={() => handleToggleSumberPenghasilan(src)}
@@ -4740,7 +4735,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Kecukupan Dana Pensiun
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_kecukupanDanaPensiun_39" aria-label="formData kecukupanDanaPensiun"
                         value={formData.kecukupanDanaPensiun || 'CUKUP'}
                         onChange={(e) => handleInputChange('kecukupanDanaPensiun', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4755,7 +4750,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Dukungan Paguyuban / Yayasan
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_kebutuhanPembekalan_40" aria-label="formData kebutuhanPembekalan"
                         value={formData.kebutuhanPembekalan?.[0] || 'PELATIHAN'}
                         onChange={(e) => handleInputChange('kebutuhanPembekalan', [e.target.value])}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4771,7 +4766,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Sikap Menghadapi Purna Tugas
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_perasaanPensiun_41" aria-label="formData perasaanPensiun"
                         value={formData.perasaanPensiun || 'OPTIMIS'}
                         onChange={(e) => handleInputChange('perasaanPensiun', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4787,7 +4782,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Dukungan Keluarga
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_dukunganKeluarga_42" aria-label="formData dukunganKeluarga"
                         value={formData.dukunganKeluarga || 'SANGAT MENDUKUNG'}
                         onChange={(e) => handleInputChange('dukunganKeluarga', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4817,7 +4812,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Golongan Darah <span className="text-red-500">*</span>
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_golonganDarah_43" aria-label="formData golonganDarah"
                         value={formData.golonganDarah || 'O'}
                         onChange={(e) => handleInputChange('golonganDarah', e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4834,7 +4829,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Rhesus Darah
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_rhesusDarah_44" aria-label="formData rhesusDarah"
                         value={formData.rhesusDarah || 'Rh+'}
                         onChange={(e) => handleInputChange('rhesusDarah', e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4851,7 +4846,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Tinggi Badan (cm)
                       </label>
-                      <input
+                      <input name="ws96_formwizard_formData_tinggiBadan_45"
                         type="number"
                         min={140}
                         max={220}
@@ -4871,7 +4866,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Berat Badan (kg)
                       </label>
-                      <input
+                      <input name="ws96_formwizard_formData_beratBadan_46"
                         type="number"
                         min={40}
                         max={180}
@@ -4910,7 +4905,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Kondisi Mata / Visus
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_kondisiMata_47" aria-label="formData kondisiMata"
                         value={formData.kondisiMata || 'Normal (Tanpa Kacamata)'}
                         onChange={(e) => handleInputChange('kondisiMata', e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4927,7 +4922,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Frekuensi Olahraga
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_frekuensiOlahraga_48" aria-label="formData frekuensiOlahraga"
                         value={formData.frekuensiOlahraga || 'Rutin (3-5x Seminggu)'}
                         onChange={(e) => handleInputChange('frekuensiOlahraga', e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4944,7 +4939,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Olahraga Favorit / Kebugaran
                       </label>
-                      <input
+                      <input name="ws96_formwizard_formData_olahragaFavorit_81"
                         type="text"
                         placeholder="Contoh: Jalan Pagi, Golf, Tenis, Sepeda..."
                         value={formData.olahragaFavorit || ''}
@@ -4966,7 +4961,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         label="Kondisi Kesehatan Umum"
                         icon={<HeartPulse className="w-3.5 h-3.5" />}
                       />
-                      <select
+                      <select name="ws96_formwizard_formData_kondisiKesehatan_49" aria-label="formData kondisiKesehatan"
                         value={formData.kondisiKesehatan || 'BAIK'}
                         onChange={(e) => handleInputChange('kondisiKesehatan', e.target.value)}
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -4984,7 +4979,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         label="Status Penyakit Kronis"
                         tooltip="Jika ADA, klik '+ Tambah Penyakit' di bawah untuk mengisi nama diagnosa & sejak kapan."
                       />
-                      <select
+                      <select name="ws96_formwizard_formData_adaPenyakitKronis_50" aria-label="formData adaPenyakitKronis"
                         value={formData.adaPenyakitKronis || 'TIDAK ADA'}
                         onChange={(e) => {
                           const val = e.target.value as 'ADA' | 'TIDAK ADA';
@@ -5008,7 +5003,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         label="RS / Faskes Rujukan"
                         tooltip="Rumah sakit atau fasilitas kesehatan rujukan utama personel."
                       />
-                      <input
+                      <input name="ws96_formwizard_formData_faskesRujukan_84"
                         type="text"
                         placeholder="RS Polri Kramat Jati / RS Bhayangkara..."
                         value={formData.faskesRujukan || ''}
@@ -5117,7 +5112,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                               required
                               tooltip="Pilih dari saran atau ketik langsung nama penyakit/diagnosa medis."
                             />
-                            <input
+                            <input name="ws96_formwizard_item_namaPenyakit_85"
                               type="text"
                               list="ws96-penyakit-presets"
                               placeholder="Ketik atau pilih diagnosa..."
@@ -5149,7 +5144,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                           <div>
                             <LabelWithTooltip label="Status Saat Ini" />
-                            <select
+                            <select name="ws96_formwizard_item_statusPenyakit_51" aria-label="item statusPenyakit"
                               value={item.statusPenyakit || 'TERKONTROL'}
                               onChange={(e) =>
                                 handleUpdatePenyakit(idx, 'statusPenyakit', e.target.value)
@@ -5169,7 +5164,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                               label="Terapi / Obat Rutin"
                               tooltip="Obat rutin yang dikonsumsi atau tindakan medis berkala."
                             />
-                            <input
+                            <input name="ws96_formwizard_item_terapiObat_87"
                               type="text"
                               placeholder="Obat rutin / kontrol dokter..."
                               value={item.terapiObat || ''}
@@ -5190,7 +5185,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       label="Ringkasan Kondisi & Penanganan Terkini (Opsional)"
                       tooltip="Catatan umum mengenai perkembangan kondisi fisik atau terapi saat ini."
                     />
-                    <input
+                    <input name="ws96_formwizard_formData_kondisiSaatIni_88"
                       type="text"
                       placeholder="Contoh: Tekanan darah terkontrol dengan olahraga & obat rutin..."
                       value={formData.kondisiSaatIni || ''}
@@ -5301,7 +5296,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <label className="block text-[11px] font-bold text-slate-700 mb-1">
                               Nama / Merek Asuransi <span className="text-red-500">*</span>
                             </label>
-                            <input
+                            <input name="ws96_formwizard_insItem_namaMerek_89"
                               type="text"
                               list="ws96-asuransi-presets"
                               placeholder="Contoh: BPJS Kesehatan, Prudential..."
@@ -5317,7 +5312,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <label className="block text-[11px] font-bold text-slate-700 mb-1">
                               Jenis Perlindungan
                             </label>
-                            <select
+                            <select name="ws96_formwizard_insItem_jenisAsuransi_52" aria-label="insItem jenisAsuransi"
                               value={insItem.jenisAsuransi || 'ASURANSI KESEHATAN'}
                               onChange={(e) =>
                                 handleUpdateAsuransi(idx, 'jenisAsuransi', e.target.value)
@@ -5335,7 +5330,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                             <label className="block text-[11px] font-bold text-slate-700 mb-1">
                               Status Kepesertaan
                             </label>
-                            <select
+                            <select name="ws96_formwizard_insItem_statusKepesertaan_53" aria-label="insItem statusKepesertaan"
                               value={insItem.statusKepesertaan || 'AKTIF'}
                               onChange={(e) =>
                                 handleUpdateAsuransi(idx, 'statusKepesertaan', e.target.value)
@@ -5354,7 +5349,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                     <div>
                       <LabelWithTooltip label="Rutin Medical Check-Up" />
-                      <select
+                      <select name="ws96_formwizard_formData_rutinMcu_54" aria-label="formData rutinMcu"
                         value={formData.rutinMcu || 'YA'}
                         onChange={(e) => handleInputChange('rutinMcu', e.target.value)}
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -5366,7 +5361,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <LabelWithTooltip label="Rentang MCU Terakhir" />
-                      <select
+                      <select name="ws96_formwizard_formData_mcuTerakhir_55" aria-label="formData mcuTerakhir"
                         value={formData.mcuTerakhir || '< 6 BULAN'}
                         onChange={(e) => handleInputChange('mcuTerakhir', e.target.value)}
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -5395,7 +5390,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <LabelWithTooltip label="Penanggungan Biaya Medis" />
-                      <select
+                      <select name="ws96_formwizard_formData_biayaPengobatanDitanggung_56" aria-label="formData biayaPengobatanDitanggung"
                         value={formData.biayaPengobatanDitanggung || 'DITANGGUNG BPJS/ASURANSI'}
                         onChange={(e) => handleInputChange('biayaPengobatanDitanggung', e.target.value)}
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -5413,7 +5408,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                         label="Alergi Obat / Makanan"
                         tooltip="Penting untuk informasi medis darurat saat kegiatan leting."
                       />
-                      <input
+                      <input name="ws96_formwizard_formData_alergiObatMakanan_95"
                         type="text"
                         placeholder="Tidak ada / Alergi seafood / Antibiotik..."
                         value={formData.alergiObatMakanan || ''}
@@ -5424,7 +5419,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div>
                       <LabelWithTooltip label="Harapan Dukungan Kesehatan Leting" />
-                      <input
+                      <input name="ws96_formwizard_formData_harapanDukunganLeting_96"
                         type="text"
                         placeholder="Saran layanan kesehatan Paguyuban..."
                         value={formData.harapanDukunganLeting || ''}
@@ -5435,7 +5430,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
 
                     <div className="sm:col-span-2">
                       <LabelWithTooltip label="Catatan Kesehatan Tambahan (Suplemen / Fisioterapi)" />
-                      <textarea
+                      <textarea name="ws96_formwizard_formData_kesehatanLainLain_97"
                         rows={2}
                         placeholder="Catatan tambahan terkait kesehatan atau kebugaran..."
                         value={formData.kesehatanLainLain || ''}
@@ -5471,7 +5466,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700">
                         Ukuran Baju / Kemeja
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_ukuranBaju_57" aria-label="formData ukuranBaju"
                         value={formData.ukuranBaju || 'XL'}
                         onChange={(e) => handleInputChange('ukuranBaju', e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -5488,7 +5483,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700">
                         Ukuran Jaket / Rompi
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_ukuranJaket_58" aria-label="formData ukuranJaket"
                         value={formData.ukuranJaket || formData.ukuranBaju || 'XL'}
                         onChange={(e) => handleInputChange('ukuranJaket', e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -5505,7 +5500,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700">
                         Ukuran Celana
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_ukuranCelana_59" aria-label="formData ukuranCelana"
                         value={formData.ukuranCelana || '34'}
                         onChange={(e) => handleInputChange('ukuranCelana', e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -5522,7 +5517,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700">
                         Ukuran Sepatu
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_ukuranSepatu_60" aria-label="formData ukuranSepatu"
                         value={formData.ukuranSepatu || '42'}
                         onChange={(e) => handleInputChange('ukuranSepatu', e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -5539,7 +5534,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                       <label className="block text-xs font-bold text-slate-700">
                         Tutup Kepala / Baret / Peci
                       </label>
-                      <select
+                      <select name="ws96_formwizard_formData_ukuranTutupKepala_61" aria-label="formData ukuranTutupKepala"
                         value={formData.ukuranTutupKepala || '58'}
                         onChange={(e) => handleInputChange('ukuranTutupKepala', e.target.value)}
                         className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm font-bold bg-white focus:ring-2 focus:ring-polri-navy focus:outline-none"
@@ -5557,7 +5552,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Catatan Ukuran Khusus / Atribut Reuni Leting (Opsional)
                     </label>
-                    <input
+                    <input name="ws96_formwizard_formData_catatanAparel_103"
                       type="text"
                       placeholder="Contoh: Kemeja lengan panjang, cutting regular fit, kaos olahraga XXL..."
                       value={formData.catatanAparel || ''}

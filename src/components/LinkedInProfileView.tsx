@@ -642,14 +642,14 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
   return (
     <div className="w-full py-2 font-sans text-slate-900 space-y-4 relative">
       {/* Hidden File Inputs for Cover & Avatar */}
-      <input
+      <input name="ws96_linkedinprofileview_input_1" aria-label="input linkedinprofileview 1"
         ref={coverInputRef}
         type="file"
         accept="image/*"
         className="hidden"
         onChange={handleCoverFileSelect}
       />
-      <input
+      <input name="ws96_linkedinprofileview_input_2" aria-label="input linkedinprofileview 2"
         ref={avatarInputRef}
         type="file"
         accept="image/*"
@@ -1281,7 +1281,7 @@ export const LinkedInProfileView: React.FC<LinkedInProfileViewProps> = ({
 
             {isEditingBio ? (
               <div className="space-y-3 pt-1">
-                <textarea
+                <textarea name="ws96_linkedinprofileview_draftBio_3"
                   value={draftBio}
                   onChange={(e) => setDraftBio(e.target.value)}
                   rows={4}

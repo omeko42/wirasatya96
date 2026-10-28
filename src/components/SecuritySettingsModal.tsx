@@ -34,6 +34,7 @@ import {
   QrCode,
   RefreshCw,
 } from 'lucide-react';
+import { AnimatedDeleteButton } from './PremiumMicroInteractions';
 
 export interface TrustedDevicePasskey {
   id: string;
@@ -1234,7 +1235,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
               <label className="block font-bold text-slate-700 mb-1">
                 Jabatan Organisasi Polri Saat Ini
               </label>
-              <input
+              <input name="ws96_securitysettingsmodal_jabatanPolri_1"
                 type="text"
                 value={jabatanPolri}
                 onChange={(e) => setJabatanPolri(e.target.value)}
@@ -1247,7 +1248,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
               <label className="block font-bold text-slate-700 mb-1">
                 Nomor WhatsApp Kedinasan / Aktif
               </label>
-              <input
+              <input name="ws96_securitysettingsmodal_noHp_1"
                 type="tel"
                 value={noHp}
                 onChange={(e) => setNoHp(e.target.value)}
@@ -1260,7 +1261,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
               <label className="block font-bold text-slate-700 mb-1">
                 Email Dinas (@polri.go.id)
               </label>
-              <input
+              <input name="ws96_securitysettingsmodal_emailDinas_2" aria-label="emailDinas"
                 type="email"
                 value={emailDinas}
                 onChange={(e) => setEmailDinas(e.target.value)}
@@ -1272,7 +1273,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
               <label className="block font-bold text-slate-700 mb-1">
                 Email Sekunder / Pribadi (Opsional)
               </label>
-              <input
+              <input name="ws96_securitysettingsmodal_emailSekunder_3"
                 type="email"
                 value={emailSekunder}
                 onChange={(e) => setEmailSekunder(e.target.value)}
@@ -1350,7 +1351,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">
                   Password Saat Ini (Opsional)
                 </label>
-                <input
+                <input autoComplete="current-password" name="ws96_securitysettingsmodal_oldPassword_4"
                   type={showPassText ? 'text' : 'password'}
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
@@ -1364,7 +1365,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
                   Password Baru <span className="text-red-600">*</span>
                 </label>
                 <div className="relative">
-                  <input
+                  <input autoComplete="new-password" name="ws96_securitysettingsmodal_newPassword_5"
                     type={showPassText ? 'text' : 'password'}
                     required
                     value={newPassword}
@@ -1390,7 +1391,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">
                   Konfirmasi Password Baru <span className="text-red-600">*</span>
                 </label>
-                <input
+                <input autoComplete="new-password" name="ws96_securitysettingsmodal_confirmPassword_6"
                   type={showPassText ? 'text' : 'password'}
                   required
                   value={confirmPassword}
@@ -1475,7 +1476,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">
                   Masukkan Kode OTP 6-Digit
                 </label>
-                <input
+                <input name="ws96_securitysettingsmodal_emailOtpInput_7"
                   type="text"
                   maxLength={6}
                   required
@@ -1547,7 +1548,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
                   PIN Keamanan 6-Digit Baru
                 </label>
                 <div className="relative">
-                  <input
+                  <input autoComplete="current-password" name="ws96_securitysettingsmodal_pinInput_8"
                     type={showPinText ? 'text' : 'password'}
                     inputMode="numeric"
                     maxLength={6}
@@ -1575,7 +1576,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">
                   Konfirmasi PIN 6-Digit
                 </label>
-                <input
+                <input autoComplete="new-password" name="ws96_securitysettingsmodal_pinConfirmInput_9"
                   type={showPinText ? 'text' : 'password'}
                   inputMode="numeric"
                   maxLength={6}
@@ -1684,7 +1685,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">
                   Kode Otentikasi 6-Digit dari Aplikasi
                 </label>
-                <input
+                <input name="ws96_securitysettingsmodal_totpVerifyInput_10"
                   type="text"
                   inputMode="numeric"
                   maxLength={6}
@@ -1786,14 +1787,13 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleRevokeDevice(dev.id, dev.deviceName)}
-                      className="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold text-[11px] flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Cabut Izin</span>
-                    </button>
+                    <AnimatedDeleteButton
+                      label="Cabut Izin"
+                      confirmLabel="Yakin Cabut?"
+                      size="xs"
+                      onDelete={() => handleRevokeDevice(dev.id, dev.deviceName)}
+                      className="shrink-0"
+                    />
                   </div>
                 ))
               )}
@@ -1807,7 +1807,7 @@ export const SecuritySettingsPanel: React.FC<SecuritySettingsPanelProps> = ({
                 Daftarkan Perangkat / Gawai Baru (Passkey Biometrik)
               </label>
               <div className="flex items-center gap-2">
-                <input
+                <input name="ws96_securitysettingsmodal_customDeviceName_11"
                   type="text"
                   value={customDeviceName}
                   onChange={(e) => setCustomDeviceName(e.target.value)}

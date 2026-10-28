@@ -18,9 +18,9 @@ export async function POST(req: NextRequest) {
     const { id, nrp, action, verifierName, role } = body;
 
     const targetId = id || nrp;
-    if (!targetId || !action) {
+    if (!targetId || typeof targetId !== 'string' || !action || typeof action !== 'string') {
       return NextResponse.json(
-        { success: false, message: 'ID/NRP dan aksi (APPROVE / REJECT) wajib disertakan.' },
+        { success: false, message: 'ID/NRP dan aksi (APPROVE / REJECT) wajib disertakan berupa teks valid.' },
         { status: 400 }
       );
     }

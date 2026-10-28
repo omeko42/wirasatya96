@@ -239,7 +239,7 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     NRP / NIP Personel <span className="text-red-700">*</span>
                   </label>
-                  <input
+                  <input name="ws96_registrationmodal_nrp_1"
                     type="text"
                     required
                     placeholder="Contoh: 74090123"
@@ -254,7 +254,7 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     Pangkat <span className="text-red-700">*</span>
                   </label>
-                  <select
+                  <select name="ws96_registrationmodal_pangkat_2" aria-label="pangkat"
                     value={pangkat}
                     onChange={(e) => setPangkat(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-red-800 focus:outline-none"
@@ -271,7 +271,7 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Nama Lengkap &amp; Gelar <span className="text-red-700">*</span>
                 </label>
-                <input
+                <input name="ws96_registrationmodal_nama_3"
                   type="text"
                   required
                   placeholder="Contoh: Kombes Pol. Bambang Sugiyono, S.I.K., M.H."
@@ -334,7 +334,7 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
                   </label>
                   <div className="relative">
                     <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
+                    <input name="ws96_registrationmodal_email_4"
                       type="email"
                       placeholder={nrp ? `${nrp}@polri.go.id` : 'nrp@polri.go.id'}
                       value={email}
@@ -348,7 +348,7 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     Email Sekunder / Pribadi <span className="text-slate-400 font-normal">(Opsional)</span>
                   </label>
-                  <input
+                  <input name="ws96_registrationmodal_secondaryEmail_5"
                     type="email"
                     placeholder="Contoh: superadmin@example.com"
                     value={secondaryEmail}
@@ -363,7 +363,7 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   No. Handphone / WhatsApp Aktif
                 </label>
-                <input
+                <input name="ws96_registrationmodal_noHp_6"
                   type="tel"
                   placeholder="Contoh: 081298765432"
                   value={noHp}
@@ -377,7 +377,7 @@ export const RegistrationModal: React.FC<RegistrationModalProps> = ({
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Keterangan / Batalyon (Opsional)
                 </label>
-                <textarea
+                <textarea name="ws96_registrationmodal_alasanDaftar_7"
                   rows={2}
                   placeholder="Catatan leting / pleton Akpol 1996 atau keterangan ADC..."
                   value={alasanDaftar}

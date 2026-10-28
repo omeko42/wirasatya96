@@ -38,6 +38,112 @@ const WS96_MEDIA_SALT = 'WS96_BARESKRIM_SECURE_LEAK_TRACKER_2026';
 const AUDIT_STORAGE_KEY = 'ws96_media_leakage_audit_v1';
 
 /**
+ * 4-Layer Server/Client Magic-Bytes MIME Verification (Anti-Spoofing / Anti-RCE SOP)
+ * Verifies actual binary header bytes of a file rather than trusting `file.name` or `file.type`.
+ * Rejects disguised scripts (`<?php`, `<script`, `#!/`) hidden inside `.jpg`/`.png` files.
+ */
+export async function verifyFileMagicBytes(file: File): Promise<{
+  valid: boolean;
+  detectedMime: string;
+  reason?: string;
+}> {
+  try {
+    const slice = file.slice(0, 512);
+    const buf = await slice.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    if (bytes.length < 4) {
+      return { valid: false, detectedMime: 'unknown', reason: 'File terlalu kecil atau korup' };
+    }
+
+    // Check for disguised executable script headers/tags in the first 512 bytes
+    const asciiPreview = new TextDecoder('utf-8', { fatal: false }).decode(bytes).toLowerCase();
+    if (
+      asciiPreview.includes('<?php') ||
+      asciiPreview.includes('<script') ||
+      asciiPreview.startsWith('#!/') ||
+      asciiPreview.includes('eval(')
+    ) {
+      return {
+        valid: false,
+        detectedMime: 'application/x-executable-spoof',
+        reason: 'Terdeteksi injeksi kode/script di dalam header file (MIME Spoofing ditolak)',
+      };
+    }
+
+    // Magic bytes signatures
+    // JPEG: FF D8 FF
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+      return { valid: true, detectedMime: 'image/jpeg' };
+    }
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    if (
+      bytes[0] === 0x89 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x4e &&
+      bytes[3] === 0x47
+    ) {
+      return { valid: true, detectedMime: 'image/png' };
+    }
+    // GIF: 47 49 46 38 (GIF8)
+    if (
+      bytes[0] === 0x47 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x38
+    ) {
+      return { valid: true, detectedMime: 'image/gif' };
+    }
+    // WebP: RIFF....WEBP (52 49 46 46 ... 57 45 42 50)
+    if (
+      bytes[0] === 0x52 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x46 &&
+      bytes[8] === 0x57 &&
+      bytes[9] === 0x45 &&
+      bytes[10] === 0x42 &&
+      bytes[11] === 0x50
+    ) {
+      return { valid: true, detectedMime: 'image/webp' };
+    }
+    // PDF: 25 50 44 46 (%PDF)
+    if (
+      bytes[0] === 0x25 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x44 &&
+      bytes[3] === 0x46
+    ) {
+      return { valid: true, detectedMime: 'application/pdf' };
+    }
+    // ZIP / DOCX / XLSX: 50 4B 03 04
+    if (
+      bytes[0] === 0x50 &&
+      bytes[1] === 0x4b &&
+      bytes[2] === 0x03 &&
+      bytes[3] === 0x04
+    ) {
+      return { valid: true, detectedMime: 'application/zip' };
+    }
+
+    // If user claimed it's an image (.jpg/.png/.webp) but magic bytes don't match any image format -> REJECT!
+    const claimedImage =
+      (file.type && file.type.startsWith('image/')) ||
+      /\.(jpe?g|png|webp|gif)$/i.test(file.name || '');
+    if (claimedImage) {
+      return {
+        valid: false,
+        detectedMime: 'unknown',
+        reason: 'Isi biner file bukan gambar asli (klaim ekstensi/MIME tidak sesuai isi file)',
+      };
+    }
+
+    return { valid: true, detectedMime: file.type || 'application/octet-stream' };
+  } catch {
+    return { valid: true, detectedMime: file.type || 'application/octet-stream' };
+  }
+}
+
+/**
  * Formats current date/time as YYYYMMDD-HHmmss for `WS-hash_enkripsi-date` filenames.
  */
 export function formatMediaDateStamp(date: Date = new Date()): string {
@@ -353,10 +459,15 @@ export function processSecureImageUpload(
       : kindOrOpts.actorNrp || kindOrOpts.ownerNrp || actorNrpParam || 'ANON';
 
   return new Promise((resolve, reject) => {
-    if (file.type && !file.type.startsWith('image/')) {
-      resolve(renderCompactDocumentBadge(file.name, file.size || 1024, actorNrp, kind));
-      return;
-    }
+    verifyFileMagicBytes(file).then((mimeCheck) => {
+      if (!mimeCheck.valid) {
+        reject(new Error(mimeCheck.reason || 'File ditolak oleh pemeriksaan keamanan MIME Magic Bytes'));
+        return;
+      }
+      if (!mimeCheck.detectedMime.startsWith('image/')) {
+        resolve(renderCompactDocumentBadge(file.name, file.size || 1024, actorNrp, kind));
+        return;
+      }
 
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Gagal membaca file gambar'));
@@ -516,6 +627,7 @@ export function processSecureImageUpload(
       img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
+    });
   });
 }
 
